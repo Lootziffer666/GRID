@@ -24,9 +24,10 @@ For the full product brief, see `instructions.md`.
 - **Gate 2 — Large File Doctor (pure domain): PASS.**
 - **Gate 3 — GitHub auth + repository/branch listing: PASS.**
 - **Gate 4 — RepoTarget + presets: PASS (CI-verified).**
-- **Gate 5 — UploadPlan + preview UI: not implemented as a separate handoff (see `knownbugs.md` BUG-20260426-008).**
+- **Gate 5 — UploadPlan + preview UI: PARTIAL (domain planning + preview screen landed; SAF wiring and editable commit message deferred).**
 - **Gate 6 — single-file commit via Git Data API: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).**
 - **Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 6).**
+- **Gate 8 — robustness / error mapping: PARTIAL (pure-domain error mapper landed; HTTP client not wired so runtime mapping is exercised by tests only).**
 
 ### Gate 1 completed
 
@@ -63,6 +64,22 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
 - Added DataStore-backed app settings store for non-secret repo target/preset data.
 - No upload/commit/push behavior added.
 
+### Gate 5 implemented
+
+- Pure-Kotlin `UploadPlanBuilder` in `:domain/upload/` combines a `FilePlan`
+  (Gate 1) and Gate 2 `SizeDiagnosis` results into an `UploadPlan` pre-grouped
+  by severity (`safeEntries`, `warningEntries`, `blockedEntries`,
+  `deferredEntries`, `ignoredEntries`).
+- `UploadPlan.isBlockedForCommit` is true when any blocked entry is present —
+  gates the Confirm action in the preview screen.
+- `CommitMessageSuggester` generates a short human-readable commit message from
+  the safe + warning entries. Result is an editable starting point.
+- `UploadPreviewScreen` Compose screen renders each severity group, the target
+  repository, and the suggested commit message. Confirm button is disabled when
+  blocked or when commit wiring is absent (Gates 6 / 7). No GitHub write.
+- `Gate5PreviewSample` provides a deterministic `UploadPlan` for `@Preview` only.
+- 16 new domain tests (`./gradlew :domain:test` — 93 tests, 0 failures).
+
 ### Gate 6 implemented
 
 - Pure-Kotlin `SingleFileCommitOrchestrator` in `:domain/github/` runs the safe
@@ -80,7 +97,7 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
   pattern: token-gated, delegates to the domain orchestrator.
 - HTTP client implementation of `GithubGitDataApi` is intentionally deferred
   (same pattern as `GithubOAuthApi` / `GithubRepositoryApi` from Gate 3).
-- 16 new orchestrator tests (`./gradlew :domain:test` — 57 tests, 0 failures).
+- 16 new orchestrator tests (`./gradlew :domain:test` — 57 tests, 0 failures at Gate 6 merge).
 
 ### Gate 7 implemented
 
@@ -110,7 +127,28 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
 - HTTP client implementation of `GithubGitDataApi` remains intentionally
   deferred (same pattern as Gate 3 / Gate 6).
 - 20 new orchestrator tests (`./gradlew :domain:test` — 77 tests, 0
-  failures).
+  failures at Gate 7 merge).
+
+### Gate 8 implemented
+
+- Pure-Kotlin `PainkillerErrorMapper` in `:domain/error/` maps every Gate 6
+  and Gate 7 failure variant, plus Gate 3 auth/listing failures, to a
+  `HumanReadableError` with a `RetrySafety` classification and a
+  `RecoveryHint`.
+- `RetrySafety` distinguishes `SAFE_TO_RETRY` (network, tap to retry),
+  `REQUIRES_PLAN_REFRESH` (SHA mismatch — plan must be rebuilt before any
+  new write), and `NOT_RETRYABLE` (auth, permissions, invalid input).
+- `RecoveryHint` surfaces the most useful next step per failure type
+  (`SIGN_IN`, `CHOOSE_DIFFERENT_BRANCH`, `REFRESH_PLAN`,
+  `CHECK_PERMISSIONS`, `CHECK_NETWORK`, `REMOVE_LARGE_FILES`,
+  `FIX_FILE_PATHS`, `NO_ACTION`).
+- Token sanitization: `PainkillerErrorMapper.sanitize()` replaces known
+  GitHub token prefixes (`ghp_`, `ghs_`, `gho_`, `github_pat_`, `Bearer`)
+  with `[token redacted]` before any text can reach the UI or logs.
+- Pre-commit blocked-file path: `mapBlockedForCommit()` covers the Gate 5
+  upload-plan gate where large files prevent the operation.
+- No `force=true`. No silent overwrite. No automatic write retry.
+- 36 new mapper tests (`./gradlew :domain:test` — 129 tests, 0 failures).
 
 
 ## Repository structure
@@ -175,7 +213,10 @@ Then:
 - ZIP archive byte extraction itself happens at the SAF/`:app` boundary;
   the Gate 7 orchestrator validates and commits already-decoded entries
   (ZIP-Slip prevention is enforced regardless of the source).
-- No preview screen.
+- `PainkillerErrorMapper` maps failures to `HumanReadableError` in the domain
+  layer, but the HTTP client (which would produce runtime errors) is not wired
+  yet; error mapping is exercised by unit tests only until the HTTP layer lands.
+- No preview screen (Gate 5 has the preview Compose screen; navigation wiring is pending).
 - Preset selection UI is not wired yet (storage/model support exists).
 - The primary action button in the app shell is intentionally disabled.
 
