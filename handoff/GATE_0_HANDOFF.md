@@ -205,5 +205,5 @@ domain/src/test/kotlin/com/painkiller/domain/github/RepoCoordinatesTest.kt
 
 ## Commit
 
-- hash: (filled by the commit step below)
-- message: `Gate 0: project skeleton, theme, components, GitHub model spike`
+- hash: `15ac2d1ccc9f147cb44328cce42d2a6ddb6b5277`
+- message: `Gate 0: partial Android skeleton and domain verification`
