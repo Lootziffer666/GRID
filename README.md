@@ -27,6 +27,7 @@ For the full product brief, see `instructions.md`.
 - **Gate 5 — UploadPlan + preview UI: PARTIAL (domain planning + preview screen landed; SAF wiring and editable commit message deferred).**
 - **Gate 6 — single-file commit via Git Data API: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).**
 - **Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 6).**
+- **Gate 8 — robustness / error mapping: PARTIAL (pure-domain error mapper landed; HTTP client not wired so runtime mapping is exercised by tests only).**
 
 ### Gate 1 completed
 
@@ -126,7 +127,28 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
 - HTTP client implementation of `GithubGitDataApi` remains intentionally
   deferred (same pattern as Gate 3 / Gate 6).
 - 20 new orchestrator tests (`./gradlew :domain:test` — 77 tests, 0
-  failures).
+  failures at Gate 7 merge).
+
+### Gate 8 implemented
+
+- Pure-Kotlin `PainkillerErrorMapper` in `:domain/error/` maps every Gate 6
+  and Gate 7 failure variant, plus Gate 3 auth/listing failures, to a
+  `HumanReadableError` with a `RetrySafety` classification and a
+  `RecoveryHint`.
+- `RetrySafety` distinguishes `SAFE_TO_RETRY` (network, tap to retry),
+  `REQUIRES_PLAN_REFRESH` (SHA mismatch — plan must be rebuilt before any
+  new write), and `NOT_RETRYABLE` (auth, permissions, invalid input).
+- `RecoveryHint` surfaces the most useful next step per failure type
+  (`SIGN_IN`, `CHOOSE_DIFFERENT_BRANCH`, `REFRESH_PLAN`,
+  `CHECK_PERMISSIONS`, `CHECK_NETWORK`, `REMOVE_LARGE_FILES`,
+  `FIX_FILE_PATHS`, `NO_ACTION`).
+- Token sanitization: `PainkillerErrorMapper.sanitize()` replaces known
+  GitHub token prefixes (`ghp_`, `ghs_`, `gho_`, `github_pat_`, `Bearer`)
+  with `[token redacted]` before any text can reach the UI or logs.
+- Pre-commit blocked-file path: `mapBlockedForCommit()` covers the Gate 5
+  upload-plan gate where large files prevent the operation.
+- No `force=true`. No silent overwrite. No automatic write retry.
+- 36 new mapper tests (`./gradlew :domain:test` — 129 tests, 0 failures).
 
 
 ## Repository structure
@@ -191,7 +213,10 @@ Then:
 - ZIP archive byte extraction itself happens at the SAF/`:app` boundary;
   the Gate 7 orchestrator validates and commits already-decoded entries
   (ZIP-Slip prevention is enforced regardless of the source).
-- No preview screen.
+- `PainkillerErrorMapper` maps failures to `HumanReadableError` in the domain
+  layer, but the HTTP client (which would produce runtime errors) is not wired
+  yet; error mapping is exercised by unit tests only until the HTTP layer lands.
+- No preview screen (Gate 5 has the preview Compose screen; navigation wiring is pending).
 - Preset selection UI is not wired yet (storage/model support exists).
 - The primary action button in the app shell is intentionally disabled.
 
