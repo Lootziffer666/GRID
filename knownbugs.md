@@ -93,3 +93,20 @@ Action:
   permission, DataExtraction/BackupContent), and standard Android files
   (`proguard-rules.pro`, `backup_rules.xml`, `data_extraction_rules.xml`,
   `colors.xml`) merged in from Run A.
+
+---
+
+## BUG-20260426-004
+
+Status: OPEN
+Gate: 1
+Severity: MEDIUM
+Summary: Local Gate 1 verification cannot complete `:app:assembleDebug` because Android SDK is not configured in this execution environment.
+
+Evidence:
+- `./gradlew :app:assembleDebug` on 2026-04-26 failed with: "SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file at '/workspace/PAINKILLER/local.properties'."
+- `./gradlew :domain:test` and `./gradlew :domain:build` both succeeded in the same run.
+
+Action:
+- Keep Gate 1 marked `PARTIAL` for this local run.
+- Re-run `./gradlew :app:assembleDebug` on a machine/runner with Android SDK (`platforms;android-35` and build-tools) before promoting Gate 1 to `PASS`.

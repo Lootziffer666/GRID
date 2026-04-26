@@ -20,43 +20,39 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 0 — project skeleton + UI/API spike: PARTIAL.**
+**Gate 1 — file intake without GitHub: PARTIAL.**
 
-Code deliverables are complete; the only outstanding item is an end-to-end
-Android assembly check on a machine with the Android SDK installed.
+Gate 1 domain planning is implemented and verified, but this local environment
+still cannot execute `:app:assembleDebug` because no Android SDK is configured.
 
-What is in place in Gate 0:
+What is in place through Gate 1:
 
 - Android / Kotlin / Jetpack Compose project skeleton (`:app` module).
-- Pure-Kotlin domain module (`:domain`) holding:
-  - GitHub Git Data API request/response models (kotlinx.serialization).
-  - `GithubGitDataApi` and `GithubRepositoryApi` interface contracts (no
-    implementation, no network calls).
-  - `RepoCoordinates` value type with narrow validation.
-  - `DiagnosticSeverity` enum (consumed by the UI severity badge).
-- Painkiller theme: colors and shapes lifted directly from CATALON-GUARD as
-  specified in `instructions.md` (`#FF5A5F`, `#00A699`, `#F7B731`, dark and
-  light surfaces, 4 / 12 / 24 dp shape grammar, 8 / 12 / 16 / 20 dp spacing).
-- Reusable Compose components: `PainkillerSeverityBadge`, `PainkillerInfoCard`,
-  `PainkillerWarningCard`, `PainkillerErrorBanner`,
-  `PainkillerPrimaryActionButton`.
-- Minimal app shell: `MainActivity` + `PainkillerApp` with a Material 3
-  Scaffold, a TopAppBar, an info card, a deferred warning card, and a
-  disabled primary action button.
-- Package skeletons for `data.github`, `data.files`, `data.zip`,
-  `data.settings`, `data.security`, and `ui.screens`.
-- 9 unit tests in `:domain` covering serialization round-trips and
-  `RepoCoordinates` validation. All pass.
+- Pure-Kotlin domain module (`:domain`) with:
+  - GitHub Git Data API contracts/models from Gate 0.
+  - `PathValidation` for safe repo path normalization.
+  - Gate 1 file intake models:
+    - `SourceKind`, `SelectedSource`, `SelectedSourceItem`
+    - `IgnoreRule`, `DefaultIgnoreRules`
+    - `PlannedFile`, `FilePlan`, `FilePlanIssue`
+    - `FilePlanBuilder` with deterministic ordering, duplicate detection,
+      unsafe path rejection, and ignore-rule application.
+- Android-facing Gate 1 SAF boundary interface (`SafSourceIntake`) in `:app`
+  for single file / multiple files / folder / ZIP intake wiring.
+- Gate 1 unit tests in `:domain` covering:
+  - single/multiple/folder/ZIP sources
+  - root and nested target paths
+  - unsafe target path rejection
+  - default ignore rules
+  - duplicate normalized repo paths
+  - empty source rejection
+  - deterministic file ordering
 
-Why `PARTIAL`, not `PASS`: the sleep-mode environment used to assemble Gate 0
-does not have an Android SDK installed, so `./gradlew :app:assembleDebug`
-cannot run there. The Gradle / AGP configuration itself is valid (`:app:help`
-configures cleanly). See `handoff/GATE_0_HANDOFF.md` and `knownbugs.md`
-(BUG-20260426-001) for the exact details and the next concrete action.
+See `handoff/GATE_1_HANDOFF.md` for exact implementation and check output.
 
 ## Repository structure
 
-```
+```text
 PAINKILLER/
 ├── README.md
 ├── claude.md                 # working instructions for Claude Code / future contributors
@@ -106,9 +102,6 @@ Painkiller targets:
 ./gradlew :domain:build
 ```
 
-These run anywhere with JDK 17+ and an internet connection (first run
-downloads the Gradle and Maven dependencies).
-
 ### Android assembly (Android SDK required)
 
 Set `ANDROID_HOME`, or create `local.properties` in the repository root:
@@ -124,13 +117,9 @@ Then:
 ./gradlew :app:testDebugUnitTest
 ```
 
-`./gradlew :app:assembleDebug` is currently expected to succeed on any
-machine with a `compileSdk = 35` Android SDK installed. It has not yet been
-verified in this build environment because no Android SDK is present.
+## Known limitations (post Gate 1)
 
-## Known limitations (Gate 0)
-
-- No file picker.
+- SAF implementation behind `SafSourceIntake` is not wired yet (interface only).
 - No GitHub authentication.
 - No upload, commit, or push behavior.
 - No preview screen.
@@ -138,8 +127,8 @@ verified in this build environment because no Android SDK is present.
 - No presets.
 - The primary action button in the app shell is intentionally disabled.
 
-These all arrive in later gates. Painkiller is built one gate at a time and
-no gate ships features that belong to a later gate.
+These arrive in later gates. Painkiller is built one gate at a time and no gate
+ships features that belong to a later gate.
 
 ## Out of scope (whole project)
 
@@ -154,9 +143,7 @@ no gate ships features that belong to a later gate.
 
 - `instructions.md` — full product brief, gate plan, error message style,
   and CATALON-GUARD UI grammar.
-- `handoff/GATE_0_HANDOFF.md` — what was implemented this run, what was
-  verified, and what is blocked.
-- `knownbugs.md` — every known issue, including the missing-Android-SDK
-  blocker for `:app:assembleDebug` in this environment.
-- `templates/gated-android-project/README.md` — reusable structure for
-  starting other gated Android projects in this style.
+- `handoff/GATE_1_HANDOFF.md` — Gate 1 implementation status and command output.
+- `knownbugs.md` — structured bug/risk log including local Android SDK blocker.
+- `templates/gated-android-project/README.md` — reusable structure for starting
+  other gated Android projects in this style.
