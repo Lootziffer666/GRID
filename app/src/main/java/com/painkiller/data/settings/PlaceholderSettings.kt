@@ -1,5 +1,5 @@
 package com.painkiller.data.settings
 
-// Gate 0 placeholder. DataStore-backed presets (last-used repo/branch/path)
-// will be added in Gate 4.
+// Gate 4 note:
+// Repo/branch/target-path settings storage now exists via RepoTargetSettingsStore.
 internal object PlaceholderSettings

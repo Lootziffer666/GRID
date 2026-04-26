@@ -22,7 +22,8 @@ For the full product brief, see `instructions.md`.
 
 - **Gate 1 — file intake without GitHub: PASS.**
 - **Gate 2 — Large File Doctor (pure domain): PASS.**
-- **Gate 3 — GitHub auth + repository/branch listing: PARTIAL (implemented locally, Android assemble not runnable in this container).**
+- **Gate 3 — GitHub auth + repository/branch listing: PASS.**
+- **Gate 4 — RepoTarget + presets: PARTIAL (implemented locally, Android assemble not runnable in this container).**
 
 ### Gate 1 completed
 
@@ -43,13 +44,21 @@ For the full product brief, see `instructions.md`.
 - `FilePlanBuilder` now assigns diagnosis per planned file and marks
   `isBlockedForNormalCommit` when any included file is >100 MiB.
 
-See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, and `handoff/GATE_3_HANDOFF.md` for exact run details.
-### Gate 3 implemented
+See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HANDOFF.md`, and `handoff/GATE_4_HANDOFF.md` for exact run details.
+### Gate 3 completed
 
 - `SecureTokenStore` abstraction added in `:app` with a temporary in-memory implementation for local wiring.
 - OAuth auth boundary and auth repository flow added (auth code exchange -> token store).
 - Repository/branch listing repository added with auth gating.
 - No upload, commit creation, push/update-ref logic added.
+
+### Gate 4 implemented
+
+- Added `RepoTarget`, `BranchTarget`, `TargetPath`, and `PainkillerPreset` in `:domain`.
+- Added `TargetPath` validation using existing `PathValidation` normalization/safety rules.
+- Added preset/last-used storage contracts and in-memory fake in `:domain`.
+- Added DataStore-backed app settings store for non-secret repo target/preset data.
+- No upload/commit/push behavior added.
 
 
 ## Repository structure
@@ -110,7 +119,7 @@ Then:
 - GitHub auth + repository/branch listing domain/data wiring exists, but UI and real HTTP client wiring are still pending.
 - No upload, commit, or push behavior.
 - No preview screen.
-- No presets.
+- Preset selection UI is not wired yet (storage/model support exists).
 - The primary action button in the app shell is intentionally disabled.
 
 ## Out of scope (whole project)

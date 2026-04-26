@@ -132,16 +132,33 @@ Action:
 
 ## BUG-20260426-006
 
-Status: OPEN
+Status: FIXED
 Gate: 3
 Severity: MEDIUM
-Summary: Local Gate 3 verification cannot complete `:app:assembleDebug` because Android SDK is not configured in this execution environment.
+Summary: Gate 3 Android assembly verification is now covered by CI and no longer blocks Gate 3 status.
+
+Evidence:
+- Initial local Gate 3 run failed without Android SDK (`SDK location not found`).
+- User confirmed previous gates 0–3 are `PASS` and build is green.
+
+Action:
+- Fixed by CI-backed Android SDK verification and Gate 3 promotion to `PASS`.
+- No further Gate 3 action required.
+
+---
+
+## BUG-20260426-007
+
+Status: OPEN
+Gate: 4
+Severity: MEDIUM
+Summary: Local Gate 4 verification cannot complete `:app:assembleDebug` because Android SDK is not configured in this execution environment.
 
 Evidence:
 - `./gradlew :app:assembleDebug` on 2026-04-26 failed with: "SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file at '/workspace/PAINKILLER/local.properties'."
 - `./gradlew :domain:test` and `./gradlew :domain:build` succeeded in the same run.
 
 Action:
-- Keep Gate 3 marked `PARTIAL` for this local run.
-- Re-run `./gradlew :app:assembleDebug` on CI or SDK-enabled runner before promoting Gate 3 to `PASS`.
+- Keep Gate 4 marked `PARTIAL` for this local run.
+- Re-run `./gradlew :app:assembleDebug` on CI or SDK-enabled runner before promoting Gate 4 to `PASS`.
 
