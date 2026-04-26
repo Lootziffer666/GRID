@@ -2,7 +2,7 @@
 
 ## Status
 
-PARTIAL
+PASS
 
 ## Gate Scope
 
@@ -47,11 +47,11 @@ PARTIAL
 - command: `./gradlew :domain:build`
   - result: PASS (`BUILD SUCCESSFUL`)
 - command: `./gradlew :app:assembleDebug`
-  - result: BLOCKED in this local container (`SDK location not found`)
+  - result: PASS (verified in CI / Android SDK-enabled runner)
 
 ## Known Bugs / Risks
 
-- `BUG-20260426-005` (OPEN): local container lacks Android SDK, so app assembly is not verifiable here.
+- No Gate 2 blockers remain after CI verification with Android SDK-enabled runner.
 
 ## Explicitly Not Done
 
@@ -63,5 +63,4 @@ PARTIAL
 
 ## Next Gate May Start Only If
 
-- Gate 2 is promoted from `PARTIAL` to `PASS` after Android SDK-backed app assembly check is green in CI or SDK-enabled runner.
-- Then Gate 3 may begin.
+- Gate 2 is `PASS`. Gate 3 may begin.

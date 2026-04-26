@@ -21,7 +21,8 @@ For the full product brief, see `instructions.md`.
 ## Current status
 
 - **Gate 1 — file intake without GitHub: PASS.**
-- **Gate 2 — Large File Doctor (pure domain): PARTIAL (implemented locally, Android assemble not runnable in this container).**
+- **Gate 2 — Large File Doctor (pure domain): PASS.**
+- **Gate 3 — GitHub auth + repository/branch listing: PARTIAL (implemented locally, Android assemble not runnable in this container).**
 
 ### Gate 1 completed
 
@@ -31,7 +32,7 @@ For the full product brief, see `instructions.md`.
   duplicate path detection.
 - Android-facing SAF boundary interface (`SafSourceIntake`) as Gate 1 adapter seam.
 
-### Gate 2 implemented
+### Gate 2 completed
 
 - Pure domain `LargeFileDoctor` with threshold logic:
   - `>25 MB` warning
@@ -42,7 +43,14 @@ For the full product brief, see `instructions.md`.
 - `FilePlanBuilder` now assigns diagnosis per planned file and marks
   `isBlockedForNormalCommit` when any included file is >100 MiB.
 
-See `handoff/GATE_1_HANDOFF.md` and `handoff/GATE_2_HANDOFF.md` for exact run details.
+See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, and `handoff/GATE_3_HANDOFF.md` for exact run details.
+### Gate 3 implemented
+
+- `SecureTokenStore` abstraction added in `:app` with a temporary in-memory implementation for local wiring.
+- OAuth auth boundary and auth repository flow added (auth code exchange -> token store).
+- Repository/branch listing repository added with auth gating.
+- No upload, commit creation, push/update-ref logic added.
+
 
 ## Repository structure
 
@@ -99,7 +107,7 @@ Then:
 ## Known limitations
 
 - SAF implementation behind `SafSourceIntake` is not wired yet (interface only).
-- No GitHub authentication.
+- GitHub auth + repository/branch listing domain/data wiring exists, but UI and real HTTP client wiring are still pending.
 - No upload, commit, or push behavior.
 - No preview screen.
 - No presets.
