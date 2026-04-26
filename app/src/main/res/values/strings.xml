@@ -4,4 +4,7 @@
     <string name="gate0_headline">Painkiller</string>
     <string name="gate0_subhead">Gate 0 — project skeleton</string>
     <string name="gate0_body">This is a foundation build. File intake, GitHub auth, preview, and upload are not implemented yet. Each later gate will add one capability behind explicit confirmation.</string>
+    <string name="placeholder_title">Painkiller</string>
+    <string name="placeholder_subtitle">GitHub upload skeleton — Gate 0</string>
+    <string name="placeholder_body">No upload, no auth, no file picker yet. Gate 0 ships only the project skeleton, theme, and reusable components.</string>
 </resources>

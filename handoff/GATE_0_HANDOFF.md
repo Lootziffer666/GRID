@@ -4,15 +4,16 @@
 
 PARTIAL
 
-Code deliverables for Gate 0 are in place. The verifiable subset — the
-pure-Kotlin `:domain` module — builds and all 9 unit tests pass. AGP
-8.7.3 configures the Android `:app` module cleanly (`:app:help` succeeds).
-The Android assembly check (`:app:assembleDebug`) was not executed in
-this run because the sleep-mode environment does not have an Android SDK
-installed; this is an environmental limit, not a project defect. Per
-explicit user direction, missing `:app:assembleDebug` is not treated as
-a hard stop for Gate 0, and Gate 1 is permitted to begin once this
-partial state is committed and pushed.
+Code deliverables for Gate 0 are in place. This commit represents the
+merged best of two parallel Gate 0 runs (see `knownbugs.md`
+BUG-20260426-003). The pure-Kotlin `:domain` module builds and **19/19
+unit tests pass** (`./gradlew :domain:test`). AGP 8.7.3 configures the
+Android `:app` module cleanly (`:app:help` succeeds). The Android
+assembly check (`:app:assembleDebug`) was not executed in this run
+because the sleep-mode environment does not have an Android SDK installed;
+this is an environmental limit, not a project defect. Per explicit user
+direction, missing `:app:assembleDebug` is not treated as a hard stop for
+Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
 
 ## Branch
 
@@ -76,13 +77,36 @@ partial state is committed and pushed.
     package markers naming the gate that will fill each package.
   - `ui/screens/PlaceholderScreens.kt` — package marker for upload-flow
     screens (Gates 1+).
-  - `res/values/strings.xml`, `res/values/themes.xml` — minimal Android
-    resources required by the manifest.
+  - `res/values/strings.xml`, `res/values/themes.xml`,
+    `res/values/colors.xml` — Android resources; `colors.xml` provides
+    `painkiller_dark_background` for the Activity window before Compose
+    draws its first frame; `themes.xml` references it via `@color/...`.
+  - `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` —
+    explicit opt-out of Android cloud backup and device transfer. Token
+    storage (Gate 3) uses Android Keystore and must never be backed up.
+  - `proguard-rules.pro` — keeps kotlinx.serialization metadata under
+    R8 minification.
+  - `PainkillerApplication.kt` — empty `Application` subclass, registered
+    in the manifest via `android:name`. Allows later gates to initialize
+    singletons safely.
+  - `AndroidManifest.xml` updated with: `INTERNET` permission (needed from
+    Gate 6+), `android:name=".PainkillerApplication"`, and
+    `android:dataExtractionRules` / `android:fullBackupContent` references.
+  - `ui/theme/Type.kt` updated with explicit type scale (titleLarge,
+    titleMedium, bodyLarge, bodyMedium, labelLarge, labelSmall) instead of
+    the default empty `Typography()`.
   - `app/src/test/java/com/painkiller/SmokeTest.kt` — confirms `:domain`
     is reachable from `:app`.
+- `:domain` additions from merge:
+  - `domain/path/PathValidation.kt` — `normalizeRepoPath` / `isSafeRepoPath`
+    pure utilities. Gate 1/4 integration lands in those gates; placed in
+    `:domain` now so it is testable without the Android SDK.
+  - `domain/src/test/.../path/PathValidationTest.kt` — 9 tests.
+  - `domain/src/test/.../model/DiagnosticSeverityTest.kt` — 1 test.
 - Root documentation:
   - `claude.md` — gate discipline, scope, safety rules, build commands.
-  - `knownbugs.md` — entry format and the two Gate 0 entries.
+  - `knownbugs.md` — entry format and the three Gate 0 entries (including
+    BUG-20260426-003 documenting the dual-run merge).
   - `README.md` — project overview, current Gate 0 status, repository
     structure, build instructions, known limitations.
   - `templates/gated-android-project/README.md` — reusable template
@@ -127,8 +151,13 @@ app/src/main/java/com/painkiller/ui/theme/Shape.kt
 app/src/main/java/com/painkiller/ui/theme/Spacing.kt
 app/src/main/java/com/painkiller/ui/theme/Theme.kt
 app/src/main/java/com/painkiller/ui/theme/Type.kt
+app/src/main/java/com/painkiller/PainkillerApplication.kt
 app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
+app/src/main/res/values/colors.xml
+app/src/main/res/xml/backup_rules.xml
+app/src/main/res/xml/data_extraction_rules.xml
+app/proguard-rules.pro
 app/src/test/java/com/painkiller/SmokeTest.kt
 
 domain/build.gradle.kts
@@ -136,44 +165,50 @@ domain/src/main/kotlin/com/painkiller/domain/github/GitDataModels.kt
 domain/src/main/kotlin/com/painkiller/domain/github/GithubGitDataApi.kt
 domain/src/main/kotlin/com/painkiller/domain/github/RepoCoordinates.kt
 domain/src/main/kotlin/com/painkiller/domain/model/Severity.kt
+domain/src/main/kotlin/com/painkiller/domain/path/PathValidation.kt
 domain/src/test/kotlin/com/painkiller/domain/github/GitDataModelsSerializationTest.kt
 domain/src/test/kotlin/com/painkiller/domain/github/RepoCoordinatesTest.kt
+domain/src/test/kotlin/com/painkiller/domain/model/DiagnosticSeverityTest.kt
+domain/src/test/kotlin/com/painkiller/domain/path/PathValidationTest.kt
 ```
 
 ## Checks Run
 
 - command: `gradle wrapper --gradle-version=8.10.2 --distribution-type=bin`
   result: BUILD SUCCESSFUL. Wrapper generated.
-- command: `./gradlew :domain:test`
-  result: BUILD SUCCESSFUL. 9 tests, 0 failures (after the fix below).
+- command: `./gradlew :domain:test` (initial run, 9 tests)
+  result: BUILD SUCCESSFUL. 9 tests, 1 failure; fixed (see Fixes Applied).
+- command: `./gradlew :domain:test` (after merge, 19 tests)
+  result: BUILD SUCCESSFUL. **19 tests, 0 failures.**
 - command: `./gradlew :domain:build`
   result: BUILD SUCCESSFUL.
 - command: `./gradlew :app:help`
   result: BUILD SUCCESSFUL. Confirms AGP 8.7.3 configures `:app` correctly.
 - command: `./gradlew :app:assembleDebug`
-  result: FAILED — "SDK location not found." This is an environmental
-  limit (no Android SDK installed in the runner), not a project defect.
-  See `knownbugs.md` BUG-20260426-001. Per user direction this is not a
-  hard stop for Gate 0.
+  result: FAILED — "SDK location not found." Environmental limit (no
+  Android SDK installed in the runner), not a project defect. See
+  `knownbugs.md` BUG-20260426-001. Per user direction not a hard stop.
 
 ## Fixes Applied
 
 - The serialization test for `CreateBlobRequest` initially failed
-  because `kotlinx.serialization` omits default-valued fields by
-  default and `encoding = "base64"` is a default. Fixed by configuring
-  the test's `Json` instance with `encodeDefaults = true`. The future
-  Android-side network client (Gate 6) must use the same setting so
-  GitHub always receives an explicit `"encoding": "base64"`.
+  because `kotlinx.serialization` omits default-valued fields by default
+  and `encoding = "base64"` is a default. Fixed by configuring the test's
+  `Json` instance with `encodeDefaults = true`. The future Android-side
+  network client (Gate 6) must use the same setting.
   Tracked as `knownbugs.md` BUG-20260426-002 (status `ACCEPTED`).
+- Dual-run divergence resolved by merging best elements of both parallel
+  Gate 0 runs. Tracked as `knownbugs.md` BUG-20260426-003 (status `ACCEPTED`).
 
 ## Known Bugs / Risks
 
 - BUG-20260426-001 (OPEN, MEDIUM) — `:app:assembleDebug` not yet
   validated end-to-end because the sleep-mode environment lacks an
-  Android SDK. Project Gradle / AGP configuration is otherwise valid.
-  Action: validate on a machine with `compileSdk = 35` installed.
-- BUG-20260426-002 (ACCEPTED, LOW) — kotlinx.serialization default-
-  field omission. Documented and addressed.
+  Android SDK. Validate on a machine with `compileSdk = 35` installed.
+- BUG-20260426-002 (ACCEPTED, LOW) — kotlinx.serialization default-field
+  omission. Documented and addressed.
+- BUG-20260426-003 (ACCEPTED, LOW) — dual parallel Gate 0 runs merged
+  manually. Merged state is now canonical on this branch.
 
 ## Explicitly Not Done
 

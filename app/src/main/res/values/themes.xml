@@ -3,7 +3,7 @@
     <!-- Compose drives all theming. This base is intentionally minimal and only
          exists so the manifest has something to reference before setContent runs. -->
     <style name="Theme.Painkiller" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#1A1A1A</item>
-        <item name="android:windowBackground">#1A1A1A</item>
+        <item name="android:statusBarColor">@color/painkiller_dark_background</item>
+        <item name="android:windowBackground">@color/painkiller_dark_background</item>
     </style>
 </resources>

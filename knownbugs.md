@@ -69,3 +69,32 @@ Action:
 - The test now uses `Json { ignoreUnknownKeys = true; encodeDefaults = true }`.
 - The Android-side network client (Gate 6) must use the same configuration
   for outgoing requests so GitHub receives explicit `"encoding": "base64"`.
+
+---
+
+## BUG-20260426-003
+
+Status: ACCEPTED
+Gate: 0
+Severity: LOW
+Summary: Two parallel Gate 0 runs produced divergent implementations. Prior
+run (`6P6vg`) was merged to `main` as PR #1, then reverted (PR #3). Best
+elements of both runs were merged onto this branch (`eFEvQ`).
+
+Evidence:
+- Run A (`6P6vg`): single-module, `com.painkiller.app` package, included
+  out-of-scope models (`RepoTarget`, `HumanReadableError`), tests run via
+  direct `kotlinc` (not Gradle).
+- Run B (`eFEvQ`, this branch): multi-module (`:domain` + `:app`),
+  `com.painkiller` package, stricter scope, `./gradlew :domain:test`
+  verified (19/19 PASS after merge).
+
+Action:
+- Accepted. Merged state is now canonical on `eFEvQ`. Out-of-scope models
+  (`RepoTarget`, `BranchTarget`, `TargetPath`, `HumanReadableError`) were
+  intentionally excluded. `PathValidation` brought into `:domain/path/` as
+  a pure-Kotlin utility; full Gate 1/4 integration lands in those gates.
+  Typography, `PainkillerApplication`, manifest improvements (INTERNET
+  permission, DataExtraction/BackupContent), and standard Android files
+  (`proguard-rules.pro`, `backup_rules.xml`, `data_extraction_rules.xml`,
+  `colors.xml`) merged in from Run A.
