@@ -26,26 +26,21 @@ Action:
 
 ## BUG-20260426-001
 
-Status: OPEN
+Status: FIXED
 Gate: 0
 Severity: MEDIUM
-Summary: `:app:assembleDebug` cannot run in this environment because no
-Android SDK is installed. `:domain:test` runs cleanly and passes.
+Summary: `:app:assembleDebug` could not run in the sleep-mode environment because no Android SDK was installed. A GitHub Actions build workflow was added and now provides the Android SDK-backed verification path.
 
 Evidence:
-- `gradlew :app:assembleDebug` reports: "SDK location not found. Define a
-  valid SDK location with an ANDROID_HOME environment variable or by
-  setting the sdk.dir path in your project's local properties file at
-  '/home/user/PAINKILLER/local.properties'."
-- `ANDROID_HOME` is unset in the sleep-mode runner.
-- Project Gradle / AGP configuration parses cleanly: `:app:help` succeeds,
-  AGP 8.7.3 is resolved, and `:app` is included in the build correctly.
+- Earlier sleep-mode runner output reported: "SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file at '/home/user/PAINKILLER/local.properties'."
+- `ANDROID_HOME` was unset in the sleep-mode runner.
+- Project Gradle / AGP configuration parsed cleanly before CI: `:app:help` succeeded, AGP 8.7.3 resolved, and `:app` was included correctly.
+- `.github/workflows/build.yml` now installs Android SDK packages (`platforms;android-35`, `build-tools;35.0.0`, `platform-tools`) and runs `:domain:test`, `:domain:build`, and `:app:assembleDebug`.
+- User confirmed the newly added workflow runs through successfully after commit `01bd66e399bf1c02a1d84e4bd2da78a4af8424b4`.
 
 Action:
-- Validate `:app:assembleDebug` on a workstation or CI runner that has the
-  Android SDK installed (`compileSdk = 35`, `minSdk = 26`).
-- Once `:app:assembleDebug` is green, this entry can be marked `FIXED`
-  and Gate 0 can be promoted from `PARTIAL` to `PASS`.
+- Fixed by adding the GitHub Actions build workflow.
+- Gate 0 may now be treated as verified `PASS`, assuming the corresponding GitHub Actions run remains green.
 
 ---
 
@@ -90,7 +85,7 @@ Evidence:
   verified (19/19 PASS after merge).
 
 Action:
-- Accepted. Merged state is now canonical on `eFEvQ`. Out-of-scope models
+- Accepted. Merged state is now canonical on `main` after PR #2. Out-of-scope models
   (`RepoTarget`, `BranchTarget`, `TargetPath`, `HumanReadableError`) were
   intentionally excluded. `PathValidation` brought into `:domain/path/` as
   a pure-Kotlin utility; full Gate 1/4 integration lands in those gates.
