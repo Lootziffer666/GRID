@@ -1,6 +1,6 @@
 # AGENTS.md — PAINKILLER Agent Instructions
 
-This repository uses gated implementation. Agents must work conservatively, document their work, run checks, and stop at the selected gate boundary.
+This repository uses gated implementation. Agents must work conservatively, document their work, run available checks, and stop at the selected gate boundary.
 
 The repository files are the source of truth. Do not rely on chat memory.
 
@@ -28,7 +28,38 @@ Before modifying files, read:
 - current project tree
 - recent commits
 
-If a gate handoff says the previous gate is not `PASS`, do not start the next gate.
+If the previous gate is documented as `PASS`, continue with the selected gate.
+
+If the previous gate is documented as `PARTIAL` or `BLOCKED`, continue only when one of these is true:
+
+- the user explicitly says to proceed
+- the reason is clearly an environment-only local-build limitation already covered by GitHub Actions
+- `main` is green and no later note from the user says otherwise
+
+---
+
+## CI-First Gate Policy
+
+GitHub Actions is the authoritative build verifier for PAINKILLER.
+
+Local agents may not have the Android SDK, caches, or full build environment. A missing local Android SDK is **not** a product defect and must not be repeatedly escalated as a gate blocker when CI is expected to verify the build.
+
+Default assumption:
+
+```text
+Everything is OK until the user says otherwise, GitHub Actions fails, or a repository file documents a real blocker.
+```
+
+For follow-up prompts, agents should treat the previous gate as passed when:
+
+- the previous gate handoff is `PASS`, or
+- the user says the workflow/build passed, or
+- the relevant build workflow on `main` is green, or
+- the only unresolved issue is a local/environment-only build limitation already delegated to CI.
+
+Agents should not reopen old environment-only blockers unless new evidence appears.
+
+If GitHub Actions fails, the failing workflow output becomes the source of truth and the current gate must not be marked `PASS` until fixed.
 
 ---
 
@@ -57,7 +88,7 @@ Gate 1 must not implement GitHub-facing behavior.
 - Do not introduce unrelated dependencies.
 - Do not change product scope.
 - Do not silently skip checks.
-- Do not claim success without command output.
+- Do not claim success without command output or CI confirmation.
 - Do not commit secrets, tokens, passwords, API keys, or local config files.
 - Do not hardcode credentials.
 - Do not implement destructive behavior before the relevant gate explicitly allows it.
@@ -82,9 +113,9 @@ Gate 1 must not implement GitHub-facing behavior.
 
 ## Build and Check Commands
 
-Run the most relevant checks before committing.
+Run the most relevant local checks before committing.
 
-For Gate 1 and most early gates, run:
+For Gate 1 and most early gates, try:
 
 ```bash
 ./gradlew :domain:test
@@ -92,9 +123,11 @@ For Gate 1 and most early gates, run:
 ./gradlew :app:assembleDebug
 ```
 
-If a check fails, fix only blockers related to the selected gate.
+If local `:app:assembleDebug` cannot run only because the local environment lacks an Android SDK, document it briefly but do not treat it as a gate blocker. GitHub Actions is responsible for final Android SDK-backed verification.
 
-If a check cannot run because of the environment, document the reason in the handoff and `knownbugs.md` if needed.
+If a check fails because of project code, fix only blockers related to the selected gate.
+
+If a check cannot run because of the environment, document the reason in the handoff. Add or update `knownbugs.md` only when the issue is new, recurring, or actionable.
 
 ---
 
@@ -114,11 +147,13 @@ For Gate 1:
 Gate 1: implement file intake planning
 ```
 
-If blocked:
+If blocked by a real project issue:
 
 ```text
 Gate X: blocked - <short reason>
 ```
+
+Do not create a blocked commit solely because a local Android SDK is unavailable while CI is configured to verify Android builds.
 
 Do not commit unrelated files.
 
@@ -158,6 +193,11 @@ PASS | PARTIAL | BLOCKED
 - command:
 - result:
 
+## CI Status
+
+- workflow:
+- result:
+
 ## Known Bugs / Risks
 
 - ...
@@ -171,7 +211,7 @@ PASS | PARTIAL | BLOCKED
 - ...
 ```
 
-A later gate may start only if the previous gate handoff status is `PASS`.
+A later gate may start when the previous gate is `PASS`, or when the user explicitly says to proceed and the only unresolved issue is local/environment-only verification delegated to CI.
 
 ---
 
@@ -184,6 +224,8 @@ Never delete old entries.
 When something is fixed, mark it `FIXED`.
 
 When a risk is intentionally accepted, mark it `ACCEPTED` and explain why.
+
+Do not add repeated entries for the same local Android SDK limitation if it is already covered by CI.
 
 Entry format:
 
@@ -313,7 +355,7 @@ Update:
 - `knownbugs.md` only if new bugs/risks are discovered
 - `handoff/GATE_1_HANDOFF.md`
 
-Do not mark Gate 1 `PASS` unless all required checks pass or an unavailable check is clearly justified and non-blocking.
+Gate 1 may be marked `PASS` when the local pure-Kotlin checks pass and Android verification is either locally green or delegated to a configured GitHub Actions workflow. If GitHub Actions later fails, reopen the gate and fix the failure.
 
 ---
 
