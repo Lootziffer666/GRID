@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<full-backup-content>
-    <!-- Painkiller stores no user-recoverable state. Tokens (Gate 3+) live in
-         a SecureTokenStore backed by Keystore and must never be backed up. -->
-</full-backup-content>
