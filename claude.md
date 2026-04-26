@@ -36,7 +36,7 @@ background sync.
 Painkiller is built one gate at a time. The gates are defined in
 `instructions.md`:
 
-- Gate 0 — project skeleton + UI/API spike (this gate)
+- Gate 0 — project skeleton + UI/API spike
 - Gate 1 — file intake (no GitHub)
 - Gate 2 — Large File Doctor (pure domain)
 - Gate 3 — GitHub auth + repo/branch listing
@@ -52,14 +52,47 @@ Rules every contributor (and Claude Code) must follow:
 1. Read `instructions.md` and the most recent handoff before changing anything.
 2. Implement only the current gate. Never implement future-gate features early.
 3. Keep diffs small and reviewable.
-4. Update `knownbugs.md` for every issue, blocker, workaround, or risk.
+4. Update `knownbugs.md` for every new issue, blocker, workaround, or risk.
 5. Add tests for everything testable in pure Kotlin.
 6. Run the most meaningful checks the environment allows. If a check cannot
-   run, document why.
+   run, document why without treating environment-only limitations as product defects.
 7. End every gate with a `handoff/GATE_X_HANDOFF.md` file with status
    `PASS`, `PARTIAL`, or `BLOCKED`.
 8. Commit once per gate. Never silently mix gates.
-9. If status is `PARTIAL` or `BLOCKED`, stop. Do not start the next gate.
+9. If status is `PARTIAL` or `BLOCKED` because of a real project issue, stop.
+   If the only unresolved item is local environment verification delegated to CI,
+   mark the gate according to the CI-first policy below.
+
+## CI-first gate policy
+
+GitHub Actions is the authoritative build verifier for Painkiller.
+
+Claude Code sessions and other cloud agents may not have the Android SDK,
+caches, emulator tooling, or full CI environment. A missing local Android SDK
+is **not** a product defect and must not be repeatedly escalated as a gate
+blocker when GitHub Actions is configured to verify Android builds.
+
+Default assumption for follow-up prompts:
+
+```text
+Everything is OK until the user says otherwise, GitHub Actions fails, or a repository file documents a real blocker.
+```
+
+Claude Code should treat the previous gate as passed when:
+
+- the previous gate handoff is `PASS`, or
+- the user says the workflow/build passed, or
+- the relevant GitHub Actions workflow on `main` is green, or
+- the only unresolved issue is a local/environment-only build limitation already delegated to CI.
+
+Claude Code must not reopen old environment-only blockers unless new evidence appears.
+
+If GitHub Actions fails, the failing workflow output becomes the source of
+truth and the current gate must not be marked `PASS` until fixed.
+
+Do not create or keep a `BLOCKED`/`PARTIAL` state solely because local
+`:app:assembleDebug` cannot run in a session without Android SDK while CI is
+available and expected to run it.
 
 ## Module layout
 
@@ -75,10 +108,11 @@ but domain code must never depend on Android.
 
 ## Build and check expectations
 
-The default checks for any gate are:
+The default local checks for any gate are:
 
 ```bash
 ./gradlew :domain:test
+./gradlew :domain:build
 ./gradlew :app:assembleDebug
 ./gradlew :app:testDebugUnitTest   # once unit tests exist on the app side
 ```
@@ -86,8 +120,15 @@ The default checks for any gate are:
 `:app:assembleDebug` requires a working Android SDK. If `ANDROID_HOME` is not
 set and `local.properties` does not contain `sdk.dir`, the assembly task
 will fail at configuration with a clear "SDK location not found" message.
-This is an environment issue, not a project issue. Document it in the
-handoff if it occurs and run the verifiable subset (`:domain:test`).
+This is a local environment issue, not a project issue.
+
+When this happens:
+
+- run the verifiable subset, especially `:domain:test` and `:domain:build`
+- document the local limitation briefly in the handoff
+- rely on GitHub Actions for the Android SDK-backed verification
+- do not add a repeated knownbugs entry if this is the same local SDK limitation
+- do not block the next gate solely for this local limitation if CI is green or expected to verify it
 
 ## Safety rules
 
@@ -108,3 +149,4 @@ handoff if it occurs and run the verifiable subset (`:domain:test`).
 - Do not add dependencies that the current gate does not need.
 - Do not skip tests to make a gate "pass".
 - Do not edit `instructions.md` unless the user asks for it.
+- Do not repeatedly flag local Android SDK absence as a blocker when CI is the intended verifier.
