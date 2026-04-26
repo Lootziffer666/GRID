@@ -1,6 +1,10 @@
 package com.painkiller.data.github
 
-// Gate 3 note:
-// Contracts for OAuth auth and repository/branch listing now exist in this
-// package. Concrete HTTP client wiring is added in subsequent networking gates.
+// Gate 6 note:
+// Contracts and orchestration for OAuth auth, repository/branch listing,
+// and the single-file Git Data API commit flow now exist in this package
+// (`GithubAuthRepository`, `GithubRepoBranchRepository`,
+// `SingleFileCommitRepository`). Concrete HTTP client wiring of
+// `GithubOAuthApi`, `GithubRepositoryApi`, and `GithubGitDataApi` is
+// added in subsequent hardening gates.
 internal object PlaceholderGithub

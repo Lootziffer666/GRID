@@ -23,7 +23,9 @@ For the full product brief, see `instructions.md`.
 - **Gate 1 — file intake without GitHub: PASS.**
 - **Gate 2 — Large File Doctor (pure domain): PASS.**
 - **Gate 3 — GitHub auth + repository/branch listing: PASS.**
-- **Gate 4 — RepoTarget + presets: PARTIAL (implemented locally, Android assemble not runnable in this container).**
+- **Gate 4 — RepoTarget + presets: PASS (CI-verified).**
+- **Gate 5 — UploadPlan + preview UI: not implemented as a separate handoff (see `knownbugs.md` BUG-20260426-008).**
+- **Gate 6 — single-file commit via Git Data API: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).**
 
 ### Gate 1 completed
 
@@ -59,6 +61,25 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
 - Added preset/last-used storage contracts and in-memory fake in `:domain`.
 - Added DataStore-backed app settings store for non-secret repo target/preset data.
 - No upload/commit/push behavior added.
+
+### Gate 6 implemented
+
+- Pure-Kotlin `SingleFileCommitOrchestrator` in `:domain/github/` runs the safe
+  six-step Git Data API flow (`getRef → getCommit → createBlob → createTree →
+  createCommit → updateRef`) with `force=false` and `expectedSha` so a
+  concurrent push surfaces as `ShaMismatch` instead of an overwrite.
+- `SingleFileCommitInput` (`RepoTarget` + file name + base64 content + commit
+  message) and `SingleFileCommitResult` (`Success` + 7 explicit `Failure`
+  variants) bracket the orchestrator with explicit, token-free user-facing
+  messages.
+- `GithubGitDataException` sealed hierarchy classifies the failure modes the
+  HTTP client implementation will throw (auth required, permission denied,
+  ref not found, protected branch, SHA mismatch, network unavailable).
+- `:app/data/github/SingleFileCommitRepository` mirrors the Gate 3 wrapper
+  pattern: token-gated, delegates to the domain orchestrator.
+- HTTP client implementation of `GithubGitDataApi` is intentionally deferred
+  (same pattern as `GithubOAuthApi` / `GithubRepositoryApi` from Gate 3).
+- 16 new orchestrator tests (`./gradlew :domain:test` — 57 tests, 0 failures).
 
 
 ## Repository structure
@@ -117,7 +138,9 @@ Then:
 
 - SAF implementation behind `SafSourceIntake` is not wired yet (interface only).
 - GitHub auth + repository/branch listing domain/data wiring exists, but UI and real HTTP client wiring are still pending.
-- No upload, commit, or push behavior.
+- Single-file commit orchestration exists (Gate 6), but no real HTTP client
+  implementation of `GithubGitDataApi` is wired yet, so no actual upload
+  reaches GitHub. Multi-file / folder / ZIP flows are Gate 7.
 - No preview screen.
 - Preset selection UI is not wired yet (storage/model support exists).
 - The primary action button in the app shell is intentionally disabled.
