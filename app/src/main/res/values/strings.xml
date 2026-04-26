@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Painkiller</string>
+    <string name="placeholder_title">Painkiller</string>
+    <string name="placeholder_subtitle">GitHub upload skeleton — Gate 0</string>
+    <string name="placeholder_body">No upload, no auth, no file picker yet. Gate 0 ships only the project skeleton, theme, and reusable components.</string>
+</resources>
