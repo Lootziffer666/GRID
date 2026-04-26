@@ -162,3 +162,61 @@ Action:
 - Keep Gate 4 marked `PARTIAL` for this local run.
 - Re-run `./gradlew :app:assembleDebug` on CI or SDK-enabled runner before promoting Gate 4 to `PASS`.
 
+
+## BUG-20260426-008
+
+Status: ACCEPTED
+Gate: 6
+Severity: LOW
+Summary: No `handoff/GATE_5_HANDOFF.md` exists in the repository at the
+time Gate 6 was started, but the user explicitly authorized Gate 6 to
+proceed ("Previous gates 0–5 are PASS").
+
+Evidence:
+- Repository tree at the start of Gate 6 contained
+  `handoff/GATE_0_HANDOFF.md` through `handoff/GATE_4_HANDOFF.md` only.
+- `git log origin/main` shows no Gate 5 commit.
+- The user's Gate 6 prompt asserted gates 0–5 were PASS and authorized
+  proceeding with Gate 6.
+- AGENTS.md § "Required Reading Before Any Change" allows continuing
+  when "the user explicitly says to proceed".
+
+Action:
+- Accepted. Gate 6 was implemented to take its inputs directly
+  (`SingleFileCommitInput` = `RepoTarget` + `fileName` + `contentBase64`
+  + `commitMessage`) so that whatever Gate 5 ultimately ships for the
+  preview / `UploadPlan` layer can produce that input shape without any
+  change to Gate 6 code.
+- Gate 7 (multi-file) requires the full Gate 5 `UploadPlan` /
+  per-file size diagnosis machinery, so Gate 5 should be implemented
+  before Gate 7 begins.
+
+---
+
+## BUG-20260426-009
+
+Status: ACCEPTED
+Gate: 6
+Severity: LOW
+Summary: Concrete HTTP client implementation of `GithubGitDataApi` is
+deferred to a later networking hardening step. Same pattern as Gate 3
+(`GithubOAuthApi` and `GithubRepositoryApi` are still contracts).
+
+Evidence:
+- `GithubGitDataApi` is an interface in `:domain` only.
+- `SingleFileCommitOrchestrator` consumes the interface and is fully
+  unit-tested with a recording fake.
+- `SingleFileCommitRepository` consumes the same interface from `:app`,
+  ready for an HTTP-backed implementation to be injected.
+
+Action:
+- Accepted for Gate 6. The networking hardening step that follows must:
+  - implement `GithubGitDataApi` over an HTTP client (Retrofit/OkHttp or
+    Ktor)
+  - throw the appropriate `GithubGitDataException` subtype based on
+    HTTP status / transport failure (401 → `AuthRequired`, 403 with
+    "protected branch" hint → `ProtectedBranch`, other 403 →
+    `PermissionDenied`, 404 → `RefNotFound`, 422 SHA-mismatch →
+    `ShaMismatch`, IO/timeout → `NetworkUnavailable`)
+  - never log raw token, response body, or stack trace
+  - never set `force = true` on `updateRef`
