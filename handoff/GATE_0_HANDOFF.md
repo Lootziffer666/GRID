@@ -2,24 +2,20 @@
 
 ## Status
 
-PARTIAL
+PASS
 
-Code deliverables for Gate 0 are in place. This commit represents the
-merged best of two parallel Gate 0 runs (see `knownbugs.md`
-BUG-20260426-003). The pure-Kotlin `:domain` module builds and **19/19
-unit tests pass** (`./gradlew :domain:test`). AGP 8.7.3 configures the
-Android `:app` module cleanly (`:app:help` succeeds). The Android
-assembly check (`:app:assembleDebug`) was not executed in this run
-because the sleep-mode environment does not have an Android SDK installed;
-this is an environmental limit, not a project defect. Per explicit user
-direction, missing `:app:assembleDebug` is not treated as a hard stop for
-Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
+Gate 0 is verified. The merged best-of-both Gate 0 implementation is now canonical on `main`.
+The pure-Kotlin `:domain` module builds and **19/19 unit tests pass**. The Android `:app`
+module is covered by the GitHub Actions build workflow added in commit
+`01bd66e399bf1c02a1d84e4bd2da78a4af8424b4`, which installs the Android SDK and runs
+`:domain:test`, `:domain:build`, and `:app:assembleDebug`.
+
+The earlier sleep-mode Android SDK blocker is resolved by CI verification and tracked as
+`knownbugs.md` BUG-20260426-001 with status `FIXED`.
 
 ## Branch
 
-- `claude/magical-thompson-eFEvQ` (current working branch; this matches
-  the branch named in the system Git Development Branch Requirements
-  block, not the one named in the task body).
+- `main`
 
 ## Gate Scope
 
@@ -36,6 +32,7 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
 - Add root hygiene files: `claude.md`, `knownbugs.md`, `README.md`,
   `templates/gated-android-project/`.
 - Add minimal tests (model serialization, validation).
+- Add CI workflow for domain tests, domain build, and Android debug assembly.
 - Do **not** implement file picker, auth, upload, preview, Large File
   Doctor, presets, Conflict Cards, LFS, or Release Assets.
 
@@ -44,6 +41,11 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
 - Root Gradle setup with version catalog and Gradle wrapper:
   `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`,
   `gradle/libs.versions.toml`, `gradlew`, `gradle/wrapper/`.
+- GitHub Actions workflow:
+  - `.github/workflows/build.yml` runs on push, pull request, and manual dispatch.
+  - Installs JDK 17 and Android SDK packages for `compileSdk = 35`.
+  - Runs `./gradlew :domain:test`, `./gradlew :domain:build`, and `./gradlew :app:assembleDebug`.
+  - Uploads the debug APK artifact when successful.
 - `:domain` (pure Kotlin / JVM) module:
   - `GitDataModels.kt` — kotlinx.serialization request / response types
     for `GitRef`, `GitCommit`, `CreateBlob{Request,Response}`,
@@ -58,10 +60,16 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
     owner / repo / branch). Provides `fullName` and `refPath`.
   - `Severity.kt` — `DiagnosticSeverity` enum (`SAFE`, `WARNING`,
     `BLOCKED`, `DEFERRED`) shared between the domain layer and UI.
+  - `domain/path/PathValidation.kt` — `normalizeRepoPath` / `isSafeRepoPath`
+    pure utilities. Gate 1/4 integration lands in those gates; placed in
+    `:domain` now so it is testable without the Android SDK.
 - `:app` (Android) module:
   - `AndroidManifest.xml` with `MainActivity` as launcher.
   - `MainActivity.kt` — `ComponentActivity` that calls `setContent` with
     `PainkillerTheme { PainkillerApp() }`.
+  - `PainkillerApplication.kt` — empty `Application` subclass, registered
+    in the manifest via `android:name`. Allows later gates to initialize
+    singletons safely.
   - `ui/PainkillerApp.kt` — Material 3 `Scaffold` + `TopAppBar`, an
     `InfoCard`, a `WarningCard` (severity = `DEFERRED`), and a disabled
     primary action button. Includes a Compose `@Preview`.
@@ -86,27 +94,13 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
     storage (Gate 3) uses Android Keystore and must never be backed up.
   - `proguard-rules.pro` — keeps kotlinx.serialization metadata under
     R8 minification.
-  - `PainkillerApplication.kt` — empty `Application` subclass, registered
-    in the manifest via `android:name`. Allows later gates to initialize
-    singletons safely.
-  - `AndroidManifest.xml` updated with: `INTERNET` permission (needed from
-    Gate 6+), `android:name=".PainkillerApplication"`, and
-    `android:dataExtractionRules` / `android:fullBackupContent` references.
-  - `ui/theme/Type.kt` updated with explicit type scale (titleLarge,
-    titleMedium, bodyLarge, bodyMedium, labelLarge, labelSmall) instead of
-    the default empty `Typography()`.
+  - `AndroidManifest.xml` includes `INTERNET` permission for later GitHub API gates,
+    with no network implementation wired in Gate 0.
   - `app/src/test/java/com/painkiller/SmokeTest.kt` — confirms `:domain`
     is reachable from `:app`.
-- `:domain` additions from merge:
-  - `domain/path/PathValidation.kt` — `normalizeRepoPath` / `isSafeRepoPath`
-    pure utilities. Gate 1/4 integration lands in those gates; placed in
-    `:domain` now so it is testable without the Android SDK.
-  - `domain/src/test/.../path/PathValidationTest.kt` — 9 tests.
-  - `domain/src/test/.../model/DiagnosticSeverityTest.kt` — 1 test.
 - Root documentation:
   - `claude.md` — gate discipline, scope, safety rules, build commands.
-  - `knownbugs.md` — entry format and the three Gate 0 entries (including
-    BUG-20260426-003 documenting the dual-run merge).
+  - `knownbugs.md` — structured Gate 0 bug/risk log.
   - `README.md` — project overview, current Gate 0 status, repository
     structure, build instructions, known limitations.
   - `templates/gated-android-project/README.md` — reusable template
@@ -116,6 +110,7 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
 ## Files Changed
 
 ```
+.github/workflows/build.yml
 .gitignore
 README.md
 build.gradle.kts
@@ -132,8 +127,10 @@ settings.gradle.kts
 templates/gated-android-project/README.md
 
 app/build.gradle.kts
+app/proguard-rules.pro
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/painkiller/MainActivity.kt
+app/src/main/java/com/painkiller/PainkillerApplication.kt
 app/src/main/java/com/painkiller/data/files/PlaceholderFiles.kt
 app/src/main/java/com/painkiller/data/github/PlaceholderGithub.kt
 app/src/main/java/com/painkiller/data/security/PlaceholderSecurity.kt
@@ -151,13 +148,11 @@ app/src/main/java/com/painkiller/ui/theme/Shape.kt
 app/src/main/java/com/painkiller/ui/theme/Spacing.kt
 app/src/main/java/com/painkiller/ui/theme/Theme.kt
 app/src/main/java/com/painkiller/ui/theme/Type.kt
-app/src/main/java/com/painkiller/PainkillerApplication.kt
 app/src/main/res/values/strings.xml
 app/src/main/res/values/themes.xml
 app/src/main/res/values/colors.xml
 app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
-app/proguard-rules.pro
 app/src/test/java/com/painkiller/SmokeTest.kt
 
 domain/build.gradle.kts
@@ -184,10 +179,12 @@ domain/src/test/kotlin/com/painkiller/domain/path/PathValidationTest.kt
   result: BUILD SUCCESSFUL.
 - command: `./gradlew :app:help`
   result: BUILD SUCCESSFUL. Confirms AGP 8.7.3 configures `:app` correctly.
-- command: `./gradlew :app:assembleDebug`
-  result: FAILED — "SDK location not found." Environmental limit (no
-  Android SDK installed in the runner), not a project defect. See
-  `knownbugs.md` BUG-20260426-001. Per user direction not a hard stop.
+- command: GitHub Actions workflow `.github/workflows/build.yml`
+  result: user confirmed the workflow ran through after commit `01bd66e399bf1c02a1d84e4bd2da78a4af8424b4`.
+- workflow commands:
+  - `./gradlew :domain:test`
+  - `./gradlew :domain:build`
+  - `./gradlew :app:assembleDebug`
 
 ## Fixes Applied
 
@@ -199,16 +196,17 @@ domain/src/test/kotlin/com/painkiller/domain/path/PathValidationTest.kt
   Tracked as `knownbugs.md` BUG-20260426-002 (status `ACCEPTED`).
 - Dual-run divergence resolved by merging best elements of both parallel
   Gate 0 runs. Tracked as `knownbugs.md` BUG-20260426-003 (status `ACCEPTED`).
+- Android SDK environment blocker resolved by adding a GitHub Actions build workflow.
+  Tracked as `knownbugs.md` BUG-20260426-001 (status `FIXED`).
 
 ## Known Bugs / Risks
 
-- BUG-20260426-001 (OPEN, MEDIUM) — `:app:assembleDebug` not yet
-  validated end-to-end because the sleep-mode environment lacks an
-  Android SDK. Validate on a machine with `compileSdk = 35` installed.
+- BUG-20260426-001 (FIXED, MEDIUM) — Android SDK-backed `:app:assembleDebug`
+  verification moved to GitHub Actions and confirmed by user.
 - BUG-20260426-002 (ACCEPTED, LOW) — kotlinx.serialization default-field
   omission. Documented and addressed.
 - BUG-20260426-003 (ACCEPTED, LOW) — dual parallel Gate 0 runs merged
-  manually. Merged state is now canonical on this branch.
+  manually. Merged state is now canonical on `main`.
 
 ## Explicitly Not Done
 
@@ -228,17 +226,16 @@ domain/src/test/kotlin/com/painkiller/domain/path/PathValidationTest.kt
 
 ## Next Gate May Start Only If
 
-- This handoff is committed.
-- The branch is pushed.
+- This handoff is committed to `main`.
+- The GitHub Actions build workflow remains green.
 - The next gate is Gate 1 — File Intake without GitHub. It must be
   implemented strictly within its own scope (SAF abstraction,
   `SelectedSource`, `SourceKind`, path normalization, ignore rules,
   `FilePlan`). It must not pull GitHub, auth, or upload work forward.
-- BUG-20260426-001 should be cleared on a machine with the Android SDK
-  before any later gate that adds Android-only behavior is shipped to
-  users.
 
 ## Commit
 
-- hash: `15ac2d1ccc9f147cb44328cce42d2a6ddb6b5277`
-- message: `Gate 0: partial Android skeleton and domain verification`
+- canonical merge commit: `e5763462fd0fe7d8744c065c0d39d33b115bbc08`
+- build workflow commit: `01bd66e399bf1c02a1d84e4bd2da78a4af8424b4`
+- knownbugs verification commit: `961b4a887ebd0beed2afd8aae0e8f283006e0bbd`
+- message: `Gate 0: verified pass`
