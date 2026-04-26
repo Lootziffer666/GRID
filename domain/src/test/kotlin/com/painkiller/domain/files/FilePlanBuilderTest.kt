@@ -159,4 +159,39 @@ class FilePlanBuilderTest {
             plan.includedFiles.map { it.repoPath }
         )
     }
+    @Test
+    fun mixedPlan_marksBlockedWhenAnyIncludedFileExceeds100Mib() {
+        val source = SelectedSource(
+            kind = SourceKind.MULTIPLE_FILES,
+            items = listOf(
+                SelectedSourceItem(sourceId = "1", displayName = "small.txt", sizeBytes = 1_000L),
+                SelectedSourceItem(sourceId = "2", displayName = "huge.bin", sizeBytes = (100L * 1024L * 1024L) + 10L)
+            )
+        )
+
+        val result = FilePlanBuilder.build(source, targetPathRaw = "")
+
+        val plan = (result as FilePlanBuildResult.Success).plan
+        assertTrue(plan.isBlockedForNormalCommit)
+        assertEquals(2, plan.includedFiles.size)
+        assertTrue(plan.includedFiles.any { it.sizeDiagnosis.isBlockedForNormalCommit })
+    }
+
+    @Test
+    fun everyPlannedFileReceivesSizeDiagnosis() {
+        val source = SelectedSource(
+            kind = SourceKind.MULTIPLE_FILES,
+            items = listOf(
+                SelectedSourceItem(sourceId = "1", displayName = "a.txt", sizeBytes = 100L),
+                SelectedSourceItem(sourceId = "2", displayName = "b.txt", sizeBytes = 200L)
+            )
+        )
+
+        val result = FilePlanBuilder.build(source, targetPathRaw = "")
+
+        val plan = (result as FilePlanBuildResult.Success).plan
+        assertEquals(2, plan.includedFiles.size)
+        assertTrue(plan.includedFiles.all { it.sizeDiagnosis.message.isNotBlank() })
+    }
+
 }

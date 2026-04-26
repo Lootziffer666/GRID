@@ -20,68 +20,47 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 1 — file intake without GitHub: PARTIAL.**
+- **Gate 1 — file intake without GitHub: PASS.**
+- **Gate 2 — Large File Doctor (pure domain): PARTIAL (implemented locally, Android assemble not runnable in this container).**
 
-Gate 1 domain planning is implemented and verified, but this local environment
-still cannot execute `:app:assembleDebug` because no Android SDK is configured.
+### Gate 1 completed
 
-What is in place through Gate 1:
+- Domain file-intake models: `SourceKind`, `SelectedSource`, `SelectedSourceItem`,
+  `IgnoreRule`, `DefaultIgnoreRules`, `PlannedFile`, `FilePlan`, `FilePlanIssue`.
+- Deterministic file planning with safe target/source path normalization and
+  duplicate path detection.
+- Android-facing SAF boundary interface (`SafSourceIntake`) as Gate 1 adapter seam.
 
-- Android / Kotlin / Jetpack Compose project skeleton (`:app` module).
-- Pure-Kotlin domain module (`:domain`) with:
-  - GitHub Git Data API contracts/models from Gate 0.
-  - `PathValidation` for safe repo path normalization.
-  - Gate 1 file intake models:
-    - `SourceKind`, `SelectedSource`, `SelectedSourceItem`
-    - `IgnoreRule`, `DefaultIgnoreRules`
-    - `PlannedFile`, `FilePlan`, `FilePlanIssue`
-    - `FilePlanBuilder` with deterministic ordering, duplicate detection,
-      unsafe path rejection, and ignore-rule application.
-- Android-facing Gate 1 SAF boundary interface (`SafSourceIntake`) in `:app`
-  for single file / multiple files / folder / ZIP intake wiring.
-- Gate 1 unit tests in `:domain` covering:
-  - single/multiple/folder/ZIP sources
-  - root and nested target paths
-  - unsafe target path rejection
-  - default ignore rules
-  - duplicate normalized repo paths
-  - empty source rejection
-  - deterministic file ordering
+### Gate 2 implemented
 
-See `handoff/GATE_1_HANDOFF.md` for exact implementation and check output.
+- Pure domain `LargeFileDoctor` with threshold logic:
+  - `>25 MB` warning
+  - `>50 MiB` strong warning
+  - `>100 MiB` blocked
+- `SizeDiagnosis` + `SizeRiskLevel` + deferred recommendations (`GIT_LFS`,
+  `RELEASE_ASSETS`).
+- `FilePlanBuilder` now assigns diagnosis per planned file and marks
+  `isBlockedForNormalCommit` when any included file is >100 MiB.
+
+See `handoff/GATE_1_HANDOFF.md` and `handoff/GATE_2_HANDOFF.md` for exact run details.
 
 ## Repository structure
 
 ```text
 PAINKILLER/
 ├── README.md
-├── claude.md                 # working instructions for Claude Code / future contributors
-├── knownbugs.md              # structured bug / risk log
-├── instructions.md           # product brief and gate plan (source of truth)
+├── claude.md
+├── knownbugs.md
+├── instructions.md
 ├── settings.gradle.kts
 ├── build.gradle.kts
 ├── gradle.properties
 ├── gradle/
-│   ├── libs.versions.toml    # version catalog
-│   └── wrapper/              # Gradle wrapper
-├── gradlew                   # Gradle wrapper script
+├── gradlew
 ├── handoff/
-│   └── GATE_X_HANDOFF.md     # one file per attempted gate
 ├── templates/
-│   └── gated-android-project/
-│       └── README.md         # reusable template for future gated Android projects
-├── domain/                   # pure Kotlin / JVM module
-│   ├── build.gradle.kts
-│   └── src/
-│       ├── main/kotlin/com/painkiller/domain/...
-│       └── test/kotlin/com/painkiller/domain/...
-└── app/                      # Android application module
-    ├── build.gradle.kts
-    └── src/
-        ├── main/AndroidManifest.xml
-        ├── main/java/com/painkiller/...
-        ├── main/res/values/{strings,themes}.xml
-        └── test/java/com/painkiller/SmokeTest.kt
+├── domain/
+└── app/
 ```
 
 ## Build and run
@@ -95,7 +74,7 @@ Painkiller targets:
 - Android Gradle Plugin `8.7.3`
 - JVM target `17`
 
-### Pure-Kotlin domain checks (no Android SDK required)
+### Pure-Kotlin domain checks
 
 ```bash
 ./gradlew :domain:test
@@ -117,18 +96,14 @@ Then:
 ./gradlew :app:testDebugUnitTest
 ```
 
-## Known limitations (post Gate 1)
+## Known limitations
 
 - SAF implementation behind `SafSourceIntake` is not wired yet (interface only).
 - No GitHub authentication.
 - No upload, commit, or push behavior.
 - No preview screen.
-- No Large File Doctor.
 - No presets.
 - The primary action button in the app shell is intentionally disabled.
-
-These arrive in later gates. Painkiller is built one gate at a time and no gate
-ships features that belong to a later gate.
 
 ## Out of scope (whole project)
 
@@ -138,12 +113,3 @@ ships features that belong to a later gate.
 - PRs, branch graphs, full Git history.
 - Background sync.
 - A general-purpose file manager.
-
-## Related references
-
-- `instructions.md` — full product brief, gate plan, error message style,
-  and CATALON-GUARD UI grammar.
-- `handoff/GATE_1_HANDOFF.md` — Gate 1 implementation status and command output.
-- `knownbugs.md` — structured bug/risk log including local Android SDK blocker.
-- `templates/gated-android-project/README.md` — reusable structure for starting
-  other gated Android projects in this style.

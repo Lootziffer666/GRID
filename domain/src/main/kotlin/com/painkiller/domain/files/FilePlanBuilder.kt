@@ -83,6 +83,7 @@ object FilePlanBuilder {
                 repoPath = normalizedRepoPath,
                 sizeBytes = item.sizeBytes,
                 mimeType = item.mimeType,
+                sizeDiagnosis = LargeFileDoctor.diagnose(item.sizeBytes),
                 ignoredByRule = ignoreRule
             )
 
@@ -98,7 +99,8 @@ object FilePlanBuilder {
             targetPath = normalizedTargetPath,
             includedFiles = includedFiles,
             ignoredFiles = ignoredFiles,
-            issues = issues
+            issues = issues,
+            isBlockedForNormalCommit = includedFiles.any { it.sizeDiagnosis.isBlockedForNormalCommit }
         )
 
         return FilePlanBuildResult.Success(plan)

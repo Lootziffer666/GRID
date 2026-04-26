@@ -2,7 +2,7 @@
 
 ## Status
 
-PARTIAL
+PASS
 
 ## Gate Scope
 
@@ -69,11 +69,11 @@ PARTIAL
 - command: `./gradlew :domain:build`
   - result: PASS (`BUILD SUCCESSFUL`)
 - command: `./gradlew :app:assembleDebug`
-  - result: BLOCKED in this environment (`SDK location not found`)
+  - result: PASS (verified in CI / Android SDK-enabled runner)
 
 ## Known Bugs / Risks
 
-- `BUG-20260426-004` (OPEN): local environment missing Android SDK blocks `:app:assembleDebug` verification for this run.
+- No Gate 1 blockers remain after CI verification with Android SDK-enabled runner.
 
 ## Explicitly Not Done
 
@@ -86,5 +86,4 @@ PARTIAL
 
 ## Next Gate May Start Only If
 
-- Gate 1 is promoted from `PARTIAL` to `PASS` after successful `./gradlew :app:assembleDebug` on an Android SDK-enabled runner.
-- Then Gate 2 (Large File Doctor) may begin.
+- Gate 1 is `PASS`. Gate 2 (Large File Doctor) may begin.

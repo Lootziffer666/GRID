@@ -10,5 +10,6 @@ data class PlannedFile(
     val repoPath: String,
     val sizeBytes: Long?,
     val mimeType: String?,
+    val sizeDiagnosis: SizeDiagnosis,
     val ignoredByRule: IgnoreRule? = null
 )

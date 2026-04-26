@@ -8,7 +8,8 @@ data class FilePlan(
     val targetPath: String,
     val includedFiles: List<PlannedFile>,
     val ignoredFiles: List<PlannedFile>,
-    val issues: List<FilePlanIssue>
+    val issues: List<FilePlanIssue>,
+    val isBlockedForNormalCommit: Boolean
 )
 
 sealed interface FilePlanBuildResult {
