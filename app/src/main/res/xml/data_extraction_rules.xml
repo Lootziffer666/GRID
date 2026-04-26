@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- Painkiller opts out of cloud backup of all app data. -->
+    </cloud-backup>
+    <device-transfer>
+        <!-- Painkiller opts out of device-to-device transfer of all app data. -->
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!--
+        Painkiller stores no user-recoverable state in Gate 0.
+        Tokens (Gate 3+) live in a SecureTokenStore backed by Android Keystore
+        and must never be backed up or transferred.
+    -->
+</full-backup-content>
