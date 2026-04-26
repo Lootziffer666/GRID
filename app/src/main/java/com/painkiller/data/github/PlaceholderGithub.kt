@@ -1,7 +1,6 @@
 package com.painkiller.data.github
 
-// Gate 0 placeholder. The Android-side wiring of the GitHub Git Data API
-// (Retrofit/OkHttp or Ktor client, auth interceptor, error mapping) lives
-// in this package starting at Gate 3. The interfaces and models live in
-// the :domain module under com.painkiller.domain.github.
+// Gate 3 note:
+// Contracts for OAuth auth and repository/branch listing now exist in this
+// package. Concrete HTTP client wiring is added in subsequent networking gates.
 internal object PlaceholderGithub
