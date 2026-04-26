@@ -165,31 +165,30 @@ Action:
 
 ## BUG-20260426-008
 
-Status: ACCEPTED
-Gate: 6
+Status: FIXED
+Gate: 5 (recovery)
 Severity: LOW
-Summary: No `handoff/GATE_5_HANDOFF.md` exists in the repository at the
-time Gate 6 was started, but the user explicitly authorized Gate 6 to
-proceed ("Previous gates 0–5 are PASS").
+Summary: No `handoff/GATE_5_HANDOFF.md` existed at the time Gate 6 was
+started. Gate 5 was later recovered in a dedicated session and is now
+implemented. Gate sequence 0–7 is complete.
 
 Evidence:
 - Repository tree at the start of Gate 6 contained
   `handoff/GATE_0_HANDOFF.md` through `handoff/GATE_4_HANDOFF.md` only.
-- `git log origin/main` shows no Gate 5 commit.
-- The user's Gate 6 prompt asserted gates 0–5 were PASS and authorized
-  proceeding with Gate 6.
-- AGENTS.md § "Required Reading Before Any Change" allows continuing
-  when "the user explicitly says to proceed".
+- `git log origin/main` showed no Gate 5 commit.
+- Gate 5 recovery session confirmed Codex had implemented Gate 5 but
+  could not push due to missing GitHub credentials.
+- `handoff/GATE_5_HANDOFF.md` and all Gate 5 files are now present on
+  this branch.
 
 Action:
-- Accepted. Gate 6 was implemented to take its inputs directly
-  (`SingleFileCommitInput` = `RepoTarget` + `fileName` + `contentBase64`
-  + `commitMessage`) so that whatever Gate 5 ultimately ships for the
-  preview / `UploadPlan` layer can produce that input shape without any
-  change to Gate 6 code.
-- Gate 7 (multi-file) requires the full Gate 5 `UploadPlan` /
-  per-file size diagnosis machinery, so Gate 5 should be implemented
-  before Gate 7 begins.
+- Fixed. Gate 5 implemented: `UploadPlanEntry`, `UploadPlan`,
+  `UploadPlanBuilder`, `CommitMessageSuggester` (`:domain`);
+  `UploadPreviewScreen`, `Gate5PreviewSample` (`:app`). 16 new tests.
+- Gate 6 input shape (`SingleFileCommitInput`) is compatible — no changes
+  needed to Gates 6 or 7.
+- Gate 7 multi-file input shape (`MultiFileCommitInput`) is compatible —
+  `plan.safeEntries + warningEntries` → `List<MultiFileCommitEntry>`.
 
 ---
 

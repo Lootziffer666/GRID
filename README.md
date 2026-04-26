@@ -24,7 +24,7 @@ For the full product brief, see `instructions.md`.
 - **Gate 2 — Large File Doctor (pure domain): PASS.**
 - **Gate 3 — GitHub auth + repository/branch listing: PASS.**
 - **Gate 4 — RepoTarget + presets: PASS (CI-verified).**
-- **Gate 5 — UploadPlan + preview UI: not implemented as a separate handoff (see `knownbugs.md` BUG-20260426-008).**
+- **Gate 5 — UploadPlan + preview UI: PARTIAL (domain planning + preview screen landed; SAF wiring and editable commit message deferred).**
 - **Gate 6 — single-file commit via Git Data API: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).**
 - **Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 6).**
 
@@ -63,6 +63,22 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
 - Added DataStore-backed app settings store for non-secret repo target/preset data.
 - No upload/commit/push behavior added.
 
+### Gate 5 implemented
+
+- Pure-Kotlin `UploadPlanBuilder` in `:domain/upload/` combines a `FilePlan`
+  (Gate 1) and Gate 2 `SizeDiagnosis` results into an `UploadPlan` pre-grouped
+  by severity (`safeEntries`, `warningEntries`, `blockedEntries`,
+  `deferredEntries`, `ignoredEntries`).
+- `UploadPlan.isBlockedForCommit` is true when any blocked entry is present —
+  gates the Confirm action in the preview screen.
+- `CommitMessageSuggester` generates a short human-readable commit message from
+  the safe + warning entries. Result is an editable starting point.
+- `UploadPreviewScreen` Compose screen renders each severity group, the target
+  repository, and the suggested commit message. Confirm button is disabled when
+  blocked or when commit wiring is absent (Gates 6 / 7). No GitHub write.
+- `Gate5PreviewSample` provides a deterministic `UploadPlan` for `@Preview` only.
+- 16 new domain tests (`./gradlew :domain:test` — 93 tests, 0 failures).
+
 ### Gate 6 implemented
 
 - Pure-Kotlin `SingleFileCommitOrchestrator` in `:domain/github/` runs the safe
@@ -80,7 +96,7 @@ See `handoff/GATE_1_HANDOFF.md`, `handoff/GATE_2_HANDOFF.md`, `handoff/GATE_3_HA
   pattern: token-gated, delegates to the domain orchestrator.
 - HTTP client implementation of `GithubGitDataApi` is intentionally deferred
   (same pattern as `GithubOAuthApi` / `GithubRepositoryApi` from Gate 3).
-- 16 new orchestrator tests (`./gradlew :domain:test` — 57 tests, 0 failures).
+- 16 new orchestrator tests (`./gradlew :domain:test` — 57 tests, 0 failures at Gate 6 merge).
 
 ### Gate 7 implemented
 
