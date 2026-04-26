@@ -149,18 +149,28 @@ Action:
 
 ## BUG-20260426-007
 
-Status: OPEN
-Gate: 4
-Severity: MEDIUM
-Summary: Local Gate 4 verification cannot complete `:app:assembleDebug` because Android SDK is not configured in this execution environment.
+Status: ACCEPTED
+Gate: 4 (and all subsequent local runs)
+Severity: LOW
+Summary: Local agent environments without an Android SDK cannot run
+`:app:assembleDebug`. Per AGENTS.md / claude.md CI-first policy, this is
+not a project defect — Android verification is delegated to GitHub
+Actions on `main`.
 
 Evidence:
-- `./gradlew :app:assembleDebug` on 2026-04-26 failed with: "SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file at '/workspace/PAINKILLER/local.properties'."
-- `./gradlew :domain:test` and `./gradlew :domain:build` succeeded in the same run.
+- `./gradlew :app:assembleDebug` fails locally with: "SDK location not
+  found. Define a valid SDK location with an ANDROID_HOME environment
+  variable or by setting the sdk.dir path in your project's local
+  properties file."
+- `./gradlew :domain:test` and `./gradlew :domain:build` succeed in
+  every gate run.
+- The GitHub Actions workflow `.github/workflows/build.yml` provides the
+  Android SDK and runs `:app:assembleDebug` as the authoritative check.
 
 Action:
-- Keep Gate 4 marked `PARTIAL` for this local run.
-- Re-run `./gradlew :app:assembleDebug` on CI or SDK-enabled runner before promoting Gate 4 to `PASS`.
+- Accepted as a permanent environment-only condition. No further action.
+- Do not reopen for individual gates; the CI workflow is the source of
+  truth for Android-side verification.
 
 
 ## BUG-20260426-008
