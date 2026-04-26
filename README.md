@@ -23,20 +23,29 @@ For the full product brief, see `instructions.md`.
 **Gate 0 — project skeleton + UI/API spike: PARTIAL.**
 
 Code deliverables are complete; the only outstanding item is an end-to-end
-Android assembly check on a machine with the Android SDK installed.
+Android assembly check on a machine with the Android SDK installed. The
+current state is the merged best of two parallel Gate 0 runs (see
+`knownbugs.md` BUG-20260426-003).
 
 What is in place in Gate 0:
 
-- Android / Kotlin / Jetpack Compose project skeleton (`:app` module).
+- Android / Kotlin / Jetpack Compose project skeleton (`:app` module),
+  including `PainkillerApplication`, manifest with `INTERNET` permission
+  and explicit Android backup / data-extraction opt-out, `proguard-rules.pro`
+  for kotlinx.serialization, and the standard `xml/` and `values/` resources.
 - Pure-Kotlin domain module (`:domain`) holding:
-  - GitHub Git Data API request/response models (kotlinx.serialization).
+  - GitHub Git Data API request / response models (kotlinx.serialization).
   - `GithubGitDataApi` and `GithubRepositoryApi` interface contracts (no
     implementation, no network calls).
   - `RepoCoordinates` value type with narrow validation.
   - `DiagnosticSeverity` enum (consumed by the UI severity badge).
+  - `PathValidation` (`normalizeRepoPath` / `isSafeRepoPath`) pure utility,
+    placed in `:domain/path/` so it is testable without the Android SDK.
+    Full Gate 1 / 4 integration lands in those later gates.
 - Painkiller theme: colors and shapes lifted directly from CATALON-GUARD as
   specified in `instructions.md` (`#FF5A5F`, `#00A699`, `#F7B731`, dark and
-  light surfaces, 4 / 12 / 24 dp shape grammar, 8 / 12 / 16 / 20 dp spacing).
+  light surfaces, 4 / 12 / 24 dp shape grammar, 8 / 12 / 16 / 20 dp spacing),
+  plus an explicit Material 3 type scale.
 - Reusable Compose components: `PainkillerSeverityBadge`, `PainkillerInfoCard`,
   `PainkillerWarningCard`, `PainkillerErrorBanner`,
   `PainkillerPrimaryActionButton`.
@@ -45,8 +54,15 @@ What is in place in Gate 0:
   disabled primary action button.
 - Package skeletons for `data.github`, `data.files`, `data.zip`,
   `data.settings`, `data.security`, and `ui.screens`.
-- 9 unit tests in `:domain` covering serialization round-trips and
-  `RepoCoordinates` validation. All pass.
+- **19 unit tests in `:domain`**, all PASS via `./gradlew :domain:test`:
+  - 5 GitHub API model serialization tests
+  - 4 `RepoCoordinates` validation tests
+  - 9 `PathValidation` tests
+  - 1 `DiagnosticSeverity` test
+
+Intentionally **not** in Gate 0 even though the parallel run included
+them: `RepoTarget` / `BranchTarget` / `TargetPath` (Gate 4 scope) and
+`HumanReadableError` (Gate 8 scope).
 
 Why `PARTIAL`, not `PASS`: the sleep-mode environment used to assemble Gate 0
 does not have an Android SDK installed, so `./gradlew :app:assembleDebug`
@@ -77,14 +93,23 @@ PAINKILLER/
 ├── domain/                   # pure Kotlin / JVM module
 │   ├── build.gradle.kts
 │   └── src/
-│       ├── main/kotlin/com/painkiller/domain/...
+│       ├── main/kotlin/com/painkiller/domain/
+│       │   ├── github/       # API models + interface contracts + RepoCoordinates
+│       │   ├── model/        # DiagnosticSeverity
+│       │   └── path/         # PathValidation
 │       └── test/kotlin/com/painkiller/domain/...
 └── app/                      # Android application module
     ├── build.gradle.kts
+    ├── proguard-rules.pro
     └── src/
         ├── main/AndroidManifest.xml
-        ├── main/java/com/painkiller/...
-        ├── main/res/values/{strings,themes}.xml
+        ├── main/java/com/painkiller/
+        │   ├── MainActivity.kt
+        │   ├── PainkillerApplication.kt
+        │   ├── ui/{theme,components,screens}/...
+        │   └── data/{github,files,zip,settings,security}/...
+        ├── main/res/values/{strings,themes,colors}.xml
+        ├── main/res/xml/{backup_rules,data_extraction_rules}.xml
         └── test/java/com/painkiller/SmokeTest.kt
 ```
 

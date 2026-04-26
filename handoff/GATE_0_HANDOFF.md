@@ -45,34 +45,48 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
   `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`,
   `gradle/libs.versions.toml`, `gradlew`, `gradle/wrapper/`.
 - `:domain` (pure Kotlin / JVM) module:
-  - `GitDataModels.kt` — kotlinx.serialization request / response types
-    for `GitRef`, `GitCommit`, `CreateBlob{Request,Response}`,
-    `CreateTree{Request,Response}`, `TreeEntry` (with file-mode
-    constants), `CreateCommit{Request,Response}`, `UpdateRefRequest`,
+  - `github/GitDataModels.kt` — kotlinx.serialization request / response
+    types for `GitRef`, `GitCommit`, `CreateBlob{Request,Response}`,
+    `CreateTree{Request,Response}`, `TreeEntry` (with file-mode constants),
+    `CreateCommit{Request,Response}`, `UpdateRefRequest`,
     `GithubRepositorySummary`, `GithubBranchSummary`.
-  - `GithubGitDataApi.kt` — `GithubGitDataApi` and
+  - `github/GithubGitDataApi.kt` — `GithubGitDataApi` and
     `GithubRepositoryApi` interfaces. Method-level documentation reminds
     later gates that `force=true` ref updates are not allowed without an
     audited future feature.
-  - `RepoCoordinates.kt` — value type with narrow validation (non-blank
-    owner / repo / branch). Provides `fullName` and `refPath`.
-  - `Severity.kt` — `DiagnosticSeverity` enum (`SAFE`, `WARNING`,
+  - `github/RepoCoordinates.kt` — value type with narrow validation
+    (non-blank owner / repo / branch). Provides `fullName` and `refPath`.
+  - `model/Severity.kt` — `DiagnosticSeverity` enum (`SAFE`, `WARNING`,
     `BLOCKED`, `DEFERRED`) shared between the domain layer and UI.
+  - `path/PathValidation.kt` — `normalizeRepoPath` / `isSafeRepoPath` pure
+    utilities. Placed in `:domain` so it is testable without the Android
+    SDK; full Gate 1 / 4 integration lands in those later gates.
+  - Tests (19 total, all PASS):
+    - `github/GitDataModelsSerializationTest.kt` — 5 tests
+    - `github/RepoCoordinatesTest.kt` — 4 tests
+    - `model/DiagnosticSeverityTest.kt` — 1 test
+    - `path/PathValidationTest.kt` — 9 tests
 - `:app` (Android) module:
-  - `AndroidManifest.xml` with `MainActivity` as launcher.
   - `MainActivity.kt` — `ComponentActivity` that calls `setContent` with
     `PainkillerTheme { PainkillerApp() }`.
+  - `PainkillerApplication.kt` — empty `Application` subclass registered in
+    the manifest via `android:name`. Lets later gates initialize singletons.
+  - `AndroidManifest.xml` — `INTERNET` permission, launcher activity,
+    `android:name=".PainkillerApplication"`,
+    `android:dataExtractionRules="@xml/data_extraction_rules"`, and
+    `android:fullBackupContent="@xml/backup_rules"`.
   - `ui/PainkillerApp.kt` — Material 3 `Scaffold` + `TopAppBar`, an
     `InfoCard`, a `WarningCard` (severity = `DEFERRED`), and a disabled
     primary action button. Includes a Compose `@Preview`.
-  - `ui/theme/Color.kt`, `Shape.kt`, `Type.kt`, `Spacing.kt`, `Theme.kt`
-    — color tokens (`#FF5A5F`, `#00A699`, `#F7B731`, `#1A1A1A`,
-    `#222222`, `#2E2E2E`, `#F5F5F5`, `#FFFFFF`, `#F0F0F0`), shape
-    tokens (4 / 12 / 24 dp), spacing (8 / 12 / 16 / 20 dp), light and
-    dark `ColorScheme`s, and a `PainkillerTheme` wrapper.
-  - `ui/components/PainkillerSeverityBadge.kt`,
-    `PainkillerInfoCard.kt`, `PainkillerWarningCard.kt`,
-    `PainkillerErrorBanner.kt`, `PainkillerPrimaryActionButton.kt`.
+  - `ui/theme/Color.kt`, `Shape.kt`, `Type.kt`, `Spacing.kt`, `Theme.kt` —
+    color tokens (`#FF5A5F`, `#00A699`, `#F7B731`, `#1A1A1A`, `#222222`,
+    `#2E2E2E`, `#F5F5F5`, `#FFFFFF`, `#F0F0F0`), shape tokens (4 / 12 /
+    24 dp), spacing (8 / 12 / 16 / 20 dp), light and dark `ColorScheme`s,
+    `PainkillerTheme` wrapper, and an explicit Material 3 type scale
+    (titleLarge/Medium, bodyLarge/Medium, labelLarge/Small).
+  - `ui/components/PainkillerSeverityBadge.kt`, `PainkillerInfoCard.kt`,
+    `PainkillerWarningCard.kt`, `PainkillerErrorBanner.kt`,
+    `PainkillerPrimaryActionButton.kt`.
   - `data/{github,files,zip,settings,security}/Placeholder*.kt` —
     package markers naming the gate that will fill each package.
   - `ui/screens/PlaceholderScreens.kt` — package marker for upload-flow
@@ -84,25 +98,10 @@ Gate 0, and Gate 1 is permitted to begin once this commit is pushed.
   - `res/xml/backup_rules.xml`, `res/xml/data_extraction_rules.xml` —
     explicit opt-out of Android cloud backup and device transfer. Token
     storage (Gate 3) uses Android Keystore and must never be backed up.
-  - `proguard-rules.pro` — keeps kotlinx.serialization metadata under
-    R8 minification.
-  - `PainkillerApplication.kt` — empty `Application` subclass, registered
-    in the manifest via `android:name`. Allows later gates to initialize
-    singletons safely.
-  - `AndroidManifest.xml` updated with: `INTERNET` permission (needed from
-    Gate 6+), `android:name=".PainkillerApplication"`, and
-    `android:dataExtractionRules` / `android:fullBackupContent` references.
-  - `ui/theme/Type.kt` updated with explicit type scale (titleLarge,
-    titleMedium, bodyLarge, bodyMedium, labelLarge, labelSmall) instead of
-    the default empty `Typography()`.
+  - `proguard-rules.pro` — keeps kotlinx.serialization metadata under R8
+    minification.
   - `app/src/test/java/com/painkiller/SmokeTest.kt` — confirms `:domain`
     is reachable from `:app`.
-- `:domain` additions from merge:
-  - `domain/path/PathValidation.kt` — `normalizeRepoPath` / `isSafeRepoPath`
-    pure utilities. Gate 1/4 integration lands in those gates; placed in
-    `:domain` now so it is testable without the Android SDK.
-  - `domain/src/test/.../path/PathValidationTest.kt` — 9 tests.
-  - `domain/src/test/.../model/DiagnosticSeverityTest.kt` — 1 test.
 - Root documentation:
   - `claude.md` — gate discipline, scope, safety rules, build commands.
   - `knownbugs.md` — entry format and the three Gate 0 entries (including
@@ -238,7 +237,19 @@ domain/src/test/kotlin/com/painkiller/domain/path/PathValidationTest.kt
   before any later gate that adds Android-only behavior is shipped to
   users.
 
-## Commit
+## Commits
 
-- hash: `15ac2d1ccc9f147cb44328cce42d2a6ddb6b5277`
-- message: `Gate 0: partial Android skeleton and domain verification`
+Gate 0 was committed in three steps on `claude/magical-thompson-eFEvQ`:
+
+- `15ac2d1` — `Gate 0: partial Android skeleton and domain verification`
+  (initial skeleton, domain spike, 9 tests).
+- `c105232` — `Gate 0: record commit hash in handoff`.
+- `eb43196` — `Gate 0: merge best of both runs — 19 tests pass`
+  (merged Typography, `PainkillerApplication`, manifest improvements,
+  `proguard-rules.pro`, backup / data-extraction rules, `colors.xml`,
+  `PathValidation` + tests, `DiagnosticSeverityTest` from the parallel
+  `6P6vg` Gate 0 run; intentionally excluded `RepoTarget` /
+  `BranchTarget` / `TargetPath` / `HumanReadableError` as later-gate scope).
+
+Current Gate 0 head: `eb43196`. Branch is pushed to
+`origin/claude/magical-thompson-eFEvQ`.
