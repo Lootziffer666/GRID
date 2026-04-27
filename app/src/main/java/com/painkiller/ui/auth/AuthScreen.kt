@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -111,6 +112,29 @@ fun AuthScreen(
                 text = if (state.isSubmitting) "Signing in…" else "Sign in",
                 onClick = viewModel::signIn,
                 enabled = state.canSubmit,
+            )
+
+            HorizontalDivider()
+
+            PainkillerInfoCard(
+                title = "OAuth authorization code (optional)",
+                body = "If OAuth exchange is configured for your build, paste the one-time " +
+                    "authorization code here. PAT remains supported as the primary login.",
+            )
+
+            OutlinedTextField(
+                value = state.oauthCodeInput,
+                onValueChange = viewModel::onAuthorizationCodeChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Authorization code") },
+                placeholder = { Text("Paste code") },
+                singleLine = true,
+            )
+
+            PainkillerPrimaryActionButton(
+                text = if (state.isSubmitting) "Exchanging…" else "Sign in with OAuth code",
+                onClick = viewModel::signInWithAuthorizationCode,
+                enabled = state.canSubmitOAuthCode,
             )
         }
     }

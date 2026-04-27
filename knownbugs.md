@@ -304,3 +304,20 @@ Evidence:
 Action:
 - Accept direct commit for initial model artifact.
 - Reevaluate LFS routing if model size grows beyond warning thresholds.
+
+---
+
+## BUG-20260427-014
+
+Status: ACCEPTED
+Gate: 20
+Severity: LOW
+Summary: OAuth additional-login UI is wired, but token exchange remains build-dependent until a configured `GithubOAuthApi` backend path exists.
+
+Evidence:
+- `GithubAuthRepository.authenticateWithAuthorizationCode()` returns "OAuth web flow is not available in this build." when `oauthApi` is `null`.
+- `PainkillerContainer` currently wires `oauthApi = null` by default.
+
+Action:
+- Keep OAuth code UI visible as optional path.
+- Integrate backend-assisted exchange in a dedicated follow-up gate when credentials flow is available.

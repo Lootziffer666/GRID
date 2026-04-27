@@ -65,12 +65,12 @@ If GitHub Actions fails, the failing workflow output becomes the source of truth
 
 ## Current Gate State
 
-Gate 0–18 are verified as implemented in sequence (see `handoff/GATE_17_HANDOFF.md` and `handoff/GATE_18_HANDOFF.md` for latest UX passes).
+Gate 0–20 are verified as implemented in sequence (see `handoff/GATE_20_HANDOFF.md` for latest OAuth-additional-login progress).
 
 The next implementation gate is:
 
 ```text
-Gate 19 — Source Summary UX
+Gate 21 — PR Management Foundations
 ```
 
 Follow the latest handoff + repository state as the source of truth.
@@ -246,11 +246,11 @@ Action:
 
 ---
 
-# Gate 19 Guidance
+# Gate 21 Guidance
 
 ## Mission
 
-Implement Gate 19 only (unless the user explicitly overrides).
+Implement Gate 21 only (unless the user explicitly overrides).
 
 User override currently active: scope expansion to include PR merge assist, OAuth as an additional login path, and phased LFS/Release/PR-management work is approved. Optional ONNX-based local merge-risk scoring is also allowed under this override. Execute this only through explicit per-gate steps in `handoff/NEXT_GATES_PLAN.md`.
 

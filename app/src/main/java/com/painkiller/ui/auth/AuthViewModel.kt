@@ -57,6 +57,20 @@ class AuthViewModel(
         }
     }
 
+    fun onAuthorizationCodeChanged(value: String) {
+        _state.update {
+            it.copy(
+                oauthCodeInput = value,
+                errorMessage = null,
+                statusHint = if (value.trim().isBlank()) {
+                    "Paste a Personal Access Token to continue."
+                } else {
+                    "Authorization code ready for exchange."
+                },
+            )
+        }
+    }
+
     fun signIn() {
         val current = _state.value
         if (current.isSubmitting) return
@@ -85,6 +99,37 @@ class AuthViewModel(
                         formatLooksValid = false,
                         tokenKindLabel = null,
                         statusHint = "Sign-in failed. Review token scope and retry.",
+                        errorMessage = result.reason,
+                    )
+                }
+            }
+        }
+    }
+
+    fun signInWithAuthorizationCode() {
+        val current = _state.value
+        if (current.isSubmitting) return
+        val code = current.oauthCodeInput.trim()
+        if (code.isEmpty()) {
+            _state.update { it.copy(errorMessage = "Authorization code is required.") }
+            return
+        }
+        _state.update { it.copy(isSubmitting = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val result = authRepository.authenticateWithAuthorizationCode(code)) {
+                is GithubAuthResult.Success -> _state.value = AuthUiState(
+                    authState = result.state,
+                    tokenInput = "",
+                    oauthCodeInput = "",
+                    formatLooksValid = false,
+                    tokenKindLabel = null,
+                    statusHint = "Signed in.",
+                )
+                is GithubAuthResult.Failure -> _state.update {
+                    it.copy(
+                        isSubmitting = false,
+                        oauthCodeInput = "",
+                        statusHint = "OAuth sign-in failed. Try PAT or verify code flow setup.",
                         errorMessage = result.reason,
                     )
                 }
@@ -133,6 +178,7 @@ class AuthViewModel(
 data class AuthUiState(
     val authState: GithubAuthState = GithubAuthState.Unauthenticated,
     val tokenInput: String = "",
+    val oauthCodeInput: String = "",
     val formatLooksValid: Boolean = false,
     val tokenKindLabel: String? = null,
     val isSubmitting: Boolean = false,
@@ -141,4 +187,5 @@ data class AuthUiState(
 ) {
     val isAuthenticated: Boolean get() = authState is GithubAuthState.Authenticated
     val canSubmit: Boolean get() = !isSubmitting && tokenInput.isNotBlank()
+    val canSubmitOAuthCode: Boolean get() = !isSubmitting && oauthCodeInput.isNotBlank()
 }

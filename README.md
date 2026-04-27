@@ -32,6 +32,7 @@ Painkiller now includes:
 - single and multi-file Git Data API orchestration
 - Ktor-based GitHub API adapters (repo/branch listing + git-data + token probe)
 - PAT-based sign-in with encrypted secure storage
+- OAuth authorization-code sign-in path added as optional second login mode (build-dependent exchange support)
 - ZIP intake safety checks (ZIP-Slip defense in depth)
 - dark mode toggle (default is light mode)
 - splash screen + vector app icon branding
