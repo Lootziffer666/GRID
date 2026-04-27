@@ -355,3 +355,37 @@ Evidence:
 Action:
 - Keep explicit user confirmation flow for merge actions.
 - Follow up in later gate with periodic refresh/backoff for mergeability status if needed.
+
+---
+
+## BUG-20260427-017
+
+Status: ACCEPTED
+Gate: 23
+Severity: LOW
+Summary: GitHub App installation sign-in is wired in UI/domain boundary, but requires backend exchange endpoint configuration to be functional.
+
+Evidence:
+- `GithubAuthRepository.signInWithGithubAppInstallation()` returns a failure when `appAuthApi` is not configured.
+- `PainkillerContainer` currently wires `appAuthApi = null`.
+
+Action:
+- Keep GitHub App flow visible as preferred path.
+- Implement backend exchange endpoint and wire `GithubAppAuthApi` in a follow-up infrastructure gate.
+
+---
+
+## BUG-20260427-018
+
+Status: OPEN
+Gate: 24
+Severity: LOW
+Summary: Release asset upload currently decodes selected file content into memory before network POST, which may increase peak memory usage for large artifacts.
+
+Evidence:
+- `UploadFlowViewModel.uploadSelectedFileAsReleaseAsset()` decodes `LoadedFile.contentBase64` to `ByteArray` before repository upload.
+- `UploadReleaseAssetRequest` carries an eager `ByteArray` payload (non-streaming path).
+
+Action:
+- Keep Gate 24 behavior for functional release-asset upload correctness.
+- Follow-up gate should switch to streaming upload body to reduce peak memory pressure.

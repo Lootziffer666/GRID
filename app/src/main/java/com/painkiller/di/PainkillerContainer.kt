@@ -19,6 +19,7 @@ import com.painkiller.data.github.KtorGithubRepositoryApi
 import com.painkiller.data.github.KtorGithubTokenProbeApi
 import com.painkiller.data.github.MultiFileCommitRepository
 import com.painkiller.data.github.PainkillerHttpClient
+import com.painkiller.data.github.RetrofitGithubAppAuthApi
 import com.painkiller.data.github.SingleFileCommitRepository
 import com.painkiller.data.security.EncryptedSecureTokenStore
 import com.painkiller.data.security.SecureTokenStore
@@ -86,7 +87,7 @@ class PainkillerContainer(appContext: Context) {
     val authRepository: GithubAuthRepository by lazy {
         GithubAuthRepository(
             oauthApi = null, // OAuth web flow not available without server-side client_secret.
-            appAuthApi = null, // GitHub App backend exchange endpoint not configured in this build.
+            appAuthApi = RetrofitGithubAppAuthApi.create(), // Emulator backend: http://10.0.2.2:3000/
             tokenProbeApi = tokenProbeApi,
             secureTokenStore = secureTokenStore,
         )

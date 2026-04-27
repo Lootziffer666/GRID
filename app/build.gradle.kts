@@ -64,6 +64,8 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.converter.gson)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
@@ -76,4 +78,5 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.okhttp.mockwebserver)
 }

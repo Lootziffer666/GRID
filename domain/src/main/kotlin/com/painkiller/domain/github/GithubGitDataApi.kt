@@ -75,3 +75,19 @@ interface GithubPullRequestApi {
         request: MergePullRequestRequest,
     ): MergePullRequestResponse
 }
+
+interface GithubReleaseApi {
+    suspend fun listReleases(owner: String, repo: String): List<GithubReleaseSummary>
+    suspend fun createRelease(
+        owner: String,
+        repo: String,
+        request: CreateReleaseRequest,
+    ): GithubReleaseSummary
+
+    suspend fun uploadReleaseAsset(
+        owner: String,
+        repo: String,
+        releaseId: Long,
+        request: UploadReleaseAssetRequest,
+    ): GithubReleaseAssetSummary
+}

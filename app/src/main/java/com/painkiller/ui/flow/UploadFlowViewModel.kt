@@ -329,6 +329,134 @@ class UploadFlowViewModel(
         loadSelectedPullRequestDetail()
     }
 
+    fun loadReleaseList() {
+        val owner = _state.value.ownerInput.trim()
+        val repo = _state.value.repoInput.trim()
+        if (owner.isBlank() || repo.isBlank()) return
+        if (_state.value.isLoadingReleases) return
+        _state.update { it.copy(isLoadingReleases = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val result = releaseRepository.listReleases(owner, repo)) {
+                is GithubReleaseListResult.Success -> _state.update {
+                    it.copy(releases = result.releases, isLoadingReleases = false)
+                }
+                is GithubReleaseListResult.Failure -> _state.update {
+                    it.copy(isLoadingReleases = false, errorMessage = result.reason)
+                }
+            }
+        }
+    }
+
+    fun selectRelease(summary: GithubReleaseSummary) {
+        _state.update { it.copy(selectedRelease = summary) }
+    }
+
+    fun clearSelectedRelease() {
+        _state.update { it.copy(selectedRelease = null) }
+    }
+
+    fun onNewReleaseTagChanged(value: String) {
+        _state.update { it.copy(newReleaseTagInput = value, errorMessage = null) }
+    }
+
+    fun onNewReleaseNameChanged(value: String) {
+        _state.update { it.copy(newReleaseNameInput = value, errorMessage = null) }
+    }
+
+    fun createReleaseFromInputs() {
+        val s = _state.value
+        val owner = s.ownerInput.trim()
+        val repo = s.repoInput.trim()
+        val tag = s.newReleaseTagInput.trim()
+        if (owner.isBlank() || repo.isBlank()) {
+            _state.update { it.copy(errorMessage = "Owner and repo are required.") }
+            return
+        }
+        if (tag.isBlank()) {
+            _state.update { it.copy(errorMessage = "Release tag is required.") }
+            return
+        }
+        if (s.isCreatingRelease) return
+        _state.update { it.copy(isCreatingRelease = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (
+                val result = releaseRepository.createRelease(
+                    owner = owner,
+                    repo = repo,
+                    request = com.painkiller.domain.github.CreateReleaseRequest(
+                        tagName = tag,
+                        name = s.newReleaseNameInput.trim().ifBlank { null },
+                        targetCommitish = s.branchInput.trim().ifBlank { null },
+                    ),
+                )
+            ) {
+                is GithubReleaseCreateResult.Success -> _state.update {
+                    it.copy(
+                        isCreatingRelease = false,
+                        selectedRelease = result.release,
+                        newReleaseTagInput = "",
+                        newReleaseNameInput = "",
+                    )
+                }
+                is GithubReleaseCreateResult.Failure -> _state.update {
+                    it.copy(isCreatingRelease = false, errorMessage = result.reason)
+                }
+            }
+        }
+    }
+
+    fun uploadSelectedFileAsReleaseAsset() {
+        val s = _state.value
+        val release = s.selectedRelease
+        val file = s.loadedFile
+        if (release == null) {
+            _state.update { it.copy(errorMessage = "Pick or create a release first.") }
+            return
+        }
+        if (file == null) {
+            _state.update { it.copy(errorMessage = "Pick a single file to upload as a release asset.") }
+            return
+        }
+        if (s.isUploadingReleaseAsset) return
+        _state.update { it.copy(isUploadingReleaseAsset = true, errorMessage = null) }
+        viewModelScope.launch {
+            val data = try {
+                java.util.Base64.getDecoder().decode(file.contentBase64)
+            } catch (e: Throwable) {
+                _state.update {
+                    it.copy(
+                        isUploadingReleaseAsset = false,
+                        errorMessage = "Could not decode selected file for release upload.",
+                    )
+                }
+                return@launch
+            }
+            val contentType = file.mimeType?.ifBlank { null } ?: "application/octet-stream"
+            when (
+                val result = releaseRepository.uploadReleaseAsset(
+                    owner = s.ownerInput.trim(),
+                    repo = s.repoInput.trim(),
+                    releaseId = release.id,
+                    request = UploadReleaseAssetRequest(
+                        name = file.displayName,
+                        contentType = contentType,
+                        data = data,
+                    ),
+                )
+            ) {
+                is GithubReleaseAssetUploadResult.Success -> _state.update {
+                    it.copy(
+                        isUploadingReleaseAsset = false,
+                        releaseAssetUploadMessage = "Uploaded ${result.asset.name} to ${release.tagName}.",
+                    )
+                }
+                is GithubReleaseAssetUploadResult.Failure -> _state.update {
+                    it.copy(isUploadingReleaseAsset = false, errorMessage = result.reason)
+                }
+            }
+        }
+    }
+
     fun loadSelectedPullRequestDetail() {
         val s = _state.value
         val selected = s.selectedPullRequest ?: return
@@ -390,6 +518,10 @@ class UploadFlowViewModel(
 
     fun dismissPullRequestMessage() {
         _state.update { it.copy(pullRequestMergeMessage = null) }
+    }
+
+    fun dismissReleaseAssetMessage() {
+        _state.update { it.copy(releaseAssetUploadMessage = null) }
     }
 
     // ─── plan building ───────────────────────────────────────────────────────
@@ -631,12 +763,20 @@ data class UploadFlowUiState(
     val pullRequests: List<GithubPullRequestSummary> = emptyList(),
     val selectedPullRequest: GithubPullRequestSummary? = null,
     val selectedPullRequestDetail: com.painkiller.domain.github.GithubPullRequestDetail? = null,
+    val releases: List<GithubReleaseSummary> = emptyList(),
+    val selectedRelease: GithubReleaseSummary? = null,
     val isLoadingRepos: Boolean = false,
     val isLoadingBranches: Boolean = false,
     val isLoadingPullRequests: Boolean = false,
     val isLoadingPullRequestDetail: Boolean = false,
+    val isLoadingReleases: Boolean = false,
+    val isCreatingRelease: Boolean = false,
+    val isUploadingReleaseAsset: Boolean = false,
     val isMergingPullRequest: Boolean = false,
     val pullRequestMergeMessage: String? = null,
+    val releaseAssetUploadMessage: String? = null,
+    val newReleaseTagInput: String = "",
+    val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,
     val isCommitting: Boolean = false,
     val errorMessage: String? = null,

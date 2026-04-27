@@ -28,6 +28,14 @@ PASS
   - release creation section (tag + optional name + create button)
   - release asset upload button inside selected release section.
 - Added focused Ktor unit tests for release asset upload endpoint behavior and auth failure mapping.
+- Added a local Node/Express GitHub App exchange server (`POST /github-app/exchange`) that:
+  - reads `APP_ID` + private key from env (`APP_PRIVATE_KEY` or `APP_PRIVATE_KEY_PATH`)
+  - mints a 10-minute RS256 JWT
+  - calls GitHub `POST /app/installations/{installation_id}/access_tokens`
+  - returns `{ token, expires_at }`.
+- Added Android Retrofit implementation for `GithubAppAuthApi` with `ExchangeRequest`/`ExchangeResponse`.
+- Updated `PainkillerContainer` to wire `appAuthApi` to `RetrofitGithubAppAuthApi.create()` (`http://10.0.2.2:3000/` default for emulator).
+- Added `MockWebServer` test for Retrofit exchange API request/response behavior.
 
 ## Files Changed
 
@@ -40,6 +48,13 @@ PASS
 - `app/src/test/java/com/painkiller/data/github/KtorGithubReleaseApiTest.kt`
 - `README.md`
 - `handoff/GATE_24_HANDOFF.md`
+- `app/src/main/java/com/painkiller/data/github/RetrofitGithubAppAuthApi.kt`
+- `app/src/test/java/com/painkiller/data/github/RetrofitGithubAppAuthApiTest.kt`
+- `tools/github-app-exchange-server/server.js`
+- `tools/github-app-exchange-server/package.json`
+- `tools/github-app-exchange-server/start-local.sh`
+- `tools/github-app-exchange-server/README.md`
+- `.gitignore`
 
 ## Checks Run
 
@@ -48,6 +63,12 @@ PASS
 
 - command: `./gradlew :app:testDebugUnitTest :app:assembleDebug`
 - result: local SDK missing (`SDK location not found`), CI remains authoritative per CI-first policy.
+
+- command: `cd tools/github-app-exchange-server && npm install`
+- result: PASS
+
+- command: `cd tools/github-app-exchange-server && APP_ID=123 APP_PRIVATE_KEY_PATH=./missing.pem node server.js`
+- result: PASS (server starts; exchange returns expected config error until valid credentials are provided)
 
 ## CI Status
 
