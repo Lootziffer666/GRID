@@ -51,6 +51,7 @@ fun PainkillerNavGraph(
             )
             UploadFlowScreen(
                 viewModel = uploadViewModel,
+                safFolderReader = container.safFolderReader,
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(ROUTE_AUTH) {

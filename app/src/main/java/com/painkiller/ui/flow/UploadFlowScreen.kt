@@ -2,6 +2,7 @@ package com.painkiller.ui.flow
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,15 +34,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.painkiller.data.files.SafFolderReader
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.ui.components.PainkillerErrorBanner
+import kotlinx.coroutines.launch
 import com.painkiller.ui.components.PainkillerInfoCard
 import com.painkiller.ui.components.PainkillerPrimaryActionButton
 import com.painkiller.ui.theme.PainkillerSpacing
@@ -50,12 +54,25 @@ import com.painkiller.ui.theme.PainkillerSpacing
 @Composable
 fun UploadFlowScreen(
     viewModel: UploadFlowViewModel,
+    safFolderReader: SafFolderReader,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
+    val scope = rememberCoroutineScope()
+    var isLoadingFolder by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(OpenDocument()) { uri ->
         uri?.let { viewModel.onSourceUriPicked(it) }
+    }
+    val folderLauncher = rememberLauncherForActivityResult(OpenDocumentTree()) { treeUri ->
+        treeUri?.let { uri ->
+            scope.launch {
+                isLoadingFolder = true
+                val source = safFolderReader.read(uri)
+                viewModel.onFolderSourceLoaded(source)
+                isLoadingFolder = false
+            }
+        }
     }
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
@@ -95,33 +112,71 @@ fun UploadFlowScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.md),
         ) {
-            // ── File section ────────────────────────────────────────────────
-            SectionCard(title = "Source file") {
-                if (state.loadedFile == null) {
-                    PainkillerPrimaryActionButton(
-                        text = "Pick a file…",
-                        onClick = { launcher.launch(arrayOf("*/*")) },
-                    )
-                } else {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = state.loadedFile!!.displayName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = formatBytes(state.loadedFile!!.sizeBytes),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+            // ── Source section ───────────────────────────────────────────────
+            SectionCard(title = "Source") {
+                when {
+                    state.loadedFile != null -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = state.loadedFile!!.displayName,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    text = formatBytes(state.loadedFile!!.sizeBytes),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            TextButton(onClick = viewModel::clearLoadedFile) { Text("Clear") }
                         }
-                        TextButton(onClick = viewModel::clearLoadedFile) { Text("Clear") }
+                    }
+                    state.loadedFolder != null -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Folder — ${state.loadedFolder!!.items.size} file(s)",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    text = "Commit available in next gate",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            TextButton(onClick = viewModel::clearLoadedFolder) { Text("Clear") }
+                        }
+                    }
+                    isLoadingFolder -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                        ) { CircularProgressIndicator() }
+                    }
+                    else -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                        ) {
+                            TextButton(
+                                onClick = { launcher.launch(arrayOf("*/*")) },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("Pick file") }
+                            TextButton(
+                                onClick = { folderLauncher.launch(null) },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("Pick folder") }
+                        }
                     }
                 }
             }
@@ -211,7 +266,7 @@ fun UploadFlowScreen(
                 PainkillerPrimaryActionButton(
                     text = "Review upload",
                     onClick = viewModel::buildPlan,
-                    enabled = state.loadedFile != null && !state.isCommitting,
+                    enabled = state.hasSource && !state.isCommitting && !isLoadingFolder,
                 )
             } else {
                 val plan = state.plan!!
@@ -259,11 +314,15 @@ fun UploadFlowScreen(
                         CircularProgressIndicator()
                     }
                 } else {
+                    val folderBlocked = state.isFolderSource
                     PainkillerPrimaryActionButton(
-                        text = if (plan.isBlockedForCommit) "Blocked — resolve large files first"
-                        else "Confirm upload",
+                        text = when {
+                            plan.isBlockedForCommit -> "Blocked — resolve large files first"
+                            folderBlocked -> "Folder commit — available in next gate"
+                            else -> "Confirm upload"
+                        },
                         onClick = viewModel::confirmUpload,
-                        enabled = !plan.isBlockedForCommit,
+                        enabled = !plan.isBlockedForCommit && !folderBlocked,
                     )
                 }
             }
