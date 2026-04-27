@@ -88,7 +88,7 @@ class UploadFlowViewModel(
         _state.update {
             it.copy(
                 loadedFolder = source,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFile = null,
                 loadedFilePlan = null,
                 plan = null,
@@ -101,7 +101,7 @@ class UploadFlowViewModel(
         _state.update {
             it.copy(
                 loadedFolder = result.source,
-                loadedZipContent = result.contentByRelativePath,
+                loadedMultiContent = result.contentByRelativePath,
                 loadedFile = null,
                 loadedFilePlan = null,
                 plan = null,
@@ -110,11 +110,52 @@ class UploadFlowViewModel(
         }
     }
 
+    fun onMultiSourceUrisPicked(uris: List<Uri>) {
+        _state.update {
+            it.copy(
+                loadedFile = null,
+                loadedFolder = null,
+                loadedMultiContent = null,
+                loadedFilePlan = null,
+                errorMessage = null,
+                plan = null,
+            )
+        }
+        viewModelScope.launch {
+            val loaded = uris.mapNotNull { uri -> safFileReader.read(uri) }
+            if (loaded.isEmpty()) {
+                _state.update {
+                    it.copy(errorMessage = "No readable files were selected.")
+                }
+                return@launch
+            }
+            val items = loaded.map { file ->
+                file.sourceItem.copy(relativePath = file.displayName)
+            }.sortedBy { it.displayName.lowercase() }
+            val encoded = loaded.associate { file ->
+                file.sourceItem.sourceId to file.contentBase64
+            }
+            _state.update {
+                it.copy(
+                    loadedFolder = SelectedSource(
+                        kind = SourceKind.MULTIPLE_FILES,
+                        items = items,
+                    ),
+                    loadedMultiContent = encoded,
+                    loadedFile = null,
+                    loadedFilePlan = null,
+                    plan = null,
+                    errorMessage = null,
+                )
+            }
+        }
+    }
+
     fun clearLoadedFolder() {
         _state.update {
             it.copy(
                 loadedFolder = null,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
             )
@@ -126,7 +167,7 @@ class UploadFlowViewModel(
             it.copy(
                 loadedFile = null,
                 loadedFolder = null,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFilePlan = null,
                 errorMessage = null,
                 plan = null,
@@ -159,7 +200,7 @@ class UploadFlowViewModel(
             it.copy(
                 loadedFile = null,
                 loadedFolder = null,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
             )
@@ -330,7 +371,7 @@ class UploadFlowViewModel(
             if (planned.sizeDiagnosis.isBlockedForNormalCommit) continue
             val contentBase64 = when {
                 s.isFolderSource -> safFileReader.read(Uri.parse(planned.sourceId))?.contentBase64
-                s.isZipSource -> s.loadedZipContent?.get(planned.sourceId)
+                s.isZipSource || s.isMultipleFileSource -> s.loadedMultiContent?.get(planned.sourceId)
                 else -> null
             }
             if (contentBase64 == null) {
@@ -453,7 +494,7 @@ class UploadFlowViewModel(
 data class UploadFlowUiState(
     val loadedFile: LoadedFile? = null,
     val loadedFolder: SelectedSource? = null,
-    val loadedZipContent: Map<String, String>? = null,
+    val loadedMultiContent: Map<String, String>? = null,
     val loadedFilePlan: FilePlan? = null,
     val ownerInput: String = "",
     val repoInput: String = "",
@@ -475,6 +516,7 @@ data class UploadFlowUiState(
     val hasSucceeded: Boolean get() = successCommitSha != null
     val isFolderSource: Boolean get() = loadedFolder?.kind == SourceKind.FOLDER
     val isZipSource: Boolean get() = loadedFolder?.kind == SourceKind.ZIP
+    val isMultipleFileSource: Boolean get() = loadedFolder?.kind == SourceKind.MULTIPLE_FILES
     val isMultiFileSource: Boolean get() = loadedFolder != null
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
