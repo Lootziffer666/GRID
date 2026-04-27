@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.painkiller.data.files.SafFolderReader
+import com.painkiller.data.files.SafZipReader
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubRepositorySummary
@@ -55,12 +56,14 @@ import com.painkiller.ui.theme.PainkillerSpacing
 fun UploadFlowScreen(
     viewModel: UploadFlowViewModel,
     safFolderReader: SafFolderReader,
+    safZipReader: SafZipReader,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
     val scope = rememberCoroutineScope()
     var isLoadingFolder by remember { mutableStateOf(false) }
+    var isLoadingZip by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(OpenDocument()) { uri ->
         uri?.let { viewModel.onSourceUriPicked(it) }
     }
@@ -74,6 +77,16 @@ fun UploadFlowScreen(
             }
         }
     }
+    val zipLauncher = rememberLauncherForActivityResult(OpenDocument()) { zipUri ->
+        zipUri?.let { uri ->
+            scope.launch {
+                isLoadingZip = true
+                val result = safZipReader.read(uri)
+                viewModel.onZipSourceLoaded(result)
+                isLoadingZip = false
+            }
+        }
+    }
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
 
@@ -81,7 +94,7 @@ fun UploadFlowScreen(
         SuccessScreen(
             sha = state.successCommitSha ?: "",
             url = state.successCommitUrl ?: "",
-            path = state.successCommittedPath ?: "",
+            paths = state.successCommittedPaths ?: emptyList(),
             onStartOver = viewModel::startOver,
             modifier = modifier,
         )
@@ -145,19 +158,17 @@ fun UploadFlowScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Folder — ${state.loadedFolder!!.items.size} file(s)",
+                                    text = if (state.isZipSource)
+                                        "ZIP — ${state.loadedFolder!!.items.size} file(s)"
+                                    else
+                                        "Folder — ${state.loadedFolder!!.items.size} file(s)",
                                     style = MaterialTheme.typography.bodyMedium,
-                                )
-                                Text(
-                                    text = "Commit available in next gate",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
                             TextButton(onClick = viewModel::clearLoadedFolder) { Text("Clear") }
                         }
                     }
-                    isLoadingFolder -> {
+                    isLoadingFolder || isLoadingZip -> {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.Center,
@@ -176,6 +187,10 @@ fun UploadFlowScreen(
                                 onClick = { folderLauncher.launch(null) },
                                 modifier = Modifier.weight(1f),
                             ) { Text("Pick folder") }
+                            TextButton(
+                                onClick = { zipLauncher.launch(arrayOf("application/zip")) },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("Pick ZIP") }
                         }
                     }
                 }
@@ -266,7 +281,7 @@ fun UploadFlowScreen(
                 PainkillerPrimaryActionButton(
                     text = "Review upload",
                     onClick = viewModel::buildPlan,
-                    enabled = state.hasSource && !state.isCommitting && !isLoadingFolder,
+                    enabled = state.hasSource && !state.isCommitting && !isLoadingFolder && !isLoadingZip,
                 )
             } else {
                 val plan = state.plan!!
@@ -314,15 +329,12 @@ fun UploadFlowScreen(
                         CircularProgressIndicator()
                     }
                 } else {
-                    val folderBlocked = state.isFolderSource
                     PainkillerPrimaryActionButton(
-                        text = when {
-                            plan.isBlockedForCommit -> "Blocked — resolve large files first"
-                            folderBlocked -> "Folder commit — available in next gate"
-                            else -> "Confirm upload"
-                        },
+                        text = if (plan.isBlockedForCommit)
+                            "Blocked — resolve large files first"
+                        else "Confirm upload",
                         onClick = viewModel::confirmUpload,
-                        enabled = !plan.isBlockedForCommit && !folderBlocked,
+                        enabled = !plan.isBlockedForCommit,
                     )
                 }
             }
@@ -369,7 +381,7 @@ fun UploadFlowScreen(
 private fun SuccessScreen(
     sha: String,
     url: String,
-    path: String,
+    paths: List<String>,
     onStartOver: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -395,7 +407,11 @@ private fun SuccessScreen(
         ) {
             PainkillerInfoCard(
                 title = "Upload complete",
-                body = "File committed to $path",
+                body = when {
+                    paths.size == 1 -> "Committed to ${paths[0]}"
+                    paths.isEmpty() -> "Commit successful"
+                    else -> "${paths.size} files committed"
+                },
             )
             SectionCard(title = "Commit") {
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
@@ -410,10 +426,28 @@ private fun SuccessScreen(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
+                    if (paths.size > 1) {
+                        HorizontalDivider()
+                        for (path in paths.take(20)) {
+                            Text(
+                                text = path,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        if (paths.size > 20) {
+                            Text(
+                                text = "… and ${paths.size - 20} more",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
             PainkillerPrimaryActionButton(
-                text = "Upload another file",
+                text = "Upload another",
                 onClick = onStartOver,
             )
         }
