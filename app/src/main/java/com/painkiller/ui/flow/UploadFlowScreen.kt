@@ -329,6 +329,26 @@ fun UploadFlowScreen(
                                 MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Text(
+                            "Safe ${plan.safeEntries.size}  ·  Warnings ${plan.warningEntries.size}  ·  " +
+                                "Blocked ${plan.blockedEntries.size}  ·  Ignored ${plan.ignoredEntries.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (plan.warningEntries.isNotEmpty()) {
+                            Text(
+                                "Warning entries can still be committed. Review size/path warnings before confirm.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
+                        if (plan.blockedEntries.isNotEmpty()) {
+                            Text(
+                                "Blocked entries must be removed or replaced before upload.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         TextButton(onClick = viewModel::startOver) { Text("Change file or target") }
                     }
                 }
