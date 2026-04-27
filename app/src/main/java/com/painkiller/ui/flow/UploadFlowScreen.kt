@@ -2,6 +2,7 @@ package com.painkiller.ui.flow
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -42,8 +43,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
+import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
+import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.ui.components.PainkillerErrorBanner
 import kotlinx.coroutines.launch
@@ -57,6 +60,8 @@ fun UploadFlowScreen(
     viewModel: UploadFlowViewModel,
     safFolderReader: SafFolderReader,
     safZipReader: SafZipReader,
+    darkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -66,6 +71,11 @@ fun UploadFlowScreen(
     var isLoadingZip by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(OpenDocument()) { uri ->
         uri?.let { viewModel.onSourceUriPicked(it) }
+    }
+    val multipleLauncher = rememberLauncherForActivityResult(OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.onMultiSourceUrisPicked(uris)
+        }
     }
     val folderLauncher = rememberLauncherForActivityResult(OpenDocumentTree()) { treeUri ->
         treeUri?.let { uri ->
@@ -89,6 +99,8 @@ fun UploadFlowScreen(
     }
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
+    var showPullRequestDialog by remember { mutableStateOf(false) }
+    var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
 
     if (state.hasSucceeded) {
         SuccessScreen(
@@ -111,6 +123,9 @@ fun UploadFlowScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 actions = {
+                    TextButton(onClick = onToggleDarkMode) {
+                        Text(if (darkModeEnabled) "Light mode" else "Dark mode")
+                    }
                     TextButton(onClick = onSignOut) { Text("Sign out") }
                 },
             )
@@ -158,10 +173,11 @@ fun UploadFlowScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (state.isZipSource)
-                                        "ZIP — ${state.loadedFolder!!.items.size} file(s)"
-                                    else
-                                        "Folder — ${state.loadedFolder!!.items.size} file(s)",
+                                    text = when {
+                                        state.isZipSource -> "ZIP — ${state.loadedFolder!!.items.size} file(s)"
+                                        state.isMultipleFileSource -> "Multiple files — ${state.loadedFolder!!.items.size} file(s)"
+                                        else -> "Folder — ${state.loadedFolder!!.items.size} file(s)"
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
@@ -184,9 +200,18 @@ fun UploadFlowScreen(
                                 modifier = Modifier.weight(1f),
                             ) { Text("Pick file") }
                             TextButton(
+                                onClick = { multipleLauncher.launch(arrayOf("*/*")) },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("Pick files") }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                        ) {
+                            TextButton(
                                 onClick = { folderLauncher.launch(null) },
                                 modifier = Modifier.weight(1f),
-                            ) { Text("Pick folder") }
+                            ) { Text("Auswählen (Explorer)") }
                             TextButton(
                                 onClick = { zipLauncher.launch(arrayOf("application/zip")) },
                                 modifier = Modifier.weight(1f),
@@ -249,6 +274,18 @@ fun UploadFlowScreen(
                             else "Pick branch",
                         )
                     }
+                    TextButton(
+                        onClick = {
+                            viewModel.loadPullRequestList()
+                            showPullRequestDialog = true
+                        },
+                        enabled = state.ownerInput.isNotBlank() && state.repoInput.isNotBlank(),
+                    ) {
+                        Text(
+                            if (state.isLoadingPullRequests) "Loading pull requests…"
+                            else "Pick open PR",
+                        )
+                    }
                     OutlinedTextField(
                         value = state.targetPathInput,
                         onValueChange = viewModel::onTargetPathChanged,
@@ -264,6 +301,13 @@ fun UploadFlowScreen(
             state.errorMessage?.let { msg ->
                 PainkillerErrorBanner(title = "Error", body = msg)
             }
+            state.pullRequestMergeMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Pull request",
+                    body = message,
+                )
+                TextButton(onClick = viewModel::dismissPullRequestMessage) { Text("Dismiss PR message") }
+            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -277,6 +321,39 @@ fun UploadFlowScreen(
             }
 
             // ── Plan or build-plan button ────────────────────────────────────
+            state.selectedPullRequest?.let { selected ->
+                SectionCard(title = "Selected pull request") {
+                    Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        Text(formatPullRequestLabel(selected), style = MaterialTheme.typography.bodyMedium)
+                        val detail = state.selectedPullRequestDetail
+                        if (state.isLoadingPullRequestDetail) {
+                            CircularProgressIndicator()
+                        } else if (detail != null) {
+                            Text(
+                                "Mergeable: ${detail.mergeable?.toString() ?: "unknown"} · state: ${detail.mergeableState ?: "unknown"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                                TextButton(onClick = { pendingMergeMethod = PullRequestMergeMethod.MERGE }) {
+                                    Text("Merge")
+                                }
+                                TextButton(onClick = { pendingMergeMethod = PullRequestMergeMethod.SQUASH }) {
+                                    Text("Squash")
+                                }
+                                TextButton(onClick = { pendingMergeMethod = PullRequestMergeMethod.REBASE }) {
+                                    Text("Rebase")
+                                }
+                            }
+                        } else {
+                            TextButton(onClick = viewModel::loadSelectedPullRequestDetail) {
+                                Text("Refresh mergeability")
+                            }
+                        }
+                    }
+                }
+            }
+
             if (state.plan == null) {
                 PainkillerPrimaryActionButton(
                     text = "Review upload",
@@ -308,6 +385,26 @@ fun UploadFlowScreen(
                                 MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Text(
+                            "Safe ${plan.safeEntries.size}  ·  Warnings ${plan.warningEntries.size}  ·  " +
+                                "Blocked ${plan.blockedEntries.size}  ·  Ignored ${plan.ignoredEntries.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (plan.warningEntries.isNotEmpty()) {
+                            Text(
+                                "Warning entries can still be committed. Review size/path warnings before confirm.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
+                        if (plan.blockedEntries.isNotEmpty()) {
+                            Text(
+                                "Blocked entries must be removed or replaced before upload.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         TextButton(onClick = viewModel::startOver) { Text("Change file or target") }
                     }
                 }
@@ -370,6 +467,44 @@ fun UploadFlowScreen(
                 showBranchDialog = false
             },
             onDismiss = { showBranchDialog = false },
+        )
+    }
+
+    if (showPullRequestDialog) {
+        PickerDialog(
+            title = "Pick open pull request",
+            isLoading = state.isLoadingPullRequests,
+            items = state.pullRequests,
+            label = { formatPullRequestLabel(it) },
+            onSelect = { pr ->
+                viewModel.selectPullRequest(pr)
+                showPullRequestDialog = false
+            },
+            onDismiss = { showPullRequestDialog = false },
+        )
+    }
+
+    pendingMergeMethod?.let { method ->
+        AlertDialog(
+            onDismissRequest = { pendingMergeMethod = null },
+            title = { Text("Confirm PR merge") },
+            text = {
+                Text(
+                    "Run ${method.name.lowercase()} merge for selected pull request? " +
+                        "This writes to the target branch.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.mergeSelectedPullRequest(method)
+                        pendingMergeMethod = null
+                    },
+                ) { Text("Merge now") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingMergeMethod = null }) { Text("Cancel") }
+            },
         )
     }
 }
@@ -531,4 +666,9 @@ private fun formatBytes(bytes: Long): String = when {
     bytes >= 1024L * 1024L -> "%.1f MiB".format(bytes / (1024.0 * 1024.0))
     bytes >= 1024L -> "%.1f KiB".format(bytes / 1024.0)
     else -> "$bytes B"
+}
+
+private fun formatPullRequestLabel(summary: GithubPullRequestSummary): String {
+    val draftTag = if (summary.draft) " [draft]" else ""
+    return "#${summary.number} ${summary.title}$draftTag → ${summary.head.ref}"
 }

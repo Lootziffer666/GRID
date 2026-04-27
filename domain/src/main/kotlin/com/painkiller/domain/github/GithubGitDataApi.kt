@@ -54,3 +54,24 @@ interface GithubRepositoryApi {
     suspend fun listRepositories(): List<GithubRepositorySummary>
     suspend fun listBranches(owner: String, repo: String): List<GithubBranchSummary>
 }
+
+interface GithubPullRequestApi {
+    suspend fun listPullRequests(
+        owner: String,
+        repo: String,
+        state: String = "open",
+    ): List<GithubPullRequestSummary>
+
+    suspend fun getPullRequest(
+        owner: String,
+        repo: String,
+        number: Long,
+    ): GithubPullRequestDetail
+
+    suspend fun mergePullRequest(
+        owner: String,
+        repo: String,
+        number: Long,
+        request: MergePullRequestRequest,
+    ): MergePullRequestResponse
+}

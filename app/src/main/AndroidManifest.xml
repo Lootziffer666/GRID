@@ -12,9 +12,11 @@
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/painkiller_logo"
         android:label="@string/app_name"
+        android:roundIcon="@drawable/painkiller_logo"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Painkiller">
+        android:theme="@style/Theme.Painkiller.Splash">
         <activity
             android:name=".MainActivity"
             android:exported="true"

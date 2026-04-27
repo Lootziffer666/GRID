@@ -205,10 +205,10 @@ Action:
 ## BUG-20260426-009
 
 Status: PARTIAL
-Gate: 6 / 10
+Gate: 6 / 10–14
 Severity: LOW
 Summary: Concrete HTTP client implementations now exist for all three
-deferred APIs. UI wiring and end-to-end reachability remain outstanding.
+deferred APIs. PAT-based flow is wired; OAuth web flow remains deferred.
 
 Evidence (Gate 6 deferral):
 - `GithubGitDataApi` is an interface in `:domain` only.
@@ -217,7 +217,7 @@ Evidence (Gate 6 deferral):
 - `SingleFileCommitRepository` consumes the same interface from `:app`,
   ready for an HTTP-backed implementation to be injected.
 
-Evidence (Gate 10 partial resolution):
+Evidence (Gate 10–14 partial resolution):
 - `KtorGithubGitDataApi` implements `GithubGitDataApi` with status-code
   mapping, `force=true` assertion guard, and defence-in-depth exception
   wrapping. Unit-tested via MockEngine.
@@ -228,10 +228,147 @@ Evidence (Gate 10 partial resolution):
 - `EncryptedSecureTokenStore` provides real AndroidX Keystore-backed
   token storage replacing the `InMemorySecureTokenStore` placeholder.
 - `PainkillerContainer` wires all of the above as lazy singletons.
-- `AuthViewModel` and `UploadFlowViewModel` exist but have no Compose
-  consumers yet; `MainActivity` still shows the Gate 0 placeholder.
+- `AuthScreen`, `PainkillerNavGraph`, and `UploadFlowScreen` are now
+  wired and exercise PAT sign-in + upload planning/commit flows.
+- `MainActivity` now launches the navigation graph and splashscreen.
 
 Action:
-- Remaining: implement `AuthScreen`, `NavHost`, and Upload flow screens
-  (Gate 11+). `GithubOAuthApi` HTTP implementation remains deferred
-  (OAuth requires server-side `client_secret`).
+- Remaining: optional OAuth auth-code UX + backend-assisted token exchange.
+- Keep PAT flow as primary path until OAuth server component exists.
+
+---
+
+## BUG-20260427-010
+
+Status: ACCEPTED
+Gate: 14
+Severity: LOW
+Summary: Binary logo source assets are intentionally ignored in git; vector drawables are the canonical in-repo branding assets.
+
+Evidence:
+- `.gitignore` now ignores common binary assets (`*.png`, `*.jpg`, `*.zip`, etc.) and `icons/`.
+- `icons/painkiller_round_icon_1024.png` was removed from git tracking.
+- App branding now uses `app/src/main/res/drawable/painkiller_logo.xml` (+ night variant).
+
+Action:
+- Keep editable vector/logo source in drawable XML.
+- If raster exports are needed for store publication, generate them in release pipelines or locally without committing binaries.
+
+---
+
+## BUG-20260427-011
+
+Status: FIXED
+Gate: 15
+Severity: MEDIUM
+Summary: Kotlin app compile failed after branding-token rename because multiple UI components still referenced legacy color names.
+
+Evidence:
+- CI/Gradle output reported unresolved references in app UI files: `RauschRed`, `BabuTeal`, `AccentAmber`.
+- `:app:compileDebugKotlin` failed before packaging.
+
+Action:
+- Fixed by adding backward-compatible aliases in `PainkillerColors` mapped to the new palette tokens.
+- Follow-up: key call sites in warning/error/severity components were migrated to new token names in Gate 15 polish; aliases remain for compatibility until full cleanup.
+
+---
+
+## BUG-20260427-012
+
+Status: ACCEPTED
+Gate: 16
+Severity: LOW
+Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+
+Evidence:
+- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
+- Colliding entries are dropped deterministically to prevent silent map overwrite.
+
+Action:
+- Accepted short-term for intake hardening.
+- Follow-up in later UX gate: surface a collision warning in the source summary.
+
+---
+
+## BUG-20260427-013
+
+Status: ACCEPTED
+Gate: 22 planning
+Severity: LOW
+Summary: Planned ONNX model for merge-assist (~23 MB) can be committed directly without LFS under current size rules.
+
+Evidence:
+- Current Large File Doctor warning threshold starts above 25 MB.
+- User-provided expected model size is approximately 23 MB.
+
+Action:
+- Accept direct commit for initial model artifact.
+- Reevaluate LFS routing if model size grows beyond warning thresholds.
+
+---
+
+## BUG-20260427-014
+
+Status: ACCEPTED
+Gate: 20
+Severity: LOW
+Summary: OAuth additional-login UI is wired, but token exchange remains build-dependent until a configured `GithubOAuthApi` backend path exists.
+
+Evidence:
+- `GithubAuthRepository.authenticateWithAuthorizationCode()` returns "OAuth web flow is not available in this build." when `oauthApi` is `null`.
+- `PainkillerContainer` currently wires `oauthApi = null` by default.
+
+Action:
+- Keep OAuth code UI visible as optional path.
+- Integrate backend-assisted exchange in a dedicated follow-up gate when credentials flow is available.
+
+---
+
+## BUG-20260427-015
+
+Status: ACCEPTED
+Gate: 21
+Severity: LOW
+Summary: PR foundation currently lists open pull requests only; merge execution and PR write flows are deferred to later gates.
+
+Evidence:
+- `KtorGithubPullRequestApi` requests `/pulls?state=open`.
+- Upload flow integration only sets branch input from selected PR head ref.
+
+Action:
+- Keep as intentional scope boundary for Gate 21.
+- Expand in Gate 22+ with merge assist and PR write workflows.
+
+---
+
+## BUG-20260427-016
+
+Status: ACCEPTED
+Gate: 22
+Severity: LOW
+Summary: PR mergeability diagnostics can return `unknown`/`null` transiently, so merge-assist UI may require manual refresh/retry.
+
+Evidence:
+- GitHub PR detail endpoint can return undecided mergeability while background checks are still computing.
+- Gate 22 UI surfaces this state explicitly rather than guessing.
+
+Action:
+- Keep explicit user confirmation flow for merge actions.
+- Follow up in later gate with periodic refresh/backoff for mergeability status if needed.
+
+---
+
+## BUG-20260427-017
+
+Status: ACCEPTED
+Gate: 23
+Severity: LOW
+Summary: GitHub App installation sign-in is wired in UI/domain boundary, but requires backend exchange endpoint configuration to be functional.
+
+Evidence:
+- `GithubAuthRepository.signInWithGithubAppInstallation()` returns a failure when `appAuthApi` is not configured.
+- `PainkillerContainer` currently wires `appAuthApi = null`.
+
+Action:
+- Keep GitHub App flow visible as preferred path.
+- Implement backend exchange endpoint and wire `GithubAppAuthApi` in a follow-up infrastructure gate.
