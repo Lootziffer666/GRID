@@ -136,6 +136,29 @@ fun AuthScreen(
                 onClick = viewModel::signInWithAuthorizationCode,
                 enabled = state.canSubmitOAuthCode,
             )
+
+            HorizontalDivider()
+
+            PainkillerInfoCard(
+                title = "GitHub App installation (recommended)",
+                body = "For official GitHub App auth, paste the installation id. " +
+                    "Painkiller expects a backend endpoint that exchanges this for a short-lived token.",
+            )
+
+            OutlinedTextField(
+                value = state.installationIdInput,
+                onValueChange = viewModel::onInstallationIdChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Installation ID") },
+                placeholder = { Text("e.g. 12345678") },
+                singleLine = true,
+            )
+
+            PainkillerPrimaryActionButton(
+                text = if (state.isSubmitting) "Signing in…" else "Sign in with GitHub App",
+                onClick = viewModel::signInWithGithubAppInstallation,
+                enabled = state.canSubmitInstallation,
+            )
         }
     }
 }

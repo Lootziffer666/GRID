@@ -47,6 +47,7 @@ import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
+import com.painkiller.domain.github.GithubReleaseSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.ui.components.PainkillerErrorBanner
 import kotlinx.coroutines.launch
@@ -284,6 +285,18 @@ fun UploadFlowScreen(
                         Text(
                             if (state.isLoadingPullRequests) "Loading pull requests…"
                             else "Pick open PR",
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            viewModel.loadReleaseList()
+                            showReleaseDialog = true
+                        },
+                        enabled = state.ownerInput.isNotBlank() && state.repoInput.isNotBlank(),
+                    ) {
+                        Text(
+                            if (state.isLoadingReleases) "Loading releases…"
+                            else "Pick release (optional)",
                         )
                     }
                     OutlinedTextField(
@@ -671,4 +684,10 @@ private fun formatBytes(bytes: Long): String = when {
 private fun formatPullRequestLabel(summary: GithubPullRequestSummary): String {
     val draftTag = if (summary.draft) " [draft]" else ""
     return "#${summary.number} ${summary.title}$draftTag → ${summary.head.ref}"
+}
+
+private fun formatReleaseLabel(summary: GithubReleaseSummary): String {
+    val draftTag = if (summary.draft) " [draft]" else ""
+    val preTag = if (summary.prerelease) " [pre-release]" else ""
+    return "${summary.tagName}$draftTag$preTag ${summary.name?.let { "· $it" } ?: ""}".trim()
 }

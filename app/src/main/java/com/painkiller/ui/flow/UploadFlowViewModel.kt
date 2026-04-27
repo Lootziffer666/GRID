@@ -12,6 +12,10 @@ import com.painkiller.data.github.GithubBranchListResult
 import com.painkiller.data.github.GithubPullRequestListResult
 import com.painkiller.data.github.GithubPullRequestMergeResult
 import com.painkiller.data.github.GithubPullRequestRepository
+import com.painkiller.data.github.GithubReleaseAssetUploadResult
+import com.painkiller.data.github.GithubReleaseCreateResult
+import com.painkiller.data.github.GithubReleaseListResult
+import com.painkiller.data.github.GithubReleaseRepository
 import com.painkiller.data.github.GithubRepoBranchRepository
 import com.painkiller.data.github.GithubRepoListResult
 import com.painkiller.data.github.MultiFileCommitRepository
@@ -30,12 +34,14 @@ import com.painkiller.domain.files.SelectedSource
 import com.painkiller.domain.files.SourceKind
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
+import com.painkiller.domain.github.GithubReleaseSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.domain.github.MultiFileCommitEntry
 import com.painkiller.domain.github.MultiFileCommitInput
 import com.painkiller.domain.github.MultiFileCommitResult
 import com.painkiller.domain.github.SingleFileCommitInput
 import com.painkiller.domain.github.SingleFileCommitResult
+import com.painkiller.domain.github.UploadReleaseAssetRequest
 import com.painkiller.domain.target.BranchTarget
 import com.painkiller.domain.target.RepoTarget
 import com.painkiller.domain.target.TargetPath
@@ -63,6 +69,7 @@ class UploadFlowViewModel(
     private val safFileReader: SafFileReader,
     private val repoBranchRepository: GithubRepoBranchRepository,
     private val pullRequestRepository: GithubPullRequestRepository,
+    private val releaseRepository: GithubReleaseRepository,
     private val singleFileCommitRepository: SingleFileCommitRepository,
     private val multiFileCommitRepository: MultiFileCommitRepository,
     private val settingsStore: RepoTargetSettingsStore,
@@ -587,6 +594,7 @@ class UploadFlowViewModel(
         fun factory(
             safFileReader: SafFileReader,
             repoBranchRepository: GithubRepoBranchRepository,
+            releaseRepository: GithubReleaseRepository,
             singleFileCommitRepository: SingleFileCommitRepository,
             pullRequestRepository: GithubPullRequestRepository,
             multiFileCommitRepository: MultiFileCommitRepository,
@@ -599,6 +607,7 @@ class UploadFlowViewModel(
                         safFileReader = safFileReader,
                         repoBranchRepository = repoBranchRepository,
                         pullRequestRepository = pullRequestRepository,
+                        releaseRepository = releaseRepository,
                         singleFileCommitRepository = singleFileCommitRepository,
                         multiFileCommitRepository = multiFileCommitRepository,
                         settingsStore = settingsStore,
