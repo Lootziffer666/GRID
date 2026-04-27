@@ -25,6 +25,7 @@ import com.painkiller.domain.github.GithubGitDataException
  */
 class GithubAuthRepository(
     private val oauthApi: GithubOAuthApi?,
+    private val appAuthApi: GithubAppAuthApi?,
     private val tokenProbeApi: GithubTokenProbeApi?,
     private val secureTokenStore: SecureTokenStore,
 ) {
@@ -54,6 +55,31 @@ class GithubAuthRepository(
             },
             onFailure = {
                 GithubAuthResult.Failure("GitHub authentication failed.")
+            },
+        )
+    }
+
+    suspend fun signInWithGithubAppInstallation(installationId: String): GithubAuthResult {
+        val api = appAuthApi
+            ?: return GithubAuthResult.Failure("GitHub App flow is not available in this build.")
+        val cleanId = installationId.trim()
+        if (cleanId.isEmpty()) {
+            return GithubAuthResult.Failure("Installation ID is required.")
+        }
+
+        return runCatching { api.exchangeInstallationToken(cleanId) }.fold(
+            onSuccess = { token ->
+                if (token.isBlank()) {
+                    GithubAuthResult.Failure("Received empty installation token.")
+                } else {
+                    secureTokenStore.writeGithubToken(token)
+                    GithubAuthResult.Success(
+                        state = GithubAuthState.Authenticated(tokenPreview = token.preview()),
+                    )
+                }
+            },
+            onFailure = {
+                GithubAuthResult.Failure("GitHub App authentication failed.")
             },
         )
     }
