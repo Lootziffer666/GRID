@@ -2,12 +2,12 @@
 <resources>
     <style name="Theme.Painkiller.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenAnimatedIcon">@drawable/painkiller_logo</item>
-        <item name="windowSplashScreenBackground">@color/painkiller_light_background</item>
+        <item name="windowSplashScreenBackground">@color/painkiller_dark_background</item>
         <item name="postSplashScreenTheme">@style/Theme.Painkiller</item>
     </style>
 
     <style name="Theme.Painkiller" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">@color/painkiller_light_background</item>
+        <item name="android:statusBarColor">@color/painkiller_dark_background</item>
         <item name="android:windowBackground">@drawable/painkiller_splash_background</item>
     </style>
 </resources>

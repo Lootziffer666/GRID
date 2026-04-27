@@ -65,15 +65,15 @@ If GitHub Actions fails, the failing workflow output becomes the source of truth
 
 ## Current Gate State
 
-Gate 0 is verified as `PASS`.
+Gate 0–20 are verified as implemented in sequence (see `handoff/GATE_20_HANDOFF.md` for latest OAuth-additional-login progress).
 
-Gate 1 is the next implementation gate:
+The next implementation gate is:
 
 ```text
-Gate 1 — File Intake without GitHub
+Gate 21 — PR Management Foundations
 ```
 
-Gate 1 must not implement GitHub-facing behavior.
+Follow the latest handoff + repository state as the source of truth.
 
 ---
 
@@ -86,7 +86,7 @@ Gate 1 must not implement GitHub-facing behavior.
 - Do not perform broad cleanup.
 - Do not rewrite working code for style.
 - Do not introduce unrelated dependencies.
-- Do not change product scope.
+- Do not change product scope, unless the user explicitly requests scope expansion.
 - Do not silently skip checks.
 - Do not claim success without command output or CI confirmation.
 - Do not commit secrets, tokens, passwords, API keys, or local config files.
@@ -246,125 +246,22 @@ Action:
 
 ---
 
-# Gate 1 Instructions — File Intake without GitHub
+# Gate 21 Guidance
 
 ## Mission
 
-Implement Gate 1 only:
+Implement Gate 21 only (unless the user explicitly overrides).
 
-```text
-File Intake without GitHub
-```
+User override currently active: scope expansion to include PR merge assist, OAuth as an additional login path, and phased LFS/Release/PR-management work is approved. Optional ONNX-based local merge-risk scoring is also allowed under this override. Execute this only through explicit per-gate steps in `handoff/NEXT_GATES_PLAN.md`.
 
-Do not start Gate 2.
+## Scope focus
 
----
+- polish existing auth + upload UX
+- complete missing UI wiring where domain/data already exist
+- keep commit safety invariants (`force=false`, SHA guard, no silent overwrite)
+- preserve CI-first verification model
 
-## Gate 1 May Include
+## Hard non-goals
 
-- `SelectedSource`
-- `SourceKind`
-- source metadata models
-- file source representation
-- multiple-file source representation
-- folder source representation
-- ZIP source representation as a source kind
-- path normalization integration using existing `PathValidation`
-- ignore-rule model
-- default ignore rules
-- `FilePlan`
-- pure Kotlin planning logic where possible
-- Android SAF-facing interfaces or skeletons if needed
-- package placeholders only where implementation belongs to later gates
-- unit tests for all pure Kotlin logic
-- documentation and handoff updates
-
----
-
-## Gate 1 Hard Non-Goals
-
-Do not implement:
-
-- GitHub auth
-- token storage
-- repository picker
-- branch picker
-- network calls
-- upload
-- commit creation
-- push/update-ref behavior
-- preview screen as a real workflow
-- Large File Doctor
-- Conflict Cards
-- Git LFS
-- Release Assets
-- background upload worker
-- broad UI redesign
-- unrelated refactors
-
----
-
-## Suggested Gate 1 Implementation Shape
-
-Suggested domain package:
-
-```text
-domain/src/main/kotlin/com/painkiller/domain/files/
-```
-
-Possible files:
-
-```text
-SourceKind.kt
-SelectedSource.kt
-PlannedFile.kt
-FilePlan.kt
-IgnoreRule.kt
-DefaultIgnoreRules.kt
-FilePlanBuilder.kt
-FilePlanIssue.kt
-```
-
-Suggested tests:
-
-```text
-domain/src/test/kotlin/com/painkiller/domain/files/
-```
-
-Test cases should cover:
-
-- single file source
-- multiple file source
-- folder source
-- ZIP source as source kind, without extraction logic unless explicitly Gate 1
-- root target path
-- nested target path
-- unsafe target path rejected via `PathValidation`
-- default ignored files
-- duplicate normalized paths
-- empty source list rejected
-- deterministic ordering in generated `FilePlan`
-
----
-
-## Gate 1 Documentation Updates
-
-Update:
-
-- `README.md`
-- `knownbugs.md` only if new bugs/risks are discovered
-- `handoff/GATE_1_HANDOFF.md`
-
-Gate 1 may be marked `PASS` when the local pure-Kotlin checks pass and Android verification is either locally green or delegated to a configured GitHub Actions workflow. If GitHub Actions later fails, reopen the gate and fix the failure.
-
----
-
-## Gate 1 Stop Rule
-
-Stop after Gate 1.
-
-Do not start Gate 2.
-
-Do not implement GitHub-facing behavior.
-
-Do not implement upload behavior.
+- no architecture reset or broad refactor
+- no destructive behavior without explicit user confirmation path

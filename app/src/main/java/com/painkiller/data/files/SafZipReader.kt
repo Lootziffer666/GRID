@@ -35,32 +35,36 @@ class SafZipReader(appContext: Context) {
 
     private val context = appContext.applicationContext
 
+    private data class RawZipEntry(
+        val normalizedPath: String,
+        val displayName: String,
+        val sizeBytes: Long,
+        val contentBase64: String,
+    )
+
     data class ZipReadResult(
         val source: SelectedSource,
         val contentByRelativePath: Map<String, String>,
     )
 
     suspend fun read(zipUri: Uri): ZipReadResult = withContext(Dispatchers.IO) {
-        val items = mutableListOf<SelectedSourceItem>()
-        val content = mutableMapOf<String, String>()
+        val rawEntries = mutableListOf<RawZipEntry>()
 
         context.contentResolver.openInputStream(zipUri)?.use { stream ->
             ZipInputStream(stream).use { zip ->
                 var entry = zip.nextEntry
-                while (entry != null && items.size < MAX_FILES) {
+                while (entry != null && rawEntries.size < MAX_FILES) {
                     if (!entry.isDirectory) {
                         val normalized = PathValidation.normalizeRepoPath(entry.name ?: "")
                         if (!normalized.isNullOrBlank()) {
                             val bytes = zip.readBytes()
                             val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                            items += SelectedSourceItem(
-                                sourceId = normalized,
+                            rawEntries += RawZipEntry(
+                                normalizedPath = normalized,
                                 displayName = normalized.substringAfterLast('/'),
-                                relativePath = normalized,
                                 sizeBytes = entry.size.takeIf { it > 0L } ?: bytes.size.toLong(),
-                                mimeType = null,
+                                contentBase64 = base64,
                             )
-                            content[normalized] = base64
                         }
                     }
                     zip.closeEntry()
@@ -68,11 +72,35 @@ class SafZipReader(appContext: Context) {
                 }
             }
         }
+        val normalizedEntries = normalizeRootForZip(rawEntries)
+            .distinctBy { it.normalizedPath }
+        val items = normalizedEntries.map { entry ->
+            SelectedSourceItem(
+                sourceId = entry.normalizedPath,
+                displayName = entry.displayName,
+                relativePath = entry.normalizedPath,
+                sizeBytes = entry.sizeBytes,
+                mimeType = null,
+            )
+        }
+        val content = normalizedEntries.associate { it.normalizedPath to it.contentBase64 }
 
         ZipReadResult(
             source = SelectedSource(SourceKind.ZIP, items),
             contentByRelativePath = content,
         )
+    }
+
+    private fun normalizeRootForZip(entries: List<RawZipEntry>): List<RawZipEntry> {
+        if (entries.isEmpty()) return entries
+        val topLevel = entries.map { it.normalizedPath.substringBefore('/') }.distinct()
+        val hasRootFiles = entries.any { !it.normalizedPath.contains('/') }
+        val shouldStripSingleRootFolder = topLevel.size == 1 && !hasRootFiles
+        return entries.map { entry ->
+            if (!shouldStripSingleRootFolder) return@map entry
+            val stripped = entry.normalizedPath.substringAfter('/', missingDelimiterValue = entry.normalizedPath)
+            entry.copy(normalizedPath = stripped)
+        }.sortedBy { it.normalizedPath }
     }
 
     private companion object {
