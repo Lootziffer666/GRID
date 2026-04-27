@@ -79,6 +79,7 @@ class PainkillerContainer(appContext: Context) {
     val authRepository: GithubAuthRepository by lazy {
         GithubAuthRepository(
             oauthApi = null, // OAuth web flow not available without server-side client_secret.
+            appAuthApi = null, // GitHub App backend exchange endpoint not configured in this build.
             tokenProbeApi = tokenProbeApi,
             secureTokenStore = secureTokenStore,
         )

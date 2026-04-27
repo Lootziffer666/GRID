@@ -61,4 +61,17 @@ interface GithubPullRequestApi {
         repo: String,
         state: String = "open",
     ): List<GithubPullRequestSummary>
+
+    suspend fun getPullRequest(
+        owner: String,
+        repo: String,
+        number: Long,
+    ): GithubPullRequestDetail
+
+    suspend fun mergePullRequest(
+        owner: String,
+        repo: String,
+        number: Long,
+        request: MergePullRequestRequest,
+    ): MergePullRequestResponse
 }

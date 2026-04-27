@@ -338,3 +338,37 @@ Evidence:
 Action:
 - Keep as intentional scope boundary for Gate 21.
 - Expand in Gate 22+ with merge assist and PR write workflows.
+
+---
+
+## BUG-20260427-016
+
+Status: ACCEPTED
+Gate: 22
+Severity: LOW
+Summary: PR mergeability diagnostics can return `unknown`/`null` transiently, so merge-assist UI may require manual refresh/retry.
+
+Evidence:
+- GitHub PR detail endpoint can return undecided mergeability while background checks are still computing.
+- Gate 22 UI surfaces this state explicitly rather than guessing.
+
+Action:
+- Keep explicit user confirmation flow for merge actions.
+- Follow up in later gate with periodic refresh/backoff for mergeability status if needed.
+
+---
+
+## BUG-20260427-017
+
+Status: ACCEPTED
+Gate: 23
+Severity: LOW
+Summary: GitHub App installation sign-in is wired in UI/domain boundary, but requires backend exchange endpoint configuration to be functional.
+
+Evidence:
+- `GithubAuthRepository.signInWithGithubAppInstallation()` returns a failure when `appAuthApi` is not configured.
+- `PainkillerContainer` currently wires `appAuthApi = null`.
+
+Action:
+- Keep GitHub App flow visible as preferred path.
+- Implement backend exchange endpoint and wire `GithubAppAuthApi` in a follow-up infrastructure gate.

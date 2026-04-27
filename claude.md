@@ -112,7 +112,7 @@ but domain code must never depend on Android.
 
 - Latest completed handoff: `handoff/GATE_14_HANDOFF.md` (`PASS`)
 - Gate 14 delivered ZIP intake + multi-file commit path wiring in the app flow.
-- Next work follows the user-directed expanded plan in `handoff/NEXT_GATES_PLAN.md` (next: Gate 22 PR merge assist).
+- Next work follows the user-directed expanded plan in `handoff/NEXT_GATES_PLAN.md` (next: Gate 24 GitHub Release Assets).
 
 ## Build and check expectations
 

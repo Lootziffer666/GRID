@@ -10,6 +10,7 @@ import com.painkiller.data.files.SafFileReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubBranchListResult
 import com.painkiller.data.github.GithubPullRequestListResult
+import com.painkiller.data.github.GithubPullRequestMergeResult
 import com.painkiller.data.github.GithubPullRequestRepository
 import com.painkiller.data.github.GithubRepoBranchRepository
 import com.painkiller.data.github.GithubRepoListResult
@@ -311,7 +312,77 @@ class UploadFlowViewModel(
     }
 
     fun selectPullRequest(summary: GithubPullRequestSummary) {
-        _state.update { it.copy(branchInput = summary.head.ref) }
+        _state.update {
+            it.copy(
+                branchInput = summary.head.ref,
+                selectedPullRequest = summary,
+                selectedPullRequestDetail = null,
+            )
+        }
+        loadSelectedPullRequestDetail()
+    }
+
+    fun loadSelectedPullRequestDetail() {
+        val s = _state.value
+        val selected = s.selectedPullRequest ?: return
+        val owner = s.ownerInput.trim()
+        val repo = s.repoInput.trim()
+        if (owner.isBlank() || repo.isBlank()) return
+        if (s.isLoadingPullRequestDetail) return
+        _state.update { it.copy(isLoadingPullRequestDetail = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val result = pullRequestRepository.getPullRequest(owner, repo, selected.number)) {
+                is com.painkiller.data.github.GithubPullRequestDetailResult.Success -> _state.update {
+                    it.copy(
+                        isLoadingPullRequestDetail = false,
+                        selectedPullRequestDetail = result.pullRequest,
+                    )
+                }
+                is com.painkiller.data.github.GithubPullRequestDetailResult.Failure -> _state.update {
+                    it.copy(isLoadingPullRequestDetail = false, errorMessage = result.reason)
+                }
+            }
+        }
+    }
+
+    fun mergeSelectedPullRequest(method: com.painkiller.data.github.PullRequestMergeMethod) {
+        val s = _state.value
+        val selected = s.selectedPullRequest ?: return
+        val owner = s.ownerInput.trim()
+        val repo = s.repoInput.trim()
+        if (owner.isBlank() || repo.isBlank()) return
+        if (s.isMergingPullRequest) return
+        _state.update { it.copy(isMergingPullRequest = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (
+                val result = pullRequestRepository.mergePullRequest(
+                    owner = owner,
+                    repo = repo,
+                    number = selected.number,
+                    method = method,
+                    expectedHeadSha = selectedPullRequestHeadSha(),
+                )
+            ) {
+                is GithubPullRequestMergeResult.Success -> _state.update {
+                    it.copy(
+                        isMergingPullRequest = false,
+                        pullRequestMergeMessage = result.response.message,
+                    )
+                }
+                is GithubPullRequestMergeResult.Failure -> _state.update {
+                    it.copy(
+                        isMergingPullRequest = false,
+                        errorMessage = result.reason,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun selectedPullRequestHeadSha(): String? = _state.value.selectedPullRequestDetail?.head?.sha
+
+    fun dismissPullRequestMessage() {
+        _state.update { it.copy(pullRequestMergeMessage = null) }
     }
 
     // ─── plan building ───────────────────────────────────────────────────────
@@ -549,9 +620,14 @@ data class UploadFlowUiState(
     val repositories: List<GithubRepositorySummary> = emptyList(),
     val branches: List<GithubBranchSummary> = emptyList(),
     val pullRequests: List<GithubPullRequestSummary> = emptyList(),
+    val selectedPullRequest: GithubPullRequestSummary? = null,
+    val selectedPullRequestDetail: com.painkiller.domain.github.GithubPullRequestDetail? = null,
     val isLoadingRepos: Boolean = false,
     val isLoadingBranches: Boolean = false,
     val isLoadingPullRequests: Boolean = false,
+    val isLoadingPullRequestDetail: Boolean = false,
+    val isMergingPullRequest: Boolean = false,
+    val pullRequestMergeMessage: String? = null,
     val plan: UploadPlan? = null,
     val isCommitting: Boolean = false,
     val errorMessage: String? = null,

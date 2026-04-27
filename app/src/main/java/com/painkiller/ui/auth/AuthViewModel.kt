@@ -71,6 +71,20 @@ class AuthViewModel(
         }
     }
 
+    fun onInstallationIdChanged(value: String) {
+        _state.update {
+            it.copy(
+                installationIdInput = value,
+                errorMessage = null,
+                statusHint = if (value.trim().isBlank()) {
+                    "Paste a Personal Access Token to continue."
+                } else {
+                    "GitHub App installation id ready."
+                },
+            )
+        }
+    }
+
     fun signIn() {
         val current = _state.value
         if (current.isSubmitting) return
@@ -137,6 +151,38 @@ class AuthViewModel(
         }
     }
 
+    fun signInWithGithubAppInstallation() {
+        val current = _state.value
+        if (current.isSubmitting) return
+        val installationId = current.installationIdInput.trim()
+        if (installationId.isEmpty()) {
+            _state.update { it.copy(errorMessage = "Installation ID is required.") }
+            return
+        }
+        _state.update { it.copy(isSubmitting = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val result = authRepository.signInWithGithubAppInstallation(installationId)) {
+                is GithubAuthResult.Success -> _state.value = AuthUiState(
+                    authState = result.state,
+                    tokenInput = "",
+                    oauthCodeInput = "",
+                    installationIdInput = "",
+                    formatLooksValid = false,
+                    tokenKindLabel = null,
+                    statusHint = "Signed in with GitHub App token.",
+                )
+                is GithubAuthResult.Failure -> _state.update {
+                    it.copy(
+                        isSubmitting = false,
+                        installationIdInput = "",
+                        statusHint = "GitHub App sign-in failed. Check backend exchange setup.",
+                        errorMessage = result.reason,
+                    )
+                }
+            }
+        }
+    }
+
     fun signOut() {
         viewModelScope.launch {
             authRepository.logout()
@@ -179,6 +225,7 @@ data class AuthUiState(
     val authState: GithubAuthState = GithubAuthState.Unauthenticated,
     val tokenInput: String = "",
     val oauthCodeInput: String = "",
+    val installationIdInput: String = "",
     val formatLooksValid: Boolean = false,
     val tokenKindLabel: String? = null,
     val isSubmitting: Boolean = false,
@@ -188,4 +235,5 @@ data class AuthUiState(
     val isAuthenticated: Boolean get() = authState is GithubAuthState.Authenticated
     val canSubmit: Boolean get() = !isSubmitting && tokenInput.isNotBlank()
     val canSubmitOAuthCode: Boolean get() = !isSubmitting && oauthCodeInput.isNotBlank()
+    val canSubmitInstallation: Boolean get() = !isSubmitting && installationIdInput.isNotBlank()
 }

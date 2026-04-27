@@ -2,12 +2,17 @@ package com.painkiller.data.github
 
 import com.painkiller.domain.github.GithubGitDataException
 import com.painkiller.domain.github.GithubPullRequestApi
+import com.painkiller.domain.github.GithubPullRequestDetail
 import com.painkiller.domain.github.GithubPullRequestSummary
+import com.painkiller.domain.github.MergePullRequestRequest
+import com.painkiller.domain.github.MergePullRequestResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 import java.io.IOException
@@ -31,6 +36,38 @@ class KtorGithubPullRequestApi(
                 withBearer(token)
                 parameter("state", state)
                 parameter("per_page", PER_PAGE)
+            }
+        }
+        handleStatus(response)
+        return decodeBody(response)
+    }
+
+    override suspend fun getPullRequest(
+        owner: String,
+        repo: String,
+        number: Long,
+    ): GithubPullRequestDetail {
+        val token = tokenProvider() ?: throw GithubGitDataException.AuthRequired()
+        val response = transport {
+            client.get("$baseUrl/repos/$owner/$repo/pulls/$number") {
+                withBearer(token)
+            }
+        }
+        handleStatus(response)
+        return decodeBody(response)
+    }
+
+    override suspend fun mergePullRequest(
+        owner: String,
+        repo: String,
+        number: Long,
+        request: MergePullRequestRequest,
+    ): MergePullRequestResponse {
+        val token = tokenProvider() ?: throw GithubGitDataException.AuthRequired()
+        val response = transport {
+            client.put("$baseUrl/repos/$owner/$repo/pulls/$number/merge") {
+                withBearer(token)
+                setBody(request)
             }
         }
         handleStatus(response)

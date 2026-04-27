@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
+import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
@@ -99,6 +100,7 @@ fun UploadFlowScreen(
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
     var showPullRequestDialog by remember { mutableStateOf(false) }
+    var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
 
     if (state.hasSucceeded) {
         SuccessScreen(
@@ -299,6 +301,13 @@ fun UploadFlowScreen(
             state.errorMessage?.let { msg ->
                 PainkillerErrorBanner(title = "Error", body = msg)
             }
+            state.pullRequestMergeMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Pull request",
+                    body = message,
+                )
+                TextButton(onClick = viewModel::dismissPullRequestMessage) { Text("Dismiss PR message") }
+            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -312,6 +321,39 @@ fun UploadFlowScreen(
             }
 
             // ── Plan or build-plan button ────────────────────────────────────
+            state.selectedPullRequest?.let { selected ->
+                SectionCard(title = "Selected pull request") {
+                    Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        Text(formatPullRequestLabel(selected), style = MaterialTheme.typography.bodyMedium)
+                        val detail = state.selectedPullRequestDetail
+                        if (state.isLoadingPullRequestDetail) {
+                            CircularProgressIndicator()
+                        } else if (detail != null) {
+                            Text(
+                                "Mergeable: ${detail.mergeable?.toString() ?: "unknown"} · state: ${detail.mergeableState ?: "unknown"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                                TextButton(onClick = { pendingMergeMethod = PullRequestMergeMethod.MERGE }) {
+                                    Text("Merge")
+                                }
+                                TextButton(onClick = { pendingMergeMethod = PullRequestMergeMethod.SQUASH }) {
+                                    Text("Squash")
+                                }
+                                TextButton(onClick = { pendingMergeMethod = PullRequestMergeMethod.REBASE }) {
+                                    Text("Rebase")
+                                }
+                            }
+                        } else {
+                            TextButton(onClick = viewModel::loadSelectedPullRequestDetail) {
+                                Text("Refresh mergeability")
+                            }
+                        }
+                    }
+                }
+            }
+
             if (state.plan == null) {
                 PainkillerPrimaryActionButton(
                     text = "Review upload",
@@ -439,6 +481,30 @@ fun UploadFlowScreen(
                 showPullRequestDialog = false
             },
             onDismiss = { showPullRequestDialog = false },
+        )
+    }
+
+    pendingMergeMethod?.let { method ->
+        AlertDialog(
+            onDismissRequest = { pendingMergeMethod = null },
+            title = { Text("Confirm PR merge") },
+            text = {
+                Text(
+                    "Run ${method.name.lowercase()} merge for selected pull request? " +
+                        "This writes to the target branch.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.mergeSelectedPullRequest(method)
+                        pendingMergeMethod = null
+                    },
+                ) { Text("Merge now") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingMergeMethod = null }) { Text("Cancel") }
+            },
         )
     }
 }
