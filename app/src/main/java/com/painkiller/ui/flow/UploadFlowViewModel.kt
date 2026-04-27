@@ -9,6 +9,8 @@ import com.painkiller.data.files.LoadedFile
 import com.painkiller.data.files.SafFileReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubBranchListResult
+import com.painkiller.data.github.GithubPullRequestListResult
+import com.painkiller.data.github.GithubPullRequestRepository
 import com.painkiller.data.github.GithubRepoBranchRepository
 import com.painkiller.data.github.GithubRepoListResult
 import com.painkiller.data.github.MultiFileCommitRepository
@@ -26,6 +28,7 @@ import com.painkiller.domain.files.PlannedFile
 import com.painkiller.domain.files.SelectedSource
 import com.painkiller.domain.files.SourceKind
 import com.painkiller.domain.github.GithubBranchSummary
+import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.domain.github.MultiFileCommitEntry
 import com.painkiller.domain.github.MultiFileCommitInput
@@ -58,6 +61,7 @@ import kotlinx.coroutines.launch
 class UploadFlowViewModel(
     private val safFileReader: SafFileReader,
     private val repoBranchRepository: GithubRepoBranchRepository,
+    private val pullRequestRepository: GithubPullRequestRepository,
     private val singleFileCommitRepository: SingleFileCommitRepository,
     private val multiFileCommitRepository: MultiFileCommitRepository,
     private val settingsStore: RepoTargetSettingsStore,
@@ -88,7 +92,7 @@ class UploadFlowViewModel(
         _state.update {
             it.copy(
                 loadedFolder = source,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFile = null,
                 loadedFilePlan = null,
                 plan = null,
@@ -101,7 +105,7 @@ class UploadFlowViewModel(
         _state.update {
             it.copy(
                 loadedFolder = result.source,
-                loadedZipContent = result.contentByRelativePath,
+                loadedMultiContent = result.contentByRelativePath,
                 loadedFile = null,
                 loadedFilePlan = null,
                 plan = null,
@@ -110,11 +114,69 @@ class UploadFlowViewModel(
         }
     }
 
+    fun onMultiSourceUrisPicked(uris: List<Uri>) {
+        _state.update {
+            it.copy(
+                loadedFile = null,
+                loadedFolder = null,
+                loadedMultiContent = null,
+                loadedFilePlan = null,
+                errorMessage = null,
+                plan = null,
+            )
+        }
+        viewModelScope.launch {
+            val loaded = uris.mapNotNull { uri -> safFileReader.read(uri) }
+            if (loaded.isEmpty()) {
+                _state.update {
+                    it.copy(errorMessage = "No readable files were selected.")
+                }
+                return@launch
+            }
+            val duplicateDisplayNames = loaded
+                .groupBy { it.displayName.lowercase() }
+                .filterValues { entries -> entries.size > 1 }
+                .values
+                .map { entries -> entries.first().displayName }
+                .sorted()
+            if (duplicateDisplayNames.isNotEmpty()) {
+                val preview = duplicateDisplayNames.take(3).joinToString(", ")
+                val suffix = if (duplicateDisplayNames.size > 3) " and more" else ""
+                _state.update {
+                    it.copy(
+                        errorMessage = "Duplicate file names selected: $preview$suffix. " +
+                            "Rename files or choose a folder/ZIP source.",
+                    )
+                }
+                return@launch
+            }
+            val items = loaded.map { file ->
+                file.sourceItem.copy(relativePath = file.displayName)
+            }.sortedBy { it.displayName.lowercase() }
+            val encoded = loaded.associate { file ->
+                file.sourceItem.sourceId to file.contentBase64
+            }
+            _state.update {
+                it.copy(
+                    loadedFolder = SelectedSource(
+                        kind = SourceKind.MULTIPLE_FILES,
+                        items = items,
+                    ),
+                    loadedMultiContent = encoded,
+                    loadedFile = null,
+                    loadedFilePlan = null,
+                    plan = null,
+                    errorMessage = null,
+                )
+            }
+        }
+    }
+
     fun clearLoadedFolder() {
         _state.update {
             it.copy(
                 loadedFolder = null,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
             )
@@ -126,7 +188,7 @@ class UploadFlowViewModel(
             it.copy(
                 loadedFile = null,
                 loadedFolder = null,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFilePlan = null,
                 errorMessage = null,
                 plan = null,
@@ -159,7 +221,7 @@ class UploadFlowViewModel(
             it.copy(
                 loadedFile = null,
                 loadedFolder = null,
-                loadedZipContent = null,
+                loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
             )
@@ -215,6 +277,24 @@ class UploadFlowViewModel(
         }
     }
 
+    fun loadPullRequestList() {
+        val owner = _state.value.ownerInput.trim()
+        val repo = _state.value.repoInput.trim()
+        if (owner.isBlank() || repo.isBlank()) return
+        if (_state.value.isLoadingPullRequests) return
+        _state.update { it.copy(isLoadingPullRequests = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (val result = pullRequestRepository.listOpenPullRequests(owner, repo)) {
+                is GithubPullRequestListResult.Success -> _state.update {
+                    it.copy(pullRequests = result.pullRequests, isLoadingPullRequests = false)
+                }
+                is GithubPullRequestListResult.Failure -> _state.update {
+                    it.copy(isLoadingPullRequests = false, errorMessage = result.reason)
+                }
+            }
+        }
+    }
+
     fun selectRepository(summary: GithubRepositorySummary) {
         _state.update {
             it.copy(
@@ -228,6 +308,10 @@ class UploadFlowViewModel(
 
     fun selectBranch(summary: GithubBranchSummary) {
         _state.update { it.copy(branchInput = summary.name) }
+    }
+
+    fun selectPullRequest(summary: GithubPullRequestSummary) {
+        _state.update { it.copy(branchInput = summary.head.ref) }
     }
 
     // ─── plan building ───────────────────────────────────────────────────────
@@ -330,7 +414,7 @@ class UploadFlowViewModel(
             if (planned.sizeDiagnosis.isBlockedForNormalCommit) continue
             val contentBase64 = when {
                 s.isFolderSource -> safFileReader.read(Uri.parse(planned.sourceId))?.contentBase64
-                s.isZipSource -> s.loadedZipContent?.get(planned.sourceId)
+                s.isZipSource || s.isMultipleFileSource -> s.loadedMultiContent?.get(planned.sourceId)
                 else -> null
             }
             if (contentBase64 == null) {
@@ -433,6 +517,7 @@ class UploadFlowViewModel(
             safFileReader: SafFileReader,
             repoBranchRepository: GithubRepoBranchRepository,
             singleFileCommitRepository: SingleFileCommitRepository,
+            pullRequestRepository: GithubPullRequestRepository,
             multiFileCommitRepository: MultiFileCommitRepository,
             settingsStore: RepoTargetSettingsStore,
         ): ViewModelProvider.Factory =
@@ -442,6 +527,7 @@ class UploadFlowViewModel(
                     UploadFlowViewModel(
                         safFileReader = safFileReader,
                         repoBranchRepository = repoBranchRepository,
+                        pullRequestRepository = pullRequestRepository,
                         singleFileCommitRepository = singleFileCommitRepository,
                         multiFileCommitRepository = multiFileCommitRepository,
                         settingsStore = settingsStore,
@@ -453,7 +539,7 @@ class UploadFlowViewModel(
 data class UploadFlowUiState(
     val loadedFile: LoadedFile? = null,
     val loadedFolder: SelectedSource? = null,
-    val loadedZipContent: Map<String, String>? = null,
+    val loadedMultiContent: Map<String, String>? = null,
     val loadedFilePlan: FilePlan? = null,
     val ownerInput: String = "",
     val repoInput: String = "",
@@ -462,8 +548,10 @@ data class UploadFlowUiState(
     val commitMessageInput: String = "",
     val repositories: List<GithubRepositorySummary> = emptyList(),
     val branches: List<GithubBranchSummary> = emptyList(),
+    val pullRequests: List<GithubPullRequestSummary> = emptyList(),
     val isLoadingRepos: Boolean = false,
     val isLoadingBranches: Boolean = false,
+    val isLoadingPullRequests: Boolean = false,
     val plan: UploadPlan? = null,
     val isCommitting: Boolean = false,
     val errorMessage: String? = null,
@@ -475,6 +563,7 @@ data class UploadFlowUiState(
     val hasSucceeded: Boolean get() = successCommitSha != null
     val isFolderSource: Boolean get() = loadedFolder?.kind == SourceKind.FOLDER
     val isZipSource: Boolean get() = loadedFolder?.kind == SourceKind.ZIP
+    val isMultipleFileSource: Boolean get() = loadedFolder?.kind == SourceKind.MULTIPLE_FILES
     val isMultiFileSource: Boolean get() = loadedFolder != null
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint

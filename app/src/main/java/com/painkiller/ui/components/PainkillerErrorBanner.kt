@@ -21,7 +21,7 @@ fun PainkillerErrorBanner(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(PainkillerColors.RauschRed, MaterialTheme.shapes.medium)
+            .background(PainkillerColors.Navy, MaterialTheme.shapes.medium)
             .padding(PainkillerSpacing.md),
         verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
     ) {
