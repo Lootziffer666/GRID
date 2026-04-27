@@ -50,6 +50,7 @@ fun PainkillerNavGraph(
                     safFileReader = container.safFileReader,
                     repoBranchRepository = container.repoBranchRepository,
                     pullRequestRepository = container.pullRequestRepository,
+                    releaseRepository = container.releaseRepository,
                     singleFileCommitRepository = container.singleFileCommitRepository,
                     multiFileCommitRepository = container.multiFileCommitRepository,
                     settingsStore = container.repoTargetSettingsStore,

@@ -166,3 +166,40 @@ data class MergePullRequestResponse(
     @SerialName("merged") val merged: Boolean,
     @SerialName("message") val message: String,
 )
+
+@Serializable
+data class GithubReleaseSummary(
+    @SerialName("id") val id: Long,
+    @SerialName("tag_name") val tagName: String,
+    @SerialName("name") val name: String? = null,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("prerelease") val prerelease: Boolean = false,
+    @SerialName("upload_url") val uploadUrl: String? = null,
+    @SerialName("html_url") val htmlUrl: String? = null,
+)
+
+@Serializable
+data class CreateReleaseRequest(
+    @SerialName("tag_name") val tagName: String,
+    @SerialName("name") val name: String? = null,
+    @SerialName("body") val body: String? = null,
+    @SerialName("target_commitish") val targetCommitish: String? = null,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("prerelease") val prerelease: Boolean = false,
+)
+
+@Serializable
+data class UploadReleaseAssetRequest(
+    val name: String,
+    val contentType: String,
+    val data: ByteArray,
+)
+
+@Serializable
+data class GithubReleaseAssetSummary(
+    @SerialName("id") val id: Long,
+    @SerialName("name") val name: String,
+    @SerialName("size") val size: Long,
+    @SerialName("browser_download_url") val browserDownloadUrl: String? = null,
+    @SerialName("state") val state: String? = null,
+)

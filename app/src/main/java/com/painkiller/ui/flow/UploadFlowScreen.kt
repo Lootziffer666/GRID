@@ -47,6 +47,7 @@ import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
+import com.painkiller.domain.github.GithubReleaseSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.ui.components.PainkillerErrorBanner
 import kotlinx.coroutines.launch
@@ -100,6 +101,7 @@ fun UploadFlowScreen(
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
     var showPullRequestDialog by remember { mutableStateOf(false) }
+    var showReleaseDialog by remember { mutableStateOf(false) }
     var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
 
     if (state.hasSucceeded) {
@@ -286,6 +288,18 @@ fun UploadFlowScreen(
                             else "Pick open PR",
                         )
                     }
+                    TextButton(
+                        onClick = {
+                            viewModel.loadReleaseList()
+                            showReleaseDialog = true
+                        },
+                        enabled = state.ownerInput.isNotBlank() && state.repoInput.isNotBlank(),
+                    ) {
+                        Text(
+                            if (state.isLoadingReleases) "Loading releases…"
+                            else "Pick release (optional)",
+                        )
+                    }
                     OutlinedTextField(
                         value = state.targetPathInput,
                         onValueChange = viewModel::onTargetPathChanged,
@@ -307,6 +321,13 @@ fun UploadFlowScreen(
                     body = message,
                 )
                 TextButton(onClick = viewModel::dismissPullRequestMessage) { Text("Dismiss PR message") }
+            }
+            state.releaseAssetUploadMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Release asset",
+                    body = message,
+                )
+                TextButton(onClick = viewModel::dismissReleaseAssetMessage) { Text("Dismiss release message") }
             }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
@@ -351,6 +372,51 @@ fun UploadFlowScreen(
                             }
                         }
                     }
+                }
+            }
+            state.selectedRelease?.let { release ->
+                SectionCard(title = "Selected release") {
+                    Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        Text(
+                            text = "${release.tagName} ${release.name?.let { "· $it" } ?: ""}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        TextButton(onClick = viewModel::clearSelectedRelease) {
+                            Text("Clear selected release")
+                        }
+                        val canUploadSelectedFile = state.loadedFile != null && !state.isUploadingReleaseAsset
+                        PainkillerPrimaryActionButton(
+                            text = if (state.isUploadingReleaseAsset) "Uploading asset…" else "Upload selected file as asset",
+                            onClick = viewModel::uploadSelectedFileAsReleaseAsset,
+                            enabled = canUploadSelectedFile,
+                        )
+                    }
+                }
+            }
+            SectionCard(title = "Create release (optional)") {
+                Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                    OutlinedTextField(
+                        value = state.newReleaseTagInput,
+                        onValueChange = viewModel::onNewReleaseTagChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Tag (e.g. v1.0.0)") },
+                        singleLine = true,
+                    )
+                    OutlinedTextField(
+                        value = state.newReleaseNameInput,
+                        onValueChange = viewModel::onNewReleaseNameChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Release name (optional)") },
+                        singleLine = true,
+                    )
+                    PainkillerPrimaryActionButton(
+                        text = if (state.isCreatingRelease) "Creating release…" else "Create release",
+                        onClick = viewModel::createReleaseFromInputs,
+                        enabled = !state.isCreatingRelease &&
+                            state.ownerInput.isNotBlank() &&
+                            state.repoInput.isNotBlank() &&
+                            state.newReleaseTagInput.isNotBlank(),
+                    )
                 }
             }
 
@@ -481,6 +547,20 @@ fun UploadFlowScreen(
                 showPullRequestDialog = false
             },
             onDismiss = { showPullRequestDialog = false },
+        )
+    }
+
+    if (showReleaseDialog) {
+        PickerDialog(
+            title = "Pick release",
+            isLoading = state.isLoadingReleases,
+            items = state.releases,
+            label = { formatReleaseLabel(it) },
+            onSelect = { release ->
+                viewModel.selectRelease(release)
+                showReleaseDialog = false
+            },
+            onDismiss = { showReleaseDialog = false },
         )
     }
 
@@ -671,4 +751,10 @@ private fun formatBytes(bytes: Long): String = when {
 private fun formatPullRequestLabel(summary: GithubPullRequestSummary): String {
     val draftTag = if (summary.draft) " [draft]" else ""
     return "#${summary.number} ${summary.title}$draftTag → ${summary.head.ref}"
+}
+
+private fun formatReleaseLabel(summary: GithubReleaseSummary): String {
+    val draftTag = if (summary.draft) " [draft]" else ""
+    val preTag = if (summary.prerelease) " [pre-release]" else ""
+    return "${summary.tagName}$draftTag$preTag ${summary.name?.let { "· $it" } ?: ""}".trim()
 }

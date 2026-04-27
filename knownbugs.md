@@ -372,3 +372,20 @@ Evidence:
 Action:
 - Keep GitHub App flow visible as preferred path.
 - Implement backend exchange endpoint and wire `GithubAppAuthApi` in a follow-up infrastructure gate.
+
+---
+
+## BUG-20260427-018
+
+Status: OPEN
+Gate: 24
+Severity: LOW
+Summary: Release asset upload currently decodes selected file content into memory before network POST, which may increase peak memory usage for large artifacts.
+
+Evidence:
+- `UploadFlowViewModel.uploadSelectedFileAsReleaseAsset()` decodes `LoadedFile.contentBase64` to `ByteArray` before repository upload.
+- `UploadReleaseAssetRequest` carries an eager `ByteArray` payload (non-streaming path).
+
+Action:
+- Keep Gate 24 behavior for functional release-asset upload correctness.
+- Follow-up gate should switch to streaming upload body to reduce peak memory pressure.
