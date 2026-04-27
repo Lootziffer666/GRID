@@ -46,12 +46,14 @@ fun PainkillerNavGraph(
                     safFileReader = container.safFileReader,
                     repoBranchRepository = container.repoBranchRepository,
                     singleFileCommitRepository = container.singleFileCommitRepository,
+                    multiFileCommitRepository = container.multiFileCommitRepository,
                     settingsStore = container.repoTargetSettingsStore,
                 ),
             )
             UploadFlowScreen(
                 viewModel = uploadViewModel,
                 safFolderReader = container.safFolderReader,
+                safZipReader = container.safZipReader,
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(ROUTE_AUTH) {

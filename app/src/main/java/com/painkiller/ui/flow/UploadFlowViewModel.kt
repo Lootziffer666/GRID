@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.painkiller.data.files.LoadedFile
 import com.painkiller.data.files.SafFileReader
+import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubBranchListResult
 import com.painkiller.data.github.GithubRepoBranchRepository
 import com.painkiller.data.github.GithubRepoListResult
+import com.painkiller.data.github.MultiFileCommitRepository
 import com.painkiller.data.github.SingleFileCommitRepository
 import com.painkiller.data.settings.RepoTargetSettingsStore
 import com.painkiller.domain.error.HumanReadableError
@@ -25,6 +27,9 @@ import com.painkiller.domain.files.SelectedSource
 import com.painkiller.domain.files.SourceKind
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubRepositorySummary
+import com.painkiller.domain.github.MultiFileCommitEntry
+import com.painkiller.domain.github.MultiFileCommitInput
+import com.painkiller.domain.github.MultiFileCommitResult
 import com.painkiller.domain.github.SingleFileCommitInput
 import com.painkiller.domain.github.SingleFileCommitResult
 import com.painkiller.domain.target.BranchTarget
@@ -40,23 +45,21 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Owns the end-to-end single-file upload flow:
+ * Owns the end-to-end upload flow:
  *
- *   1. user picks a file via SAF — VM reads it via [SafFileReader]
+ *   1. user picks a file / folder / ZIP via SAF — VM stores the source
  *   2. user picks owner/repo and branch from listings retrieved via
  *      [GithubRepoBranchRepository], plus a target path
  *   3. VM builds an [UploadPlan] via Gate 5 [UploadPlanBuilder]
  *   4. user confirms — VM submits via Gate 6 [SingleFileCommitRepository]
- *   5. VM emits success (with commit URL) or a [HumanReadableError]
- *
- * Multi-file / folder / ZIP flows are deferred to a future UI gate; the
- * domain orchestration for those already exists in
- * [com.painkiller.data.github.MultiFileCommitRepository].
+ *      or Gate 7 [MultiFileCommitRepository] depending on source kind
+ *   5. VM emits success (with commit URL + paths) or a [HumanReadableError]
  */
 class UploadFlowViewModel(
     private val safFileReader: SafFileReader,
     private val repoBranchRepository: GithubRepoBranchRepository,
     private val singleFileCommitRepository: SingleFileCommitRepository,
+    private val multiFileCommitRepository: MultiFileCommitRepository,
     private val settingsStore: RepoTargetSettingsStore,
 ) : ViewModel() {
 
@@ -82,15 +85,53 @@ class UploadFlowViewModel(
     // ─── source picking ──────────────────────────────────────────────────────
 
     fun onFolderSourceLoaded(source: SelectedSource) {
-        _state.update { it.copy(loadedFolder = source, loadedFile = null, plan = null, errorMessage = null) }
+        _state.update {
+            it.copy(
+                loadedFolder = source,
+                loadedZipContent = null,
+                loadedFile = null,
+                loadedFilePlan = null,
+                plan = null,
+                errorMessage = null,
+            )
+        }
+    }
+
+    fun onZipSourceLoaded(result: SafZipReader.ZipReadResult) {
+        _state.update {
+            it.copy(
+                loadedFolder = result.source,
+                loadedZipContent = result.contentByRelativePath,
+                loadedFile = null,
+                loadedFilePlan = null,
+                plan = null,
+                errorMessage = null,
+            )
+        }
     }
 
     fun clearLoadedFolder() {
-        _state.update { it.copy(loadedFolder = null, plan = null) }
+        _state.update {
+            it.copy(
+                loadedFolder = null,
+                loadedZipContent = null,
+                loadedFilePlan = null,
+                plan = null,
+            )
+        }
     }
 
     fun onSourceUriPicked(uri: Uri) {
-        _state.update { it.copy(loadedFile = null, loadedFolder = null, errorMessage = null, plan = null) }
+        _state.update {
+            it.copy(
+                loadedFile = null,
+                loadedFolder = null,
+                loadedZipContent = null,
+                loadedFilePlan = null,
+                errorMessage = null,
+                plan = null,
+            )
+        }
         viewModelScope.launch {
             val loaded = safFileReader.read(uri)
             if (loaded == null) {
@@ -114,7 +155,15 @@ class UploadFlowViewModel(
     }
 
     fun clearLoadedFile() {
-        _state.update { it.copy(loadedFile = null, loadedFolder = null, plan = null) }
+        _state.update {
+            it.copy(
+                loadedFile = null,
+                loadedFolder = null,
+                loadedZipContent = null,
+                loadedFilePlan = null,
+                plan = null,
+            )
+        }
     }
 
     // ─── target editing ──────────────────────────────────────────────────────
@@ -187,9 +236,9 @@ class UploadFlowViewModel(
         val s = _state.value
         val target = buildRepoTargetOrError() ?: return
         when {
-            s.loadedFolder != null -> buildFolderPlan(s.loadedFolder, target)
+            s.loadedFolder != null -> buildMultiFilePlan(s.loadedFolder, target)
             s.loadedFile != null -> buildFilePlan(s.loadedFile, target)
-            else -> _state.update { it.copy(errorMessage = "Pick a file or folder first.") }
+            else -> _state.update { it.copy(errorMessage = "Pick a file, folder, or ZIP first.") }
         }
     }
 
@@ -215,19 +264,21 @@ class UploadFlowViewModel(
         applyPlan(UploadPlanBuilder.build(filePlan, target), target)
     }
 
-    private fun buildFolderPlan(source: SelectedSource, target: RepoTarget) {
+    private fun buildMultiFilePlan(source: SelectedSource, target: RepoTarget) {
         when (val r = FilePlanBuilder.build(source, target.targetPath.normalized, DefaultIgnoreRules.rules)) {
-            is FilePlanBuildResult.Success -> applyPlan(UploadPlanBuilder.build(r.plan, target), target)
+            is FilePlanBuildResult.Success ->
+                applyPlan(UploadPlanBuilder.build(r.plan, target), target, r.plan)
             is FilePlanBuildResult.ValidationError -> _state.update {
-                it.copy(errorMessage = r.issues.firstOrNull()?.message ?: "Folder source has issues.")
+                it.copy(errorMessage = r.issues.firstOrNull()?.message ?: "Source has issues.")
             }
         }
     }
 
-    private fun applyPlan(plan: UploadPlan, target: RepoTarget) {
+    private fun applyPlan(plan: UploadPlan, target: RepoTarget, filePlan: FilePlan? = null) {
         _state.update {
             it.copy(
                 plan = plan,
+                loadedFilePlan = filePlan,
                 commitMessageInput = it.commitMessageInput.ifBlank { plan.suggestedCommitMessage },
             )
         }
@@ -240,23 +291,79 @@ class UploadFlowViewModel(
         val s = _state.value
         if (s.isCommitting) return
         val plan = s.plan ?: return
-        val loaded = s.loadedFile ?: return
         val message = s.commitMessageInput.ifBlank { plan.suggestedCommitMessage }
         if (plan.isBlockedForCommit) {
-            val err = PainkillerErrorMapper.mapBlockedForCommit()
-            _state.update { it.copy(humanError = err) }
+            _state.update { it.copy(humanError = PainkillerErrorMapper.mapBlockedForCommit()) }
             return
         }
         _state.update { it.copy(isCommitting = true, humanError = null) }
         viewModelScope.launch {
-            val input = SingleFileCommitInput(
-                target = plan.target,
-                fileName = loaded.displayName,
-                contentBase64 = loaded.contentBase64,
-                commitMessage = message,
-            )
-            val result = singleFileCommitRepository.commitSingleFile(input)
-            handleCommitResult(result)
+            if (s.isMultiFileSource) {
+                confirmMultiFileUpload(s, plan, message)
+            } else {
+                val loaded = s.loadedFile ?: run {
+                    _state.update { it.copy(isCommitting = false) }
+                    return@launch
+                }
+                confirmSingleFileUpload(loaded, plan, message)
+            }
+        }
+    }
+
+    private suspend fun confirmSingleFileUpload(loaded: LoadedFile, plan: UploadPlan, message: String) {
+        val input = SingleFileCommitInput(
+            target = plan.target,
+            fileName = loaded.displayName,
+            contentBase64 = loaded.contentBase64,
+            commitMessage = message,
+        )
+        handleSingleFileCommitResult(singleFileCommitRepository.commitSingleFile(input))
+    }
+
+    private suspend fun confirmMultiFileUpload(s: UploadFlowUiState, plan: UploadPlan, message: String) {
+        val filePlan = s.loadedFilePlan ?: run {
+            _state.update { it.copy(isCommitting = false, errorMessage = "File plan is not available.") }
+            return
+        }
+        val entries = mutableListOf<MultiFileCommitEntry>()
+        for (planned in filePlan.includedFiles) {
+            if (planned.sizeDiagnosis.isBlockedForNormalCommit) continue
+            val contentBase64 = when {
+                s.isFolderSource -> safFileReader.read(Uri.parse(planned.sourceId))?.contentBase64
+                s.isZipSource -> s.loadedZipContent?.get(planned.sourceId)
+                else -> null
+            }
+            if (contentBase64 == null) {
+                _state.update {
+                    it.copy(
+                        isCommitting = false,
+                        errorMessage = "Could not read file: ${planned.sourceDisplayName}. Try again.",
+                    )
+                }
+                return
+            }
+            entries += MultiFileCommitEntry(repoPath = planned.repoPath, contentBase64 = contentBase64)
+        }
+        val input = MultiFileCommitInput(
+            target = plan.target,
+            entries = entries,
+            commitMessage = message,
+        )
+        when (val result = multiFileCommitRepository.commitMultipleFiles(input)) {
+            is MultiFileCommitResult.Success -> _state.update {
+                it.copy(
+                    isCommitting = false,
+                    successCommitSha = result.commitSha,
+                    successCommitUrl = result.commitUrl,
+                    successCommittedPaths = result.committedPaths,
+                )
+            }
+            is MultiFileCommitResult.Failure -> _state.update {
+                it.copy(
+                    isCommitting = false,
+                    humanError = PainkillerErrorMapper.map(result),
+                )
+            }
         }
     }
 
@@ -275,14 +382,14 @@ class UploadFlowViewModel(
         }
     }
 
-    private fun handleCommitResult(result: SingleFileCommitResult) {
+    private fun handleSingleFileCommitResult(result: SingleFileCommitResult) {
         when (result) {
             is SingleFileCommitResult.Success -> _state.update {
                 it.copy(
                     isCommitting = false,
                     successCommitSha = result.commitSha,
                     successCommitUrl = result.commitUrl,
-                    successCommittedPath = result.committedPath,
+                    successCommittedPaths = listOf(result.committedPath),
                 )
             }
             is SingleFileCommitResult.Failure -> _state.update {
@@ -326,6 +433,7 @@ class UploadFlowViewModel(
             safFileReader: SafFileReader,
             repoBranchRepository: GithubRepoBranchRepository,
             singleFileCommitRepository: SingleFileCommitRepository,
+            multiFileCommitRepository: MultiFileCommitRepository,
             settingsStore: RepoTargetSettingsStore,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
@@ -335,6 +443,7 @@ class UploadFlowViewModel(
                         safFileReader = safFileReader,
                         repoBranchRepository = repoBranchRepository,
                         singleFileCommitRepository = singleFileCommitRepository,
+                        multiFileCommitRepository = multiFileCommitRepository,
                         settingsStore = settingsStore,
                     ) as T
             }
@@ -344,6 +453,8 @@ class UploadFlowViewModel(
 data class UploadFlowUiState(
     val loadedFile: LoadedFile? = null,
     val loadedFolder: SelectedSource? = null,
+    val loadedZipContent: Map<String, String>? = null,
+    val loadedFilePlan: FilePlan? = null,
     val ownerInput: String = "",
     val repoInput: String = "",
     val branchInput: String = "",
@@ -359,10 +470,12 @@ data class UploadFlowUiState(
     val humanError: HumanReadableError? = null,
     val successCommitSha: String? = null,
     val successCommitUrl: String? = null,
-    val successCommittedPath: String? = null,
+    val successCommittedPaths: List<String>? = null,
 ) {
     val hasSucceeded: Boolean get() = successCommitSha != null
-    val isFolderSource: Boolean get() = loadedFolder != null
+    val isFolderSource: Boolean get() = loadedFolder?.kind == SourceKind.FOLDER
+    val isZipSource: Boolean get() = loadedFolder?.kind == SourceKind.ZIP
+    val isMultiFileSource: Boolean get() = loadedFolder != null
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
     val retrySafety: RetrySafety? get() = humanError?.retrySafety
