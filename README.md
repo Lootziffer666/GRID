@@ -36,6 +36,7 @@ Painkiller now includes:
 - dark mode toggle (default is light mode)
 - splash screen + vector app icon branding
 - intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
+- user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
 
 This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI

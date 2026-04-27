@@ -1,4 +1,4 @@
-# Next 10 Gates Plan (Post Gate 16)
+# Next 10 Gates Plan (User-Directed Scope Expansion)
 
 ## Gate 17 — Upload Preview Quality
 - Add concise severity counters in the upload plan card.
@@ -14,35 +14,42 @@
 - Add richer source summary details (top files / counts / size snapshots).
 - Surface ZIP collision warnings to user-facing summary.
 
-## Gate 20 — Repo/Branch Picker UX
-- Add quick filters/search in picker dialogs.
-- Improve empty/loading state copy.
+## Gate 20 — OAuth as Additional Login
+- Keep PAT login.
+- Add OAuth as a second login path (parallel option in auth UI).
+- Token exchange/storage must preserve existing token-safety rules.
 
-## Gate 21 — Target Path Assist
-- Add lightweight path suggestions and last-used shortcuts.
-- Keep TargetPath validation rules unchanged.
+## Gate 21 — PR Management Foundations
+- Add repository PR listing and selection primitives.
+- Add PR creation draft workflow scaffolding from upload context.
+- No auto-merge yet.
 
-## Gate 22 — Commit Message Assist
-- Add simple message templates and one-tap regenerate.
-- Preserve deterministic suggester output baseline.
+## Gate 22 — PR Merge Assist
+- Add mergeability diagnostics (status checks, conflicts, protection hints).
+- Add guided merge actions where repo permissions/rules allow.
+- Keep explicit user confirmation before merge.
+- Optional: add ONNX-based local scoring/ranking for merge-risk hints (device-side inference only, no auto-merge).
 
-## Gate 23 — Error Recovery UX
-- Improve retry hints and recovery actions per `RetrySafety`.
-- Keep mapper semantics unchanged; UI polish only.
+## Gate 23 — Git LFS Expansion
+- Add Large File Doctor upgrade path that can route eligible files to LFS.
+- Add LFS upload planning and constraints checks.
+- Keep normal Git Data API path unchanged for non-LFS files.
+- Note: model artifacts around 23 MB may be committed directly (below current 25 MB warning threshold), LFS remains optional for larger future models.
 
-## Gate 24 — Success Screen Polish
-- Add clearer commit summary, path grouping, and copy actions.
-- No new network or write behavior.
+## Gate 24 — GitHub Release Assets
+- Add release selection/creation workflow for oversized or binary artifacts.
+- Add release asset upload orchestration and error mapping.
 
-## Gate 25 — Accessibility & Localization pass
-- Improve contrast/text semantics and content descriptions.
-- Externalize new strings and normalize mixed-language labels.
+## Gate 25 — Full PR Management
+- Add PR detail view, review state summaries, and update/retry actions.
+- Add safe merge strategy selection helper (merge/squash/rebase where allowed).
 
-## Gate 26 — Release Readiness Pass
-- Reconcile docs/handoffs/knownbugs.
-- CI-first verification checklist and final cleanup of temporary compatibility shims.
+## Gate 26 — Release Readiness + Scope Reconciliation
+- Reconcile docs/handoffs/knownbugs with expanded scope.
+- CI-first verification checklist across upload, OAuth, PR, LFS, and Releases.
+- Final cleanup of temporary compatibility shims.
 
 ## Guardrails
 - One gate-focused commit at a time unless user explicitly requests batching.
-- No scope expansion into LFS, Releases, PR management, or background sync.
 - Preserve commit safety invariants (`force=false`, SHA-guarded updates).
+- Keep opt-in user confirmation for destructive operations (merge, publish, overwrite).

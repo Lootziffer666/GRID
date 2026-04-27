@@ -13,10 +13,14 @@ PARTIAL
 
 - Fixed Kotlin compile regression caused by renamed theme tokens by adding backward-compatible aliases in `PainkillerColors` (`RauschRed`, `BabuTeal`, `AccentAmber`) mapped to the new palette.
 - Re-ran domain test suite to ensure no regression in pure Kotlin modules.
+- Continued Gate-15 polish by migrating key severity/error UI components to the new palette tokens directly (`PrimaryTeal`, `EdgeSoft`, `Navy`) instead of legacy names.
 
 ## Files Changed
 
 - `app/src/main/java/com/painkiller/ui/theme/Color.kt`
+- `app/src/main/java/com/painkiller/ui/components/PainkillerErrorBanner.kt`
+- `app/src/main/java/com/painkiller/ui/components/PainkillerSeverityBadge.kt`
+- `app/src/main/java/com/painkiller/ui/components/PainkillerWarningCard.kt`
 - `knownbugs.md`
 - `handoff/GATE_15_HANDOFF.md`
 
