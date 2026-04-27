@@ -23,4 +23,9 @@ object PainkillerColors {
     val OnDarkMuted = EdgeSoft
     val OnLight = InkBlue
     val OnLightMuted = Navy
+
+    // Backward-compatible aliases used by existing UI components.
+    val RauschRed = InkBlue
+    val BabuTeal = PrimaryTeal
+    val AccentAmber = EdgeSoft
 }
