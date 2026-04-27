@@ -149,18 +149,28 @@ Action:
 
 ## BUG-20260426-007
 
-Status: OPEN
-Gate: 4
-Severity: MEDIUM
-Summary: Local Gate 4 verification cannot complete `:app:assembleDebug` because Android SDK is not configured in this execution environment.
+Status: ACCEPTED
+Gate: 4 (and all subsequent local runs)
+Severity: LOW
+Summary: Local agent environments without an Android SDK cannot run
+`:app:assembleDebug`. Per AGENTS.md / claude.md CI-first policy, this is
+not a project defect — Android verification is delegated to GitHub
+Actions on `main`.
 
 Evidence:
-- `./gradlew :app:assembleDebug` on 2026-04-26 failed with: "SDK location not found. Define a valid SDK location with an ANDROID_HOME environment variable or by setting the sdk.dir path in your project's local properties file at '/workspace/PAINKILLER/local.properties'."
-- `./gradlew :domain:test` and `./gradlew :domain:build` succeeded in the same run.
+- `./gradlew :app:assembleDebug` fails locally with: "SDK location not
+  found. Define a valid SDK location with an ANDROID_HOME environment
+  variable or by setting the sdk.dir path in your project's local
+  properties file."
+- `./gradlew :domain:test` and `./gradlew :domain:build` succeed in
+  every gate run.
+- The GitHub Actions workflow `.github/workflows/build.yml` provides the
+  Android SDK and runs `:app:assembleDebug` as the authoritative check.
 
 Action:
-- Keep Gate 4 marked `PARTIAL` for this local run.
-- Re-run `./gradlew :app:assembleDebug` on CI or SDK-enabled runner before promoting Gate 4 to `PASS`.
+- Accepted as a permanent environment-only condition. No further action.
+- Do not reopen for individual gates; the CI workflow is the source of
+  truth for Android-side verification.
 
 
 ## BUG-20260426-008
@@ -194,28 +204,34 @@ Action:
 
 ## BUG-20260426-009
 
-Status: ACCEPTED
-Gate: 6
+Status: PARTIAL
+Gate: 6 / 10
 Severity: LOW
-Summary: Concrete HTTP client implementation of `GithubGitDataApi` is
-deferred to a later networking hardening step. Same pattern as Gate 3
-(`GithubOAuthApi` and `GithubRepositoryApi` are still contracts).
+Summary: Concrete HTTP client implementations now exist for all three
+deferred APIs. UI wiring and end-to-end reachability remain outstanding.
 
-Evidence:
+Evidence (Gate 6 deferral):
 - `GithubGitDataApi` is an interface in `:domain` only.
 - `SingleFileCommitOrchestrator` consumes the interface and is fully
   unit-tested with a recording fake.
 - `SingleFileCommitRepository` consumes the same interface from `:app`,
   ready for an HTTP-backed implementation to be injected.
 
+Evidence (Gate 10 partial resolution):
+- `KtorGithubGitDataApi` implements `GithubGitDataApi` with status-code
+  mapping, `force=true` assertion guard, and defence-in-depth exception
+  wrapping. Unit-tested via MockEngine.
+- `KtorGithubRepositoryApi` implements `GithubRepositoryApi` (repo/branch
+  listing, paginated). Unit-tested via MockEngine.
+- `KtorGithubTokenProbeApi` implements `GithubTokenProbeApi` (PAT
+  validation via `GET /user`). Unit-tested via MockEngine.
+- `EncryptedSecureTokenStore` provides real AndroidX Keystore-backed
+  token storage replacing the `InMemorySecureTokenStore` placeholder.
+- `PainkillerContainer` wires all of the above as lazy singletons.
+- `AuthViewModel` and `UploadFlowViewModel` exist but have no Compose
+  consumers yet; `MainActivity` still shows the Gate 0 placeholder.
+
 Action:
-- Accepted for Gate 6. The networking hardening step that follows must:
-  - implement `GithubGitDataApi` over an HTTP client (Retrofit/OkHttp or
-    Ktor)
-  - throw the appropriate `GithubGitDataException` subtype based on
-    HTTP status / transport failure (401 → `AuthRequired`, 403 with
-    "protected branch" hint → `ProtectedBranch`, other 403 →
-    `PermissionDenied`, 404 → `RefNotFound`, 422 SHA-mismatch →
-    `ShaMismatch`, IO/timeout → `NetworkUnavailable`)
-  - never log raw token, response body, or stack trace
-  - never set `force = true` on `updateRef`
+- Remaining: implement `AuthScreen`, `NavHost`, and Upload flow screens
+  (Gate 11+). `GithubOAuthApi` HTTP implementation remains deferred
+  (OAuth requires server-side `client_secret`).

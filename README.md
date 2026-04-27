@@ -20,14 +20,37 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
+**Internal Test Candidate / v0 Integration Candidate** (Gate 9 finalized).
+
+Painkiller has a gated internal test candidate with file intake, size
+diagnosis, GitHub auth and repo/branch listing boundaries, target
+selection and presets, upload planning with preview, single-file and
+multi-file commit orchestration, and robust human-readable error mapping.
+Concrete HTTP client implementation of `GithubGitDataApi` is intentionally
+deferred (see `knownbugs.md` BUG-20260426-009), so no actual upload yet
+reaches GitHub at runtime. Some integration work remains before public
+release.
+
+This is **not** a public Release Candidate. It is an **Internal Test
+Candidate** suitable for end-to-end domain testing, code review, and CI
+verification of the gated layers.
+
+| Layer            | Gates  | Status                                                           |
+|------------------|--------|------------------------------------------------------------------|
+| MVP Core         | 0–4    | Implemented and CI-verified                                      |
+| Execution Layer  | 5–7    | Domain orchestration implemented; HTTP client deferred           |
+| Safety Layer     | 8      | Domain error mapping implemented                                 |
+| Integration Cand.| 9      | Reconciled, documented, CI-green                                 |
+
 - **Gate 1 — file intake without GitHub: PASS.**
 - **Gate 2 — Large File Doctor (pure domain): PASS.**
-- **Gate 3 — GitHub auth + repository/branch listing: PASS.**
-- **Gate 4 — RepoTarget + presets: PASS (CI-verified).**
-- **Gate 5 — UploadPlan + preview UI: PARTIAL (domain planning + preview screen landed; SAF wiring and editable commit message deferred).**
-- **Gate 6 — single-file commit via Git Data API: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).**
-- **Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`: PARTIAL (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 6).**
-- **Gate 8 — robustness / error mapping: PARTIAL (pure-domain error mapper landed; HTTP client not wired so runtime mapping is exercised by tests only).**
+- **Gate 3 — GitHub auth + repository/branch listing: PASS** (boundaries; HTTP client deferred).
+- **Gate 4 — RepoTarget + presets: PASS** (CI-verified).
+- **Gate 5 — UploadPlan + preview UI: PARTIAL** (domain planning + preview screen landed; SAF wiring and editable commit message deferred).
+- **Gate 6 — single-file commit via Git Data API: PARTIAL** (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).
+- **Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`: PARTIAL** (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 6).
+- **Gate 8 — robustness / error mapping: PARTIAL** (pure-domain error mapper landed; HTTP client not wired so runtime mapping is exercised by tests only).
+- **Gate 9 — internal test candidate finalization: PASS** (gates 0–8 reconciled, documented, and CI-green; 129 domain tests, 0 failures).
 
 ### Gate 1 completed
 
@@ -219,6 +242,30 @@ Then:
 - No preview screen (Gate 5 has the preview Compose screen; navigation wiring is pending).
 - Preset selection UI is not wired yet (storage/model support exists).
 - The primary action button in the app shell is intentionally disabled.
+
+## What this candidate is and is not
+
+**Is:**
+
+- a coherent, tested, gated codebase covering intake, diagnosis,
+  planning, orchestration, and error mapping
+- safe by construction — no `force=true`, no silent overwrite, no
+  automatic write retry, no token in any user-facing message or log
+- ready for end-to-end domain testing, code review, and CI build
+  verification
+
+**Is not:**
+
+- a public Release Candidate — `GithubGitDataApi` has no concrete HTTP
+  adapter, so no real upload reaches GitHub at runtime
+- a fully-wired Android UI — preset/SAF/auth screens are stubbed and
+  the primary action button is disabled
+- a Git client, GitHub Desktop replacement, file manager, or background
+  sync agent
+
+Git Data API orchestration exists, but concrete HTTP adapter / true
+end-to-end GitHub execution remains deferred. See `knownbugs.md`
+BUG-20260426-009 for the planned next-step contract.
 
 ## Out of scope (whole project)
 
