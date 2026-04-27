@@ -18,6 +18,8 @@ private const val ROUTE_UPLOAD = "upload"
 @Composable
 fun PainkillerNavGraph(
     container: PainkillerContainer,
+    darkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
@@ -33,6 +35,8 @@ fun PainkillerNavGraph(
         composable(ROUTE_AUTH) {
             AuthScreen(
                 viewModel = authViewModel,
+                darkModeEnabled = darkModeEnabled,
+                onToggleDarkMode = onToggleDarkMode,
                 onAuthenticated = {
                     navController.navigate(ROUTE_UPLOAD) {
                         popUpTo(ROUTE_AUTH) { inclusive = true }
@@ -45,6 +49,7 @@ fun PainkillerNavGraph(
                 factory = UploadFlowViewModel.factory(
                     safFileReader = container.safFileReader,
                     repoBranchRepository = container.repoBranchRepository,
+                    pullRequestRepository = container.pullRequestRepository,
                     singleFileCommitRepository = container.singleFileCommitRepository,
                     multiFileCommitRepository = container.multiFileCommitRepository,
                     settingsStore = container.repoTargetSettingsStore,
@@ -54,6 +59,8 @@ fun PainkillerNavGraph(
                 viewModel = uploadViewModel,
                 safFolderReader = container.safFolderReader,
                 safZipReader = container.safZipReader,
+                darkModeEnabled = darkModeEnabled,
+                onToggleDarkMode = onToggleDarkMode,
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(ROUTE_AUTH) {
