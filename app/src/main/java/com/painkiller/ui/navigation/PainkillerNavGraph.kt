@@ -49,6 +49,7 @@ fun PainkillerNavGraph(
                 factory = UploadFlowViewModel.factory(
                     safFileReader = container.safFileReader,
                     repoBranchRepository = container.repoBranchRepository,
+                    pullRequestRepository = container.pullRequestRepository,
                     singleFileCommitRepository = container.singleFileCommitRepository,
                     multiFileCommitRepository = container.multiFileCommitRepository,
                     settingsStore = container.repoTargetSettingsStore,

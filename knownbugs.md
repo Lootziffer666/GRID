@@ -321,3 +321,20 @@ Evidence:
 Action:
 - Keep OAuth code UI visible as optional path.
 - Integrate backend-assisted exchange in a dedicated follow-up gate when credentials flow is available.
+
+---
+
+## BUG-20260427-015
+
+Status: ACCEPTED
+Gate: 21
+Severity: LOW
+Summary: PR foundation currently lists open pull requests only; merge execution and PR write flows are deferred to later gates.
+
+Evidence:
+- `KtorGithubPullRequestApi` requests `/pulls?state=open`.
+- Upload flow integration only sets branch input from selected PR head ref.
+
+Action:
+- Keep as intentional scope boundary for Gate 21.
+- Expand in Gate 22+ with merge assist and PR write workflows.

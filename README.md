@@ -28,6 +28,7 @@ Painkiller now includes:
 
 - file, multi-file, folder, and ZIP intake
 - repo/branch/target selection
+- open pull-request picker foundation (select PR head branch)
 - upload planning + diagnosis + preview
 - single and multi-file Git Data API orchestration
 - Ktor-based GitHub API adapters (repo/branch listing + git-data + token probe)

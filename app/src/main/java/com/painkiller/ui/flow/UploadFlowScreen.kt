@@ -45,6 +45,7 @@ import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.github.GithubBranchSummary
+import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubRepositorySummary
 import com.painkiller.ui.components.PainkillerErrorBanner
 import kotlinx.coroutines.launch
@@ -97,6 +98,7 @@ fun UploadFlowScreen(
     }
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
+    var showPullRequestDialog by remember { mutableStateOf(false) }
 
     if (state.hasSucceeded) {
         SuccessScreen(
@@ -270,6 +272,18 @@ fun UploadFlowScreen(
                             else "Pick branch",
                         )
                     }
+                    TextButton(
+                        onClick = {
+                            viewModel.loadPullRequestList()
+                            showPullRequestDialog = true
+                        },
+                        enabled = state.ownerInput.isNotBlank() && state.repoInput.isNotBlank(),
+                    ) {
+                        Text(
+                            if (state.isLoadingPullRequests) "Loading pull requests…"
+                            else "Pick open PR",
+                        )
+                    }
                     OutlinedTextField(
                         value = state.targetPathInput,
                         onValueChange = viewModel::onTargetPathChanged,
@@ -411,6 +425,20 @@ fun UploadFlowScreen(
                 showBranchDialog = false
             },
             onDismiss = { showBranchDialog = false },
+        )
+    }
+
+    if (showPullRequestDialog) {
+        PickerDialog(
+            title = "Pick open pull request",
+            isLoading = state.isLoadingPullRequests,
+            items = state.pullRequests,
+            label = { formatPullRequestLabel(it) },
+            onSelect = { pr ->
+                viewModel.selectPullRequest(pr)
+                showPullRequestDialog = false
+            },
+            onDismiss = { showPullRequestDialog = false },
         )
     }
 }
@@ -572,4 +600,9 @@ private fun formatBytes(bytes: Long): String = when {
     bytes >= 1024L * 1024L -> "%.1f MiB".format(bytes / (1024.0 * 1024.0))
     bytes >= 1024L -> "%.1f KiB".format(bytes / 1024.0)
     else -> "$bytes B"
+}
+
+private fun formatPullRequestLabel(summary: GithubPullRequestSummary): String {
+    val draftTag = if (summary.draft) " [draft]" else ""
+    return "#${summary.number} ${summary.title}$draftTag → ${summary.head.ref}"
 }

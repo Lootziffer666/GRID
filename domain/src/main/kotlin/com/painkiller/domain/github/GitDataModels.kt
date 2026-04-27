@@ -121,3 +121,21 @@ data class GithubBranchSummary(
     @SerialName("commit") val commit: GitTreeRef,
     @SerialName("protected") val protected: Boolean = false,
 )
+
+@Serializable
+data class GithubPullRequestSummary(
+    @SerialName("id") val id: Long,
+    @SerialName("number") val number: Long,
+    @SerialName("title") val title: String,
+    @SerialName("state") val state: String,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("html_url") val htmlUrl: String? = null,
+    @SerialName("head") val head: GithubPullRequestHead,
+)
+
+@Serializable
+data class GithubPullRequestHead(
+    @SerialName("ref") val ref: String,
+    @SerialName("sha") val sha: String,
+    @SerialName("label") val label: String? = null,
+)
