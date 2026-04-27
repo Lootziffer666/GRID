@@ -47,6 +47,26 @@ This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
 verification of the gated layers.
 
+## Handoff index (Gate 9 → current)
+
+- Gate 9: `handoff/GATE_9_HANDOFF.md`
+- Gate 10: `handoff/GATE_10_HANDOFF.md`
+- Gate 11: `handoff/GATE_11_HANDOFF.md`
+- Gate 12: `handoff/GATE_12_HANDOFF.md`
+- Gate 13: `handoff/GATE_13_HANDOFF.md`
+- Gate 14: `handoff/GATE_14_HANDOFF.md`
+- Gate 15: `handoff/GATE_15_HANDOFF.md`
+- Gate 16: `handoff/GATE_16_HANDOFF.md`
+- Gate 17: `handoff/GATE_17_HANDOFF.md`
+- Gate 18: `handoff/GATE_18_HANDOFF.md`
+- Gate 19: `handoff/GATE_19_HANDOFF.md`
+- Gate 20: `handoff/GATE_20_HANDOFF.md`
+- Gate 21: `handoff/GATE_21_HANDOFF.md`
+- Gate 22: `handoff/GATE_22_HANDOFF.md`
+- Gate 23: `handoff/GATE_23_HANDOFF.md`
+- Gate 24 (aktueller Stand): `handoff/GATE_24_HANDOFF.md`
+- Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
+
 | Layer            | Gates   | Status                              |
 |------------------|---------|-------------------------------------|
 | MVP Core         | 0–4     | PASS                                |
