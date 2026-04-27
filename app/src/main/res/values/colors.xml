@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Mirrors PainkillerColors.DarkBackground. Used by the Activity window
-         before Compose draws its first frame. All other color usage goes
-         through PainkillerTheme in Kotlin. -->
-    <color name="painkiller_dark_background">#1A1A1A</color>
+    <color name="painkiller_light_background">#F4FCFC</color>
+    <color name="painkiller_dark_background">#142C5C</color>
 </resources>
