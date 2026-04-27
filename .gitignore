@@ -23,3 +23,17 @@ captures/
 
 # Logs
 *.log
+
+# Binary assets
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.zip
+*.keystore
+icons/
+
+# Local backend secrets
+tools/github-app-exchange-server/.env
+tools/github-app-exchange-server/*.pem
+tools/github-app-exchange-server/node_modules/

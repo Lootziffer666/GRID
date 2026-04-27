@@ -1,5 +1,7 @@
 # Painkiller
 
+![Painkiller App Icon](app/src/main/res/drawable/painkiller_logo.xml)
+
 A focused Android tool for one mobile pain:
 
 > "I have files, folders, or ZIPs on my Android phone. I want them safely
@@ -20,37 +22,63 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Internal Test Candidate / v0 Integration Candidate** (Gate 9 finalized).
+**Gate 24 PASS (expanded plan): release selection/creation + release-asset upload path added for oversized/binary artifacts.**
 
-Painkiller has a gated internal test candidate with file intake, size
-diagnosis, GitHub auth and repo/branch listing boundaries, target
-selection and presets, upload planning with preview, single-file and
-multi-file commit orchestration, and robust human-readable error mapping.
-Concrete HTTP client implementation of `GithubGitDataApi` is intentionally
-deferred (see `knownbugs.md` BUG-20260426-009), so no actual upload yet
-reaches GitHub at runtime. Some integration work remains before public
-release.
+Painkiller now includes:
+
+- file, multi-file, folder, and ZIP intake
+- repo/branch/target selection
+- open pull-request picker foundation (select PR head branch)
+- PR merge-assist foundation (mergeability diagnostics + explicit merge/squash/rebase confirmation)
+- upload planning + diagnosis + preview
+- single and multi-file Git Data API orchestration
+- Ktor-based GitHub API adapters (repo/branch listing + git-data + token probe)
+- PAT-based sign-in with encrypted secure storage
+- OAuth authorization-code sign-in path added as optional second login mode (build-dependent exchange support)
+- GitHub App installation sign-in path scaffolded (backend token exchange required)
+- ZIP intake safety checks (ZIP-Slip defense in depth)
+- dark mode toggle (default is light mode)
+- splash screen + vector app icon branding
+- intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
+- user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
+- release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 
 This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
 verification of the gated layers.
 
-| Layer            | Gates  | Status                                                           |
-|------------------|--------|------------------------------------------------------------------|
-| MVP Core         | 0–4    | Implemented and CI-verified                                      |
-| Execution Layer  | 5–7    | Domain orchestration implemented; HTTP client deferred           |
-| Safety Layer     | 8      | Domain error mapping implemented                                 |
-| Integration Cand.| 9      | Reconciled, documented, CI-green                                 |
+## Handoff index (Gate 9 → current)
+
+- Gate 9: `handoff/GATE_9_HANDOFF.md`
+- Gate 10: `handoff/GATE_10_HANDOFF.md`
+- Gate 11: `handoff/GATE_11_HANDOFF.md`
+- Gate 12: `handoff/GATE_12_HANDOFF.md`
+- Gate 13: `handoff/GATE_13_HANDOFF.md`
+- Gate 14: `handoff/GATE_14_HANDOFF.md`
+- Gate 15: `handoff/GATE_15_HANDOFF.md`
+- Gate 16: `handoff/GATE_16_HANDOFF.md`
+- Gate 17: `handoff/GATE_17_HANDOFF.md`
+- Gate 18: `handoff/GATE_18_HANDOFF.md`
+- Gate 19: `handoff/GATE_19_HANDOFF.md`
+- Gate 20: `handoff/GATE_20_HANDOFF.md`
+- Gate 21: `handoff/GATE_21_HANDOFF.md`
+- Gate 22: `handoff/GATE_22_HANDOFF.md`
+- Gate 23: `handoff/GATE_23_HANDOFF.md`
+- Gate 24 (aktueller Stand): `handoff/GATE_24_HANDOFF.md`
+- Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
+
+| Layer            | Gates   | Status                              |
+|------------------|---------|-------------------------------------|
+| MVP Core         | 0–4     | PASS                                |
+| Execution Layer  | 5–7     | PASS                                |
+| Safety Layer     | 8       | PASS                                |
+| Integration      | 9–14    | PASS (current baseline)             |
 
 - **Gate 1 — file intake without GitHub: PASS.**
 - **Gate 2 — Large File Doctor (pure domain): PASS.**
 - **Gate 3 — GitHub auth + repository/branch listing: PASS** (boundaries; HTTP client deferred).
 - **Gate 4 — RepoTarget + presets: PASS** (CI-verified).
-- **Gate 5 — UploadPlan + preview UI: PARTIAL** (domain planning + preview screen landed; SAF wiring and editable commit message deferred).
-- **Gate 6 — single-file commit via Git Data API: PARTIAL** (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 3).
-- **Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`: PARTIAL** (orchestration + tests landed; HTTP client wiring deferred, same pattern as Gate 6).
-- **Gate 8 — robustness / error mapping: PARTIAL** (pure-domain error mapper landed; HTTP client not wired so runtime mapping is exercised by tests only).
-- **Gate 9 — internal test candidate finalization: PASS** (gates 0–8 reconciled, documented, and CI-green; 129 domain tests, 0 failures).
+- **Gate 5–14: PASS** (flow is wired through auth, planning, preview, and commit orchestration).
 
 ### Gate 1 completed
 
@@ -228,20 +256,9 @@ Then:
 
 ## Known limitations
 
-- SAF implementation behind `SafSourceIntake` is not wired yet (interface only).
-- GitHub auth + repository/branch listing domain/data wiring exists, but UI and real HTTP client wiring are still pending.
-- Single-file (Gate 6) and multi-file / folder / ZIP / `.gitkeep` (Gate 7)
-  commit orchestration exists, but no real HTTP client implementation of
-  `GithubGitDataApi` is wired yet, so no actual upload reaches GitHub.
-- ZIP archive byte extraction itself happens at the SAF/`:app` boundary;
-  the Gate 7 orchestrator validates and commits already-decoded entries
-  (ZIP-Slip prevention is enforced regardless of the source).
-- `PainkillerErrorMapper` maps failures to `HumanReadableError` in the domain
-  layer, but the HTTP client (which would produce runtime errors) is not wired
-  yet; error mapping is exercised by unit tests only until the HTTP layer lands.
-- No preview screen (Gate 5 has the preview Compose screen; navigation wiring is pending).
-- Preset selection UI is not wired yet (storage/model support exists).
-- The primary action button in the app shell is intentionally disabled.
+- OAuth authorization-code sign-in flow remains deferred; PAT flow is active.
+- ZIP parsing currently follows root-path heuristics and deterministic ordering, but does not provide advanced archive conflict UI yet.
+- Some UX polish (progress feedback, richer source summaries) is still pending.
 
 ## What this candidate is and is not
 

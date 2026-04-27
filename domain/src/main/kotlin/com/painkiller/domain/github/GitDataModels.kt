@@ -121,3 +121,85 @@ data class GithubBranchSummary(
     @SerialName("commit") val commit: GitTreeRef,
     @SerialName("protected") val protected: Boolean = false,
 )
+
+@Serializable
+data class GithubPullRequestSummary(
+    @SerialName("id") val id: Long,
+    @SerialName("number") val number: Long,
+    @SerialName("title") val title: String,
+    @SerialName("state") val state: String,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("html_url") val htmlUrl: String? = null,
+    @SerialName("head") val head: GithubPullRequestHead,
+)
+
+@Serializable
+data class GithubPullRequestHead(
+    @SerialName("ref") val ref: String,
+    @SerialName("sha") val sha: String,
+    @SerialName("label") val label: String? = null,
+)
+
+@Serializable
+data class GithubPullRequestDetail(
+    @SerialName("id") val id: Long,
+    @SerialName("number") val number: Long,
+    @SerialName("title") val title: String,
+    @SerialName("state") val state: String,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("mergeable") val mergeable: Boolean? = null,
+    @SerialName("mergeable_state") val mergeableState: String? = null,
+    @SerialName("html_url") val htmlUrl: String? = null,
+    @SerialName("head") val head: GithubPullRequestHead,
+)
+
+@Serializable
+data class MergePullRequestRequest(
+    @SerialName("commit_title") val commitTitle: String? = null,
+    @SerialName("merge_method") val mergeMethod: String = "merge",
+    @SerialName("sha") val sha: String? = null,
+)
+
+@Serializable
+data class MergePullRequestResponse(
+    @SerialName("sha") val sha: String? = null,
+    @SerialName("merged") val merged: Boolean,
+    @SerialName("message") val message: String,
+)
+
+@Serializable
+data class GithubReleaseSummary(
+    @SerialName("id") val id: Long,
+    @SerialName("tag_name") val tagName: String,
+    @SerialName("name") val name: String? = null,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("prerelease") val prerelease: Boolean = false,
+    @SerialName("upload_url") val uploadUrl: String? = null,
+    @SerialName("html_url") val htmlUrl: String? = null,
+)
+
+@Serializable
+data class CreateReleaseRequest(
+    @SerialName("tag_name") val tagName: String,
+    @SerialName("name") val name: String? = null,
+    @SerialName("body") val body: String? = null,
+    @SerialName("target_commitish") val targetCommitish: String? = null,
+    @SerialName("draft") val draft: Boolean = false,
+    @SerialName("prerelease") val prerelease: Boolean = false,
+)
+
+@Serializable
+data class UploadReleaseAssetRequest(
+    val name: String,
+    val contentType: String,
+    val data: ByteArray,
+)
+
+@Serializable
+data class GithubReleaseAssetSummary(
+    @SerialName("id") val id: Long,
+    @SerialName("name") val name: String,
+    @SerialName("size") val size: Long,
+    @SerialName("browser_download_url") val browserDownloadUrl: String? = null,
+    @SerialName("state") val state: String? = null,
+)
