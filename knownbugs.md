@@ -270,3 +270,20 @@ Evidence:
 Action:
 - Fixed by adding backward-compatible aliases in `PainkillerColors` mapped to the new palette tokens.
 - Follow-up: key call sites in warning/error/severity components were migrated to new token names in Gate 15 polish; aliases remain for compatibility until full cleanup.
+
+---
+
+## BUG-20260427-012
+
+Status: ACCEPTED
+Gate: 16
+Severity: LOW
+Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+
+Evidence:
+- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
+- Colliding entries are dropped deterministically to prevent silent map overwrite.
+
+Action:
+- Accepted short-term for intake hardening.
+- Follow-up in later UX gate: surface a collision warning in the source summary.

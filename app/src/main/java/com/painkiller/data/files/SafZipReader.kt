@@ -73,6 +73,7 @@ class SafZipReader(appContext: Context) {
             }
         }
         val normalizedEntries = normalizeRootForZip(rawEntries)
+            .distinctBy { it.normalizedPath }
         val items = normalizedEntries.map { entry ->
             SelectedSourceItem(
                 sourceId = entry.normalizedPath,

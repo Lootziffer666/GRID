@@ -65,12 +65,12 @@ If GitHub Actions fails, the failing workflow output becomes the source of truth
 
 ## Current Gate State
 
-Gate 0–14 are verified as `PASS` (latest handoff: `handoff/GATE_14_HANDOFF.md`).
+Gate 0–14 are verified as `PASS` (latest completed handoff baseline: `handoff/GATE_14_HANDOFF.md`).
 
 The next implementation gate is:
 
 ```text
-Gate 15 — UX polish and end-to-end flow hardening
+Gate 16 — Intake hardening + UX clarity
 ```
 
 Follow the latest handoff + repository state as the source of truth.
@@ -246,11 +246,11 @@ Action:
 
 ---
 
-# Gate 15 Guidance
+# Gate 16 Guidance
 
 ## Mission
 
-Implement Gate 15 only (unless the user explicitly overrides).
+Implement Gate 16 only (unless the user explicitly overrides).
 
 ## Scope focus
 
