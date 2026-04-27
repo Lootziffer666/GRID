@@ -32,9 +32,9 @@ class RetrofitGithubAppAuthApi(
     }
 
     companion object {
-        const val DEFAULT_BASE_URL = "http://10.0.2.2:3000/"
+        const val DEV_EMULATOR_BASE_URL = "http://10.0.2.2:3000/"
 
-        fun create(baseUrl: String = DEFAULT_BASE_URL): RetrofitGithubAppAuthApi {
+        fun create(baseUrl: String): RetrofitGithubAppAuthApi {
             val retrofit = Retrofit.Builder()
                 .baseUrl(baseUrl)
                 .addConverterFactory(GsonConverterFactory.create())

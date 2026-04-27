@@ -389,3 +389,24 @@ Evidence:
 Action:
 - Keep Gate 24 behavior for functional release-asset upload correctness.
 - Follow-up gate should switch to streaming upload body to reduce peak memory pressure.
+
+---
+
+## BUG-20260427-019
+
+Status: OPEN
+Gate: 24+
+Severity: MEDIUM
+Summary: Final auth architecture decision is pending between OAuth Device Flow/OAuth App vs GitHub App external broker; local Node helper is dev-only and must not be required for normal users.
+
+Evidence:
+- `PainkillerContainer` enables GitHub App broker auth only when `BuildConfig.GITHUB_APP_BROKER_BASE_URL` is non-blank; default remains disabled.
+- `tools/github-app-exchange-server/README.md` explicitly marks the Node server as temporary development/testing bridge.
+- User requirement explicitly disallows requiring npm/Termux/.pem management in normal UX.
+
+Action:
+- Keep default builds independent of local helper server.
+- Finalize architecture decision:
+  - Option A: OAuth Device Flow/OAuth App mobile-first path, or
+  - Option B: GitHub App with hosted external token broker.
+- Keep Option C (local private-key import) as advanced/dev-only mode, never default.

@@ -17,6 +17,7 @@ android {
         versionName = "0.0.1-gate0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+        buildConfigField("String", "GITHUB_APP_BROKER_BASE_URL", "\"\"")
     }
 
     buildTypes {
@@ -27,6 +28,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {

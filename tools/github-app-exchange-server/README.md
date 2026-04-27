@@ -2,6 +2,10 @@
 
 Minimal backend for Painkiller's GitHub App sign-in flow.
 
+> This server is a **temporary development/testing bridge**.
+> Final production UX must use a hosted token broker and must not require
+> end users to run Node/Termux/npm or manage `.pem` files locally.
+
 ## Endpoint
 
 - `POST /github-app/exchange`

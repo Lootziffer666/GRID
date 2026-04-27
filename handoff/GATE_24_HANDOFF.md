@@ -34,7 +34,9 @@ PASS
   - calls GitHub `POST /app/installations/{installation_id}/access_tokens`
   - returns `{ token, expires_at }`.
 - Added Android Retrofit implementation for `GithubAppAuthApi` with `ExchangeRequest`/`ExchangeResponse`.
-- Updated `PainkillerContainer` to wire `appAuthApi` to `RetrofitGithubAppAuthApi.create()` (`http://10.0.2.2:3000/` default for emulator).
+- Updated `PainkillerContainer` to wire `appAuthApi` **only when**
+  `BuildConfig.GITHUB_APP_BROKER_BASE_URL` is configured; default build keeps
+  `appAuthApi = null` so normal users are never forced to run a local helper server.
 - Added `MockWebServer` test for Retrofit exchange API request/response behavior.
 
 ## Files Changed
@@ -55,6 +57,7 @@ PASS
 - `tools/github-app-exchange-server/start-local.sh`
 - `tools/github-app-exchange-server/README.md`
 - `.gitignore`
+- `app/build.gradle.kts`
 
 ## Checks Run
 
@@ -79,6 +82,7 @@ PASS
 
 - Release asset upload currently targets the selected single-file source only; multi-file/folder/ZIP release-asset batch upload is not yet wired.
 - Upload uses in-memory decoded bytes from base64; very large artifacts may increase app memory pressure and should be optimized in a later gate.
+- Local Node exchange server is dev/test bridge only; production path requires external broker URL configuration.
 
 ## Explicitly Not Done
 

@@ -1,6 +1,7 @@
 package com.painkiller.di
 
 import android.content.Context
+import com.painkiller.BuildConfig
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
@@ -61,6 +62,8 @@ class PainkillerContainer(appContext: Context) {
     val safFileReader: SafFileReader by lazy { SafFileReader(app) }
     val safFolderReader: SafFolderReader by lazy { SafFolderReader(app) }
     val safZipReader: SafZipReader by lazy { SafZipReader(app) }
+    private val githubAppBrokerBaseUrl: String =
+        BuildConfig.GITHUB_APP_BROKER_BASE_URL.trim()
 
     private val tokenProvider: suspend () -> String? = { secureTokenStore.readGithubToken() }
 
@@ -87,7 +90,11 @@ class PainkillerContainer(appContext: Context) {
     val authRepository: GithubAuthRepository by lazy {
         GithubAuthRepository(
             oauthApi = null, // OAuth web flow not available without server-side client_secret.
-            appAuthApi = RetrofitGithubAppAuthApi.create(), // Emulator backend: http://10.0.2.2:3000/
+            appAuthApi = if (githubAppBrokerBaseUrl.isNotBlank()) {
+                RetrofitGithubAppAuthApi.create(githubAppBrokerBaseUrl)
+            } else {
+                null
+            },
             tokenProbeApi = tokenProbeApi,
             secureTokenStore = secureTokenStore,
         )
