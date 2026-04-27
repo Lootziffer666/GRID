@@ -129,6 +129,23 @@ class UploadFlowViewModel(
                 }
                 return@launch
             }
+            val duplicateDisplayNames = loaded
+                .groupBy { it.displayName.lowercase() }
+                .filterValues { entries -> entries.size > 1 }
+                .values
+                .map { entries -> entries.first().displayName }
+                .sorted()
+            if (duplicateDisplayNames.isNotEmpty()) {
+                val preview = duplicateDisplayNames.take(3).joinToString(", ")
+                val suffix = if (duplicateDisplayNames.size > 3) " and more" else ""
+                _state.update {
+                    it.copy(
+                        errorMessage = "Duplicate file names selected: $preview$suffix. " +
+                            "Rename files or choose a folder/ZIP source.",
+                    )
+                }
+                return@launch
+            }
             val items = loaded.map { file ->
                 file.sourceItem.copy(relativePath = file.displayName)
             }.sortedBy { it.displayName.lowercase() }

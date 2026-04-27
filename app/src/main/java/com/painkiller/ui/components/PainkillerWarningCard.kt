@@ -22,10 +22,10 @@ fun PainkillerWarningCard(
     modifier: Modifier = Modifier,
 ) {
     val container = when (severity) {
-        DiagnosticSeverity.WARNING -> PainkillerColors.AccentAmber.copy(alpha = 0.18f)
-        DiagnosticSeverity.BLOCKED -> PainkillerColors.RauschRed.copy(alpha = 0.18f)
+        DiagnosticSeverity.WARNING -> PainkillerColors.EdgeSoft.copy(alpha = 0.36f)
+        DiagnosticSeverity.BLOCKED -> PainkillerColors.Navy.copy(alpha = 0.24f)
         DiagnosticSeverity.DEFERRED -> PainkillerColors.DarkSurfaceVariant.copy(alpha = 0.40f)
-        DiagnosticSeverity.SAFE -> PainkillerColors.BabuTeal.copy(alpha = 0.18f)
+        DiagnosticSeverity.SAFE -> PainkillerColors.PrimaryTeal.copy(alpha = 0.24f)
     }
     Card(
         modifier = modifier.fillMaxWidth(),

@@ -253,3 +253,37 @@ Evidence:
 Action:
 - Keep editable vector/logo source in drawable XML.
 - If raster exports are needed for store publication, generate them in release pipelines or locally without committing binaries.
+
+---
+
+## BUG-20260427-011
+
+Status: FIXED
+Gate: 15
+Severity: MEDIUM
+Summary: Kotlin app compile failed after branding-token rename because multiple UI components still referenced legacy color names.
+
+Evidence:
+- CI/Gradle output reported unresolved references in app UI files: `RauschRed`, `BabuTeal`, `AccentAmber`.
+- `:app:compileDebugKotlin` failed before packaging.
+
+Action:
+- Fixed by adding backward-compatible aliases in `PainkillerColors` mapped to the new palette tokens.
+- Follow-up: key call sites in warning/error/severity components were migrated to new token names in Gate 15 polish; aliases remain for compatibility until full cleanup.
+
+---
+
+## BUG-20260427-012
+
+Status: ACCEPTED
+Gate: 16
+Severity: LOW
+Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+
+Evidence:
+- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
+- Colliding entries are dropped deterministically to prevent silent map overwrite.
+
+Action:
+- Accepted short-term for intake hardening.
+- Follow-up in later UX gate: surface a collision warning in the source summary.
