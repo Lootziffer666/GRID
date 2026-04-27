@@ -111,7 +111,7 @@ but domain code must never depend on Android.
 
 - Latest completed handoff: `handoff/GATE_14_HANDOFF.md` (`PASS`)
 - Gate 14 delivered ZIP intake + multi-file commit path wiring in the app flow.
-- Next work should start from Gate 15 unless the user explicitly asks otherwise.
+- Next work should start from Gate 19 source-summary UX unless the user explicitly asks otherwise.
 
 ## Build and check expectations
 

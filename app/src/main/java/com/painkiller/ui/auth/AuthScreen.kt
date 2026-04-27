@@ -84,14 +84,18 @@ fun AuthScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
-                supportingText = when {
-                    state.tokenInput.isBlank() -> null
-                    state.formatLooksValid -> {
-                        { Text("Format looks valid", color = MaterialTheme.colorScheme.primary) }
-                    }
-                    else -> {
-                        { Text("Prefix not recognised — double-check the token") }
-                    }
+                supportingText = {
+                    Text(
+                        text = buildString {
+                            append(state.statusHint)
+                            state.tokenKindLabel?.let { append("  •  $it") }
+                        },
+                        color = if (state.formatLooksValid) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
                 },
                 isError = state.tokenInput.isNotBlank() && !state.formatLooksValid,
             )

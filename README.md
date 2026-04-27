@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 14 PASS (latest completed gate).**
+**Gate 14 PASS; Gates 16–18 hardening/polish has started (intake + preview + auth UX).**
 
 Painkiller now includes:
 
@@ -35,6 +35,7 @@ Painkiller now includes:
 - ZIP intake safety checks (ZIP-Slip defense in depth)
 - dark mode toggle (default is light mode)
 - splash screen + vector app icon branding
+- intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
 
 This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
