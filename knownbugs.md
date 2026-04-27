@@ -204,28 +204,34 @@ Action:
 
 ## BUG-20260426-009
 
-Status: ACCEPTED
-Gate: 6
+Status: PARTIAL
+Gate: 6 / 10
 Severity: LOW
-Summary: Concrete HTTP client implementation of `GithubGitDataApi` is
-deferred to a later networking hardening step. Same pattern as Gate 3
-(`GithubOAuthApi` and `GithubRepositoryApi` are still contracts).
+Summary: Concrete HTTP client implementations now exist for all three
+deferred APIs. UI wiring and end-to-end reachability remain outstanding.
 
-Evidence:
+Evidence (Gate 6 deferral):
 - `GithubGitDataApi` is an interface in `:domain` only.
 - `SingleFileCommitOrchestrator` consumes the interface and is fully
   unit-tested with a recording fake.
 - `SingleFileCommitRepository` consumes the same interface from `:app`,
   ready for an HTTP-backed implementation to be injected.
 
+Evidence (Gate 10 partial resolution):
+- `KtorGithubGitDataApi` implements `GithubGitDataApi` with status-code
+  mapping, `force=true` assertion guard, and defence-in-depth exception
+  wrapping. Unit-tested via MockEngine.
+- `KtorGithubRepositoryApi` implements `GithubRepositoryApi` (repo/branch
+  listing, paginated). Unit-tested via MockEngine.
+- `KtorGithubTokenProbeApi` implements `GithubTokenProbeApi` (PAT
+  validation via `GET /user`). Unit-tested via MockEngine.
+- `EncryptedSecureTokenStore` provides real AndroidX Keystore-backed
+  token storage replacing the `InMemorySecureTokenStore` placeholder.
+- `PainkillerContainer` wires all of the above as lazy singletons.
+- `AuthViewModel` and `UploadFlowViewModel` exist but have no Compose
+  consumers yet; `MainActivity` still shows the Gate 0 placeholder.
+
 Action:
-- Accepted for Gate 6. The networking hardening step that follows must:
-  - implement `GithubGitDataApi` over an HTTP client (Retrofit/OkHttp or
-    Ktor)
-  - throw the appropriate `GithubGitDataException` subtype based on
-    HTTP status / transport failure (401 → `AuthRequired`, 403 with
-    "protected branch" hint → `ProtectedBranch`, other 403 →
-    `PermissionDenied`, 404 → `RefNotFound`, 422 SHA-mismatch →
-    `ShaMismatch`, IO/timeout → `NetworkUnavailable`)
-  - never log raw token, response body, or stack trace
-  - never set `force = true` on `updateRef`
+- Remaining: implement `AuthScreen`, `NavHost`, and Upload flow screens
+  (Gate 11+). `GithubOAuthApi` HTTP implementation remains deferred
+  (OAuth requires server-side `client_secret`).

@@ -1,10 +1,32 @@
 package com.painkiller.data.github
 
 import com.painkiller.data.security.SecureTokenStore
+import com.painkiller.domain.github.GithubGitDataException
 
+/**
+ * GitHub auth boundary used by the auth screen and the upload flow.
+ *
+ * Painkiller v0 supports two sign-in paths:
+ *
+ * 1. **Personal Access Token** ([signInWithPersonalAccessToken]) — the user
+ *    pastes a classic `ghp_…` or fine-grained `github_pat_…` token into the
+ *    auth screen. The token is validated against `GET /user` via the
+ *    [GithubTokenProbeApi] before being persisted in [SecureTokenStore]
+ *    (encrypted via AndroidX Security in production builds).
+ *
+ * 2. **OAuth authorization code** ([authenticateWithAuthorizationCode]) —
+ *    contract preserved from Gate 3, but no public-app implementation
+ *    exists in v0 because the OAuth code-for-token exchange requires a
+ *    `client_secret` that cannot ship in a public Android app. Kept here
+ *    so a future server-mediated flow can drop in without an API change.
+ *
+ * No raw token is ever logged, returned in [authState], or surfaced in
+ * exception messages.
+ */
 class GithubAuthRepository(
-    private val oauthApi: GithubOAuthApi,
-    private val secureTokenStore: SecureTokenStore
+    private val oauthApi: GithubOAuthApi?,
+    private val tokenProbeApi: GithubTokenProbeApi?,
+    private val secureTokenStore: SecureTokenStore,
 ) {
 
     suspend fun authState(): GithubAuthState {
@@ -13,27 +35,64 @@ class GithubAuthRepository(
     }
 
     suspend fun authenticateWithAuthorizationCode(code: String): GithubAuthResult {
+        val api = oauthApi
+            ?: return GithubAuthResult.Failure("OAuth web flow is not available in this build.")
         if (code.isBlank()) {
             return GithubAuthResult.Failure("Authorization code is required.")
         }
 
-        return runCatching {
-            oauthApi.exchangeAuthorizationCode(code)
-        }.fold(
+        return runCatching { api.exchangeAuthorizationCode(code) }.fold(
             onSuccess = { token ->
                 if (token.isBlank()) {
                     GithubAuthResult.Failure("Received empty token from GitHub OAuth.")
                 } else {
                     secureTokenStore.writeGithubToken(token)
                     GithubAuthResult.Success(
-                        state = GithubAuthState.Authenticated(tokenPreview = token.preview())
+                        state = GithubAuthState.Authenticated(tokenPreview = token.preview()),
                     )
                 }
             },
             onFailure = {
                 GithubAuthResult.Failure("GitHub authentication failed.")
-            }
+            },
         )
+    }
+
+    /**
+     * Validates a Personal Access Token by calling `GET /user`, then persists
+     * it via [SecureTokenStore] on success.
+     *
+     * Returns [GithubAuthResult.Failure] without persisting anything if the
+     * token is blank, malformed, rejected by GitHub, or unreachable. The
+     * raw [token] is never echoed in the failure reason.
+     */
+    suspend fun signInWithPersonalAccessToken(token: String): GithubAuthResult {
+        val probe = tokenProbeApi
+            ?: return GithubAuthResult.Failure("Token validation is not configured.")
+        val trimmed = token.trim()
+        if (trimmed.isEmpty()) {
+            return GithubAuthResult.Failure("Token is required.")
+        }
+
+        return try {
+            probe.probe(trimmed)
+            secureTokenStore.writeGithubToken(trimmed)
+            GithubAuthResult.Success(
+                state = GithubAuthState.Authenticated(tokenPreview = trimmed.preview()),
+            )
+        } catch (e: GithubGitDataException.AuthRequired) {
+            GithubAuthResult.Failure("GitHub rejected this token.")
+        } catch (e: GithubGitDataException.PermissionDenied) {
+            GithubAuthResult.Failure(
+                "Token is missing required scopes. Painkiller needs at least repo write access."
+            )
+        } catch (e: GithubGitDataException.NetworkUnavailable) {
+            GithubAuthResult.Failure(
+                "Could not reach GitHub. Check your connection and try again."
+            )
+        } catch (e: Throwable) {
+            GithubAuthResult.Failure("GitHub returned an unexpected error.")
+        }
     }
 
     suspend fun logout() {
