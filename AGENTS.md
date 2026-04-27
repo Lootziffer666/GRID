@@ -65,12 +65,12 @@ If GitHub Actions fails, the failing workflow output becomes the source of truth
 
 ## Current Gate State
 
-Gate 0–23 are verified as implemented in sequence (see `handoff/GATE_23_HANDOFF.md` for latest GitHub App auth groundwork).
+Gate 0–22 are verified as implemented in sequence (see `handoff/GATE_22_HANDOFF.md` for latest PR merge-assist progress).
 
 The next implementation gate is:
 
 ```text
-Gate 24 — GitHub Release Assets
+Gate 23 — Git LFS Expansion
 ```
 
 Follow the latest handoff + repository state as the source of truth.
@@ -246,11 +246,11 @@ Action:
 
 ---
 
-# Gate 24 Guidance
+# Gate 23 Guidance
 
 ## Mission
 
-Implement Gate 24 only (unless the user explicitly overrides).
+Implement Gate 23 only (unless the user explicitly overrides).
 
 User override currently active: scope expansion to include PR merge assist, OAuth as an additional login path, and phased LFS/Release/PR-management work is approved. Optional ONNX-based local merge-risk scoring is also allowed under this override. Execute this only through explicit per-gate steps in `handoff/NEXT_GATES_PLAN.md`.
 

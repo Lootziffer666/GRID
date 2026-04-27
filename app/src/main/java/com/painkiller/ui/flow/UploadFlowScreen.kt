@@ -101,7 +101,6 @@ fun UploadFlowScreen(
     var showRepoDialog by remember { mutableStateOf(false) }
     var showBranchDialog by remember { mutableStateOf(false) }
     var showPullRequestDialog by remember { mutableStateOf(false) }
-    var showReleaseDialog by remember { mutableStateOf(false) }
     var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
 
     if (state.hasSucceeded) {
@@ -322,13 +321,6 @@ fun UploadFlowScreen(
                 )
                 TextButton(onClick = viewModel::dismissPullRequestMessage) { Text("Dismiss PR message") }
             }
-            state.releaseAssetUploadMessage?.let { message ->
-                PainkillerInfoCard(
-                    title = "Release asset",
-                    body = message,
-                )
-                TextButton(onClick = viewModel::dismissReleaseAssetMessage) { Text("Dismiss release message") }
-            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -372,51 +364,6 @@ fun UploadFlowScreen(
                             }
                         }
                     }
-                }
-            }
-            state.selectedRelease?.let { release ->
-                SectionCard(title = "Selected release") {
-                    Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
-                        Text(
-                            text = "${release.tagName} ${release.name?.let { "· $it" } ?: ""}",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        TextButton(onClick = viewModel::clearSelectedRelease) {
-                            Text("Clear selected release")
-                        }
-                        val canUploadSelectedFile = state.loadedFile != null && !state.isUploadingReleaseAsset
-                        PainkillerPrimaryActionButton(
-                            text = if (state.isUploadingReleaseAsset) "Uploading asset…" else "Upload selected file as asset",
-                            onClick = viewModel::uploadSelectedFileAsReleaseAsset,
-                            enabled = canUploadSelectedFile,
-                        )
-                    }
-                }
-            }
-            SectionCard(title = "Create release (optional)") {
-                Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
-                    OutlinedTextField(
-                        value = state.newReleaseTagInput,
-                        onValueChange = viewModel::onNewReleaseTagChanged,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Tag (e.g. v1.0.0)") },
-                        singleLine = true,
-                    )
-                    OutlinedTextField(
-                        value = state.newReleaseNameInput,
-                        onValueChange = viewModel::onNewReleaseNameChanged,
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Release name (optional)") },
-                        singleLine = true,
-                    )
-                    PainkillerPrimaryActionButton(
-                        text = if (state.isCreatingRelease) "Creating release…" else "Create release",
-                        onClick = viewModel::createReleaseFromInputs,
-                        enabled = !state.isCreatingRelease &&
-                            state.ownerInput.isNotBlank() &&
-                            state.repoInput.isNotBlank() &&
-                            state.newReleaseTagInput.isNotBlank(),
-                    )
                 }
             }
 
@@ -547,20 +494,6 @@ fun UploadFlowScreen(
                 showPullRequestDialog = false
             },
             onDismiss = { showPullRequestDialog = false },
-        )
-    }
-
-    if (showReleaseDialog) {
-        PickerDialog(
-            title = "Pick release",
-            isLoading = state.isLoadingReleases,
-            items = state.releases,
-            label = { formatReleaseLabel(it) },
-            onSelect = { release ->
-                viewModel.selectRelease(release)
-                showReleaseDialog = false
-            },
-            onDismiss = { showReleaseDialog = false },
         )
     }
 

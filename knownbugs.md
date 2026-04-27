@@ -270,3 +270,88 @@ Evidence:
 Action:
 - Fixed by adding backward-compatible aliases in `PainkillerColors` mapped to the new palette tokens.
 - Follow-up: key call sites in warning/error/severity components were migrated to new token names in Gate 15 polish; aliases remain for compatibility until full cleanup.
+
+---
+
+## BUG-20260427-012
+
+Status: ACCEPTED
+Gate: 16
+Severity: LOW
+Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+
+Evidence:
+- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
+- Colliding entries are dropped deterministically to prevent silent map overwrite.
+
+Action:
+- Accepted short-term for intake hardening.
+- Follow-up in later UX gate: surface a collision warning in the source summary.
+
+---
+
+## BUG-20260427-013
+
+Status: ACCEPTED
+Gate: 22 planning
+Severity: LOW
+Summary: Planned ONNX model for merge-assist (~23 MB) can be committed directly without LFS under current size rules.
+
+Evidence:
+- Current Large File Doctor warning threshold starts above 25 MB.
+- User-provided expected model size is approximately 23 MB.
+
+Action:
+- Accept direct commit for initial model artifact.
+- Reevaluate LFS routing if model size grows beyond warning thresholds.
+
+---
+
+## BUG-20260427-014
+
+Status: ACCEPTED
+Gate: 20
+Severity: LOW
+Summary: OAuth additional-login UI is wired, but token exchange remains build-dependent until a configured `GithubOAuthApi` backend path exists.
+
+Evidence:
+- `GithubAuthRepository.authenticateWithAuthorizationCode()` returns "OAuth web flow is not available in this build." when `oauthApi` is `null`.
+- `PainkillerContainer` currently wires `oauthApi = null` by default.
+
+Action:
+- Keep OAuth code UI visible as optional path.
+- Integrate backend-assisted exchange in a dedicated follow-up gate when credentials flow is available.
+
+---
+
+## BUG-20260427-015
+
+Status: ACCEPTED
+Gate: 21
+Severity: LOW
+Summary: PR foundation currently lists open pull requests only; merge execution and PR write flows are deferred to later gates.
+
+Evidence:
+- `KtorGithubPullRequestApi` requests `/pulls?state=open`.
+- Upload flow integration only sets branch input from selected PR head ref.
+
+Action:
+- Keep as intentional scope boundary for Gate 21.
+- Expand in Gate 22+ with merge assist and PR write workflows.
+
+---
+
+## BUG-20260427-016
+
+Status: ACCEPTED
+Gate: 22
+Severity: LOW
+Summary: PR mergeability diagnostics can return `unknown`/`null` transiently, so merge-assist UI may require manual refresh/retry.
+
+Evidence:
+- GitHub PR detail endpoint can return undecided mergeability while background checks are still computing.
+- Gate 22 UI surfaces this state explicitly rather than guessing.
+
+Action:
+- Keep explicit user confirmation flow for merge actions.
+- Follow up in later gate with periodic refresh/backoff for mergeability status if needed.
