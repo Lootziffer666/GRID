@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ import com.painkiller.ui.theme.PainkillerSpacing
 @Composable
 fun AuthScreen(
     viewModel: AuthViewModel,
+    darkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit,
     onAuthenticated: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -49,6 +52,11 @@ fun AuthScreen(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
+                actions = {
+                    TextButton(onClick = onToggleDarkMode) {
+                        Text(if (darkModeEnabled) "Light mode" else "Dark mode")
+                    }
+                },
             )
         },
         containerColor = MaterialTheme.colorScheme.background,
