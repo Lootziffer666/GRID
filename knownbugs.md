@@ -205,10 +205,10 @@ Action:
 ## BUG-20260426-009
 
 Status: PARTIAL
-Gate: 6 / 10
+Gate: 6 / 10–14
 Severity: LOW
 Summary: Concrete HTTP client implementations now exist for all three
-deferred APIs. UI wiring and end-to-end reachability remain outstanding.
+deferred APIs. PAT-based flow is wired; OAuth web flow remains deferred.
 
 Evidence (Gate 6 deferral):
 - `GithubGitDataApi` is an interface in `:domain` only.
@@ -217,7 +217,7 @@ Evidence (Gate 6 deferral):
 - `SingleFileCommitRepository` consumes the same interface from `:app`,
   ready for an HTTP-backed implementation to be injected.
 
-Evidence (Gate 10 partial resolution):
+Evidence (Gate 10–14 partial resolution):
 - `KtorGithubGitDataApi` implements `GithubGitDataApi` with status-code
   mapping, `force=true` assertion guard, and defence-in-depth exception
   wrapping. Unit-tested via MockEngine.
@@ -228,10 +228,62 @@ Evidence (Gate 10 partial resolution):
 - `EncryptedSecureTokenStore` provides real AndroidX Keystore-backed
   token storage replacing the `InMemorySecureTokenStore` placeholder.
 - `PainkillerContainer` wires all of the above as lazy singletons.
-- `AuthViewModel` and `UploadFlowViewModel` exist but have no Compose
-  consumers yet; `MainActivity` still shows the Gate 0 placeholder.
+- `AuthScreen`, `PainkillerNavGraph`, and `UploadFlowScreen` are now
+  wired and exercise PAT sign-in + upload planning/commit flows.
+- `MainActivity` now launches the navigation graph and splashscreen.
 
 Action:
-- Remaining: implement `AuthScreen`, `NavHost`, and Upload flow screens
-  (Gate 11+). `GithubOAuthApi` HTTP implementation remains deferred
-  (OAuth requires server-side `client_secret`).
+- Remaining: optional OAuth auth-code UX + backend-assisted token exchange.
+- Keep PAT flow as primary path until OAuth server component exists.
+
+---
+
+## BUG-20260427-010
+
+Status: ACCEPTED
+Gate: 14
+Severity: LOW
+Summary: Binary logo source assets are intentionally ignored in git; vector drawables are the canonical in-repo branding assets.
+
+Evidence:
+- `.gitignore` now ignores common binary assets (`*.png`, `*.jpg`, `*.zip`, etc.) and `icons/`.
+- `icons/painkiller_round_icon_1024.png` was removed from git tracking.
+- App branding now uses `app/src/main/res/drawable/painkiller_logo.xml` (+ night variant).
+
+Action:
+- Keep editable vector/logo source in drawable XML.
+- If raster exports are needed for store publication, generate them in release pipelines or locally without committing binaries.
+
+---
+
+## BUG-20260427-011
+
+Status: FIXED
+Gate: 15
+Severity: MEDIUM
+Summary: Kotlin app compile failed after branding-token rename because multiple UI components still referenced legacy color names.
+
+Evidence:
+- CI/Gradle output reported unresolved references in app UI files: `RauschRed`, `BabuTeal`, `AccentAmber`.
+- `:app:compileDebugKotlin` failed before packaging.
+
+Action:
+- Fixed by adding backward-compatible aliases in `PainkillerColors` mapped to the new palette tokens.
+- Follow-up: key call sites in warning/error/severity components were migrated to new token names in Gate 15 polish; aliases remain for compatibility until full cleanup.
+
+---
+
+## BUG-20260427-012
+
+Status: ACCEPTED
+Gate: 16
+Severity: LOW
+Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+
+Evidence:
+- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
+- Colliding entries are dropped deterministically to prevent silent map overwrite.
+
+Action:
+- Accepted short-term for intake hardening.
+- Follow-up in later UX gate: surface a collision warning in the source summary.

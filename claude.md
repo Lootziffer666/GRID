@@ -46,6 +46,7 @@ Painkiller is built one gate at a time. The gates are defined in
 - Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`
 - Gate 8 — robustness / error mapping
 - Gate 9 — v0 release candidate
+- Gate 10–14 — integration wiring, Android adapters, and end-to-end intake/commit path hardening
 
 Rules every contributor (and Claude Code) must follow:
 
@@ -105,6 +106,12 @@ available and expected to run it.
 
 The boundary is intentional: Android-coupled code may depend on domain code,
 but domain code must never depend on Android.
+
+## Current baseline
+
+- Latest completed handoff: `handoff/GATE_14_HANDOFF.md` (`PASS`)
+- Gate 14 delivered ZIP intake + multi-file commit path wiring in the app flow.
+- Next work should start from Gate 19 source-summary UX unless the user explicitly asks otherwise.
 
 ## Build and check expectations
 

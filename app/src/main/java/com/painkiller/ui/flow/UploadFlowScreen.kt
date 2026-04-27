@@ -2,6 +2,7 @@ package com.painkiller.ui.flow
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
+import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -57,6 +58,8 @@ fun UploadFlowScreen(
     viewModel: UploadFlowViewModel,
     safFolderReader: SafFolderReader,
     safZipReader: SafZipReader,
+    darkModeEnabled: Boolean,
+    onToggleDarkMode: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -66,6 +69,11 @@ fun UploadFlowScreen(
     var isLoadingZip by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(OpenDocument()) { uri ->
         uri?.let { viewModel.onSourceUriPicked(it) }
+    }
+    val multipleLauncher = rememberLauncherForActivityResult(OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) {
+            viewModel.onMultiSourceUrisPicked(uris)
+        }
     }
     val folderLauncher = rememberLauncherForActivityResult(OpenDocumentTree()) { treeUri ->
         treeUri?.let { uri ->
@@ -111,6 +119,9 @@ fun UploadFlowScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 actions = {
+                    TextButton(onClick = onToggleDarkMode) {
+                        Text(if (darkModeEnabled) "Light mode" else "Dark mode")
+                    }
                     TextButton(onClick = onSignOut) { Text("Sign out") }
                 },
             )
@@ -158,10 +169,11 @@ fun UploadFlowScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = if (state.isZipSource)
-                                        "ZIP — ${state.loadedFolder!!.items.size} file(s)"
-                                    else
-                                        "Folder — ${state.loadedFolder!!.items.size} file(s)",
+                                    text = when {
+                                        state.isZipSource -> "ZIP — ${state.loadedFolder!!.items.size} file(s)"
+                                        state.isMultipleFileSource -> "Multiple files — ${state.loadedFolder!!.items.size} file(s)"
+                                        else -> "Folder — ${state.loadedFolder!!.items.size} file(s)"
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
@@ -184,9 +196,18 @@ fun UploadFlowScreen(
                                 modifier = Modifier.weight(1f),
                             ) { Text("Pick file") }
                             TextButton(
+                                onClick = { multipleLauncher.launch(arrayOf("*/*")) },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("Pick files") }
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                        ) {
+                            TextButton(
                                 onClick = { folderLauncher.launch(null) },
                                 modifier = Modifier.weight(1f),
-                            ) { Text("Pick folder") }
+                            ) { Text("Auswählen (Explorer)") }
                             TextButton(
                                 onClick = { zipLauncher.launch(arrayOf("application/zip")) },
                                 modifier = Modifier.weight(1f),
@@ -308,6 +329,26 @@ fun UploadFlowScreen(
                                 MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Text(
+                            "Safe ${plan.safeEntries.size}  ·  Warnings ${plan.warningEntries.size}  ·  " +
+                                "Blocked ${plan.blockedEntries.size}  ·  Ignored ${plan.ignoredEntries.size}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (plan.warningEntries.isNotEmpty()) {
+                            Text(
+                                "Warning entries can still be committed. Review size/path warnings before confirm.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
+                        if (plan.blockedEntries.isNotEmpty()) {
+                            Text(
+                                "Blocked entries must be removed or replaced before upload.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         TextButton(onClick = viewModel::startOver) { Text("Change file or target") }
                     }
                 }
