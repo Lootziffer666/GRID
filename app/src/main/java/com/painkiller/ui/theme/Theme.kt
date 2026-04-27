@@ -1,34 +1,33 @@
 package com.painkiller.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 private val PainkillerDarkColors = darkColorScheme(
-    primary = PainkillerColors.RauschRed,
+    primary = PainkillerColors.PrimaryTeal,
     onPrimary = PainkillerColors.OnDark,
-    secondary = PainkillerColors.BabuTeal,
+    secondary = PainkillerColors.InkBlue,
     onSecondary = PainkillerColors.OnDark,
-    tertiary = PainkillerColors.AccentAmber,
-    onTertiary = PainkillerColors.DarkBackground,
+    tertiary = PainkillerColors.EdgeSoft,
+    onTertiary = PainkillerColors.Navy,
     background = PainkillerColors.DarkBackground,
     onBackground = PainkillerColors.OnDark,
     surface = PainkillerColors.DarkSurface,
     onSurface = PainkillerColors.OnDark,
     surfaceVariant = PainkillerColors.DarkSurfaceVariant,
     onSurfaceVariant = PainkillerColors.OnDarkMuted,
-    error = PainkillerColors.RauschRed,
+    error = PainkillerColors.PrimaryTeal,
     onError = PainkillerColors.OnDark,
 )
 
 private val PainkillerLightColors = lightColorScheme(
-    primary = PainkillerColors.RauschRed,
+    primary = PainkillerColors.PrimaryTeal,
     onPrimary = PainkillerColors.LightSurface,
-    secondary = PainkillerColors.BabuTeal,
+    secondary = PainkillerColors.InkBlue,
     onSecondary = PainkillerColors.LightSurface,
-    tertiary = PainkillerColors.AccentAmber,
+    tertiary = PainkillerColors.EdgeSoft,
     onTertiary = PainkillerColors.OnLight,
     background = PainkillerColors.LightBackground,
     onBackground = PainkillerColors.OnLight,
@@ -36,13 +35,13 @@ private val PainkillerLightColors = lightColorScheme(
     onSurface = PainkillerColors.OnLight,
     surfaceVariant = PainkillerColors.LightSurfaceVariant,
     onSurfaceVariant = PainkillerColors.OnLightMuted,
-    error = PainkillerColors.RauschRed,
+    error = PainkillerColors.InkBlue,
     onError = PainkillerColors.LightSurface,
 )
 
 @Composable
 fun PainkillerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colors = if (darkTheme) PainkillerDarkColors else PainkillerLightColors
