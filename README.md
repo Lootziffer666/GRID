@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 14 PASS; Gates 16–18 hardening/polish has started (intake + preview + auth UX).**
+**Gate 24 PASS (expanded plan): release selection/creation + release-asset upload path added for oversized/binary artifacts.**
 
 Painkiller now includes:
 
@@ -41,6 +41,7 @@ Painkiller now includes:
 - splash screen + vector app icon branding
 - intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
 - user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
+- release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 
 This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
