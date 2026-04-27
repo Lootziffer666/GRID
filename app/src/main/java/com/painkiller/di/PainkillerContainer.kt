@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.painkiller.data.files.SafFileReader
+import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.github.GithubAuthRepository
 import com.painkiller.data.github.GithubRepoBranchRepository
 import com.painkiller.data.github.GithubTokenProbeApi
@@ -50,6 +51,7 @@ class PainkillerContainer(appContext: Context) {
     }
 
     val safFileReader: SafFileReader by lazy { SafFileReader(app) }
+    val safFolderReader: SafFolderReader by lazy { SafFolderReader(app) }
 
     private val tokenProvider: suspend () -> String? = { secureTokenStore.readGithubToken() }
 

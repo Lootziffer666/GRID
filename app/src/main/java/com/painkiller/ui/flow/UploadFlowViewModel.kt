@@ -16,8 +16,12 @@ import com.painkiller.domain.error.HumanReadableError
 import com.painkiller.domain.error.PainkillerErrorMapper
 import com.painkiller.domain.error.RecoveryHint
 import com.painkiller.domain.error.RetrySafety
+import com.painkiller.domain.files.DefaultIgnoreRules
 import com.painkiller.domain.files.FilePlan
+import com.painkiller.domain.files.FilePlanBuildResult
+import com.painkiller.domain.files.FilePlanBuilder
 import com.painkiller.domain.files.PlannedFile
+import com.painkiller.domain.files.SelectedSource
 import com.painkiller.domain.files.SourceKind
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubRepositorySummary
@@ -77,8 +81,16 @@ class UploadFlowViewModel(
 
     // ─── source picking ──────────────────────────────────────────────────────
 
+    fun onFolderSourceLoaded(source: SelectedSource) {
+        _state.update { it.copy(loadedFolder = source, loadedFile = null, plan = null, errorMessage = null) }
+    }
+
+    fun clearLoadedFolder() {
+        _state.update { it.copy(loadedFolder = null, plan = null) }
+    }
+
     fun onSourceUriPicked(uri: Uri) {
-        _state.update { it.copy(loadedFile = null, errorMessage = null, plan = null) }
+        _state.update { it.copy(loadedFile = null, loadedFolder = null, errorMessage = null, plan = null) }
         viewModelScope.launch {
             val loaded = safFileReader.read(uri)
             if (loaded == null) {
@@ -102,7 +114,7 @@ class UploadFlowViewModel(
     }
 
     fun clearLoadedFile() {
-        _state.update { it.copy(loadedFile = null, plan = null) }
+        _state.update { it.copy(loadedFile = null, loadedFolder = null, plan = null) }
     }
 
     // ─── target editing ──────────────────────────────────────────────────────
@@ -173,11 +185,15 @@ class UploadFlowViewModel(
 
     fun buildPlan() {
         val s = _state.value
-        val loaded = s.loadedFile ?: run {
-            _state.update { it.copy(errorMessage = "Pick a file first.") }
-            return
-        }
         val target = buildRepoTargetOrError() ?: return
+        when {
+            s.loadedFolder != null -> buildFolderPlan(s.loadedFolder, target)
+            s.loadedFile != null -> buildFilePlan(s.loadedFile, target)
+            else -> _state.update { it.copy(errorMessage = "Pick a file or folder first.") }
+        }
+    }
+
+    private fun buildFilePlan(loaded: LoadedFile, target: RepoTarget) {
         val plannedFile = PlannedFile(
             sourceId = loaded.sourceItem.sourceId,
             sourceDisplayName = loaded.displayName,
@@ -196,7 +212,19 @@ class UploadFlowViewModel(
             issues = emptyList(),
             isBlockedForNormalCommit = plannedFile.sizeDiagnosis.isBlockedForNormalCommit,
         )
-        val plan = UploadPlanBuilder.build(filePlan, target)
+        applyPlan(UploadPlanBuilder.build(filePlan, target), target)
+    }
+
+    private fun buildFolderPlan(source: SelectedSource, target: RepoTarget) {
+        when (val r = FilePlanBuilder.build(source, target.targetPath.normalized, DefaultIgnoreRules.rules)) {
+            is FilePlanBuildResult.Success -> applyPlan(UploadPlanBuilder.build(r.plan, target), target)
+            is FilePlanBuildResult.ValidationError -> _state.update {
+                it.copy(errorMessage = r.issues.firstOrNull()?.message ?: "Folder source has issues.")
+            }
+        }
+    }
+
+    private fun applyPlan(plan: UploadPlan, target: RepoTarget) {
         _state.update {
             it.copy(
                 plan = plan,
@@ -315,6 +343,7 @@ class UploadFlowViewModel(
 
 data class UploadFlowUiState(
     val loadedFile: LoadedFile? = null,
+    val loadedFolder: SelectedSource? = null,
     val ownerInput: String = "",
     val repoInput: String = "",
     val branchInput: String = "",
@@ -333,6 +362,8 @@ data class UploadFlowUiState(
     val successCommittedPath: String? = null,
 ) {
     val hasSucceeded: Boolean get() = successCommitSha != null
+    val isFolderSource: Boolean get() = loadedFolder != null
+    val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
     val retrySafety: RetrySafety? get() = humanError?.retrySafety
 }
