@@ -27,9 +27,10 @@ It is not a Git client. It is not GitHub Desktop. It is not an IDE.
 - `java.util.zip` for ZIP analysis with ZIP-Slip prevention
 - GitHub Git Data API multi-file single-commit flow (blobs → tree → commit → ref)
 
-Out of scope for v0: JGit, libgit2, local clones, full Git history, branch
+Default v0 out-of-scope: JGit, libgit2, local clones, full Git history, branch
 graph, PRs, Conflict Cards, real Git LFS upload, Release Asset upload,
-background sync.
+background sync — unless the user explicitly requests scope expansion in a
+new gate plan.
 
 ## Gate discipline
 
@@ -46,6 +47,7 @@ Painkiller is built one gate at a time. The gates are defined in
 - Gate 7 — multi-file / folder / ZIP commit + `.gitkeep`
 - Gate 8 — robustness / error mapping
 - Gate 9 — v0 release candidate
+- Gate 10–14 — integration wiring, Android adapters, and end-to-end intake/commit path hardening
 
 Rules every contributor (and Claude Code) must follow:
 
@@ -105,6 +107,12 @@ available and expected to run it.
 
 The boundary is intentional: Android-coupled code may depend on domain code,
 but domain code must never depend on Android.
+
+## Current baseline
+
+- Latest completed handoff: `handoff/GATE_14_HANDOFF.md` (`PASS`)
+- Gate 14 delivered ZIP intake + multi-file commit path wiring in the app flow.
+- Next work follows the user-directed expanded plan in `handoff/NEXT_GATES_PLAN.md` (next: Gate 23 Git LFS expansion).
 
 ## Build and check expectations
 

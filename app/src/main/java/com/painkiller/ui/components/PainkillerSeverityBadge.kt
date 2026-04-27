@@ -18,9 +18,9 @@ fun PainkillerSeverityBadge(
     modifier: Modifier = Modifier,
 ) {
     val (label, container, content) = when (severity) {
-        DiagnosticSeverity.SAFE -> Triple("Safe", PainkillerColors.BabuTeal, Color.White)
-        DiagnosticSeverity.WARNING -> Triple("Warning", PainkillerColors.AccentAmber, PainkillerColors.OnLight)
-        DiagnosticSeverity.BLOCKED -> Triple("Blocked", PainkillerColors.RauschRed, Color.White)
+        DiagnosticSeverity.SAFE -> Triple("Safe", PainkillerColors.PrimaryTeal, Color.White)
+        DiagnosticSeverity.WARNING -> Triple("Warning", PainkillerColors.EdgeSoft, PainkillerColors.OnLight)
+        DiagnosticSeverity.BLOCKED -> Triple("Blocked", PainkillerColors.Navy, Color.White)
         DiagnosticSeverity.DEFERRED -> Triple("Deferred", PainkillerColors.DarkSurfaceVariant, PainkillerColors.OnDark)
     }
     Text(
