@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -84,14 +85,18 @@ fun AuthScreen(
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
-                supportingText = when {
-                    state.tokenInput.isBlank() -> null
-                    state.formatLooksValid -> {
-                        { Text("Format looks valid", color = MaterialTheme.colorScheme.primary) }
-                    }
-                    else -> {
-                        { Text("Prefix not recognised — double-check the token") }
-                    }
+                supportingText = {
+                    Text(
+                        text = buildString {
+                            append(state.statusHint)
+                            state.tokenKindLabel?.let { append("  •  $it") }
+                        },
+                        color = if (state.formatLooksValid) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
                 },
                 isError = state.tokenInput.isNotBlank() && !state.formatLooksValid,
             )
@@ -107,6 +112,52 @@ fun AuthScreen(
                 text = if (state.isSubmitting) "Signing in…" else "Sign in",
                 onClick = viewModel::signIn,
                 enabled = state.canSubmit,
+            )
+
+            HorizontalDivider()
+
+            PainkillerInfoCard(
+                title = "OAuth authorization code (optional)",
+                body = "If OAuth exchange is configured for your build, paste the one-time " +
+                    "authorization code here. PAT remains supported as the primary login.",
+            )
+
+            OutlinedTextField(
+                value = state.oauthCodeInput,
+                onValueChange = viewModel::onAuthorizationCodeChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Authorization code") },
+                placeholder = { Text("Paste code") },
+                singleLine = true,
+            )
+
+            PainkillerPrimaryActionButton(
+                text = if (state.isSubmitting) "Exchanging…" else "Sign in with OAuth code",
+                onClick = viewModel::signInWithAuthorizationCode,
+                enabled = state.canSubmitOAuthCode,
+            )
+
+            HorizontalDivider()
+
+            PainkillerInfoCard(
+                title = "GitHub App installation (recommended)",
+                body = "For official GitHub App auth, paste the installation id. " +
+                    "Painkiller expects a backend endpoint that exchanges this for a short-lived token.",
+            )
+
+            OutlinedTextField(
+                value = state.installationIdInput,
+                onValueChange = viewModel::onInstallationIdChanged,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Installation ID") },
+                placeholder = { Text("e.g. 12345678") },
+                singleLine = true,
+            )
+
+            PainkillerPrimaryActionButton(
+                text = if (state.isSubmitting) "Signing in…" else "Sign in with GitHub App",
+                onClick = viewModel::signInWithGithubAppInstallation,
+                enabled = state.canSubmitInstallation,
             )
         }
     }

@@ -65,12 +65,12 @@ If GitHub Actions fails, the failing workflow output becomes the source of truth
 
 ## Current Gate State
 
-Gate 0–14 are verified as `PASS` (latest handoff: `handoff/GATE_14_HANDOFF.md`).
+Gate 0–23 are verified as implemented in sequence (see `handoff/GATE_23_HANDOFF.md` for latest GitHub App auth groundwork).
 
 The next implementation gate is:
 
 ```text
-Gate 15 — UX polish and end-to-end flow hardening
+Gate 24 — GitHub Release Assets
 ```
 
 Follow the latest handoff + repository state as the source of truth.
@@ -86,7 +86,7 @@ Follow the latest handoff + repository state as the source of truth.
 - Do not perform broad cleanup.
 - Do not rewrite working code for style.
 - Do not introduce unrelated dependencies.
-- Do not change product scope.
+- Do not change product scope, unless the user explicitly requests scope expansion.
 - Do not silently skip checks.
 - Do not claim success without command output or CI confirmation.
 - Do not commit secrets, tokens, passwords, API keys, or local config files.
@@ -246,11 +246,13 @@ Action:
 
 ---
 
-# Gate 15 Guidance
+# Gate 24 Guidance
 
 ## Mission
 
-Implement Gate 15 only (unless the user explicitly overrides).
+Implement Gate 24 only (unless the user explicitly overrides).
+
+User override currently active: scope expansion to include PR merge assist, OAuth as an additional login path, and phased LFS/Release/PR-management work is approved. Optional ONNX-based local merge-risk scoring is also allowed under this override. Execute this only through explicit per-gate steps in `handoff/NEXT_GATES_PLAN.md`.
 
 ## Scope focus
 
@@ -261,6 +263,5 @@ Implement Gate 15 only (unless the user explicitly overrides).
 
 ## Hard non-goals
 
-- no scope expansion into post-v0 features (LFS upload, release assets, PR tooling)
 - no architecture reset or broad refactor
 - no destructive behavior without explicit user confirmation path

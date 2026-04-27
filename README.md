@@ -22,19 +22,26 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 14 PASS (latest completed gate).**
+**Gate 24 PASS (expanded plan): release selection/creation + release-asset upload path added for oversized/binary artifacts.**
 
 Painkiller now includes:
 
 - file, multi-file, folder, and ZIP intake
 - repo/branch/target selection
+- open pull-request picker foundation (select PR head branch)
+- PR merge-assist foundation (mergeability diagnostics + explicit merge/squash/rebase confirmation)
 - upload planning + diagnosis + preview
 - single and multi-file Git Data API orchestration
 - Ktor-based GitHub API adapters (repo/branch listing + git-data + token probe)
 - PAT-based sign-in with encrypted secure storage
+- OAuth authorization-code sign-in path added as optional second login mode (build-dependent exchange support)
+- GitHub App installation sign-in path scaffolded (backend token exchange required)
 - ZIP intake safety checks (ZIP-Slip defense in depth)
 - dark mode toggle (default is light mode)
 - splash screen + vector app icon branding
+- intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
+- user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
+- release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 
 This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI

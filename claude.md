@@ -27,9 +27,10 @@ It is not a Git client. It is not GitHub Desktop. It is not an IDE.
 - `java.util.zip` for ZIP analysis with ZIP-Slip prevention
 - GitHub Git Data API multi-file single-commit flow (blobs → tree → commit → ref)
 
-Out of scope for v0: JGit, libgit2, local clones, full Git history, branch
+Default v0 out-of-scope: JGit, libgit2, local clones, full Git history, branch
 graph, PRs, Conflict Cards, real Git LFS upload, Release Asset upload,
-background sync.
+background sync — unless the user explicitly requests scope expansion in a
+new gate plan.
 
 ## Gate discipline
 
@@ -111,7 +112,7 @@ but domain code must never depend on Android.
 
 - Latest completed handoff: `handoff/GATE_14_HANDOFF.md` (`PASS`)
 - Gate 14 delivered ZIP intake + multi-file commit path wiring in the app flow.
-- Next work should start from Gate 15 unless the user explicitly asks otherwise.
+- Next work follows the user-directed expanded plan in `handoff/NEXT_GATES_PLAN.md` (next: Gate 24 GitHub Release Assets).
 
 ## Build and check expectations
 
