@@ -9,6 +9,8 @@ import com.painkiller.data.files.LoadedFile
 import com.painkiller.data.files.SafFileReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubBranchListResult
+import com.painkiller.data.github.GithubLfsUploadResult
+import com.painkiller.data.github.GithubLfsRepository
 import com.painkiller.data.github.GithubPullRequestListResult
 import com.painkiller.data.github.GithubPullRequestMergeResult
 import com.painkiller.data.github.GithubPullRequestRepository
@@ -74,6 +76,7 @@ class UploadFlowViewModel(
     private val releaseRepository: GithubReleaseRepository,
     private val singleFileCommitRepository: SingleFileCommitRepository,
     private val multiFileCommitRepository: MultiFileCommitRepository,
+    private val lfsRepository: GithubLfsRepository,
     private val settingsStore: RepoTargetSettingsStore,
 ) : ViewModel() {
 
@@ -676,6 +679,49 @@ class UploadFlowViewModel(
         }
     }
 
+    fun uploadSingleFileViaLfs() {
+        val s = _state.value
+        val file = s.loadedFile ?: run {
+            _state.update { it.copy(errorMessage = "Pick a single file first.") }
+            return
+        }
+        if (file.sizeBytes <= MAX_NORMAL_COMMIT_BYTES) {
+            _state.update { it.copy(errorMessage = "This file is within normal commit size. LFS is optional and not required.") }
+            return
+        }
+        val target = buildRepoTargetOrError() ?: return
+        val commitMessage = s.commitMessageInput.ifBlank { "Track ${file.displayName} via Git LFS" }
+        if (s.isUploadingLfs) return
+
+        _state.update { it.copy(isUploadingLfs = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (
+                val result = lfsRepository.uploadSingleFileAndCommitPointer(
+                    target = target,
+                    fileName = file.displayName,
+                    contentBase64 = file.contentBase64,
+                    commitMessage = commitMessage,
+                )
+            ) {
+                is GithubLfsUploadResult.Success -> _state.update {
+                    it.copy(
+                        isUploadingLfs = false,
+                        successCommitSha = result.commitSha,
+                        successCommitUrl = result.commitUrl,
+                        successCommittedPaths = listOf(result.committedPath),
+                    )
+                }
+
+                is GithubLfsUploadResult.Failure -> _state.update {
+                    it.copy(
+                        isUploadingLfs = false,
+                        errorMessage = result.reason,
+                    )
+                }
+            }
+        }
+    }
+
     fun dismissError() {
         _state.update { it.copy(humanError = null, errorMessage = null) }
     }
@@ -746,6 +792,7 @@ class UploadFlowViewModel(
             singleFileCommitRepository: SingleFileCommitRepository,
             pullRequestRepository: GithubPullRequestRepository,
             multiFileCommitRepository: MultiFileCommitRepository,
+            lfsRepository: GithubLfsRepository,
             settingsStore: RepoTargetSettingsStore,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
@@ -758,6 +805,7 @@ class UploadFlowViewModel(
                         releaseRepository = releaseRepository,
                         singleFileCommitRepository = singleFileCommitRepository,
                         multiFileCommitRepository = multiFileCommitRepository,
+                        lfsRepository = lfsRepository,
                         settingsStore = settingsStore,
                     ) as T
             }
@@ -796,6 +844,7 @@ data class UploadFlowUiState(
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,
     val isCommitting: Boolean = false,
+    val isUploadingLfs: Boolean = false,
     val errorMessage: String? = null,
     val humanError: HumanReadableError? = null,
     val successCommitSha: String? = null,
@@ -810,6 +859,7 @@ data class UploadFlowUiState(
     val zipCollisionCount: Int get() = zipIssues.count { it.code == ZipIntakeIssueCode.COLLISION }
     val hasZipUnsafeEntries: Boolean get() = zipIssues.any { it.code == ZipIntakeIssueCode.UNSAFE_PATH }
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
+    val isSingleLargeFileEligibleForLfs: Boolean get() = loadedFile?.sizeBytes?.let { it > (100L * 1024L * 1024L) } == true
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
     val retrySafety: RetrySafety? get() = humanError?.retrySafety
 }

@@ -426,3 +426,20 @@ Evidence:
 Action:
 - Label OAuth as experimental and disable action when backend is unavailable.
 - Add explicit release-asset UI copy noting single-file-only and memory limitation.
+
+---
+
+## BUG-20260428-021
+
+Status: ACCEPTED
+Gate: 26
+Severity: LOW
+Summary: Gate 26 real Git LFS path is single-file only and currently decodes selected file content in-memory before upload.
+
+Evidence:
+- `GithubLfsRepository.uploadSingleFileAndCommitPointer()` decodes selected file base64 to `ByteArray` before LFS batch/upload.
+- `UploadFlowViewModel.uploadSingleFileViaLfs()` is wired only for single selected files above 100 MiB.
+
+Action:
+- Accepted for Gate 26 MVP scope.
+- Follow-up gate should move LFS object upload to streaming input for lower peak memory and larger-file resilience.

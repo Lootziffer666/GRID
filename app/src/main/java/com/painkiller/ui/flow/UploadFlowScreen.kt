@@ -146,25 +146,40 @@ fun UploadFlowScreen(
             SectionCard(title = "Source") {
                 when {
                     state.loadedFile != null -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = state.loadedFile!!.displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = formatBytes(state.loadedFile!!.sizeBytes),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                TextButton(onClick = viewModel::clearLoadedFile) { Text("Clear") }
+                            }
+                            if (state.isSingleLargeFileEligibleForLfs) {
                                 Text(
-                                    text = state.loadedFile!!.displayName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = formatBytes(state.loadedFile!!.sizeBytes),
+                                    text = "This file is too large for a normal Git commit. " +
+                                        "Painkiller can upload it through Git LFS, then commit a small pointer file.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                                PainkillerPrimaryActionButton(
+                                    text = if (state.isUploadingLfs) "Uploading with Git LFS…" else "Upload via Git LFS",
+                                    onClick = viewModel::uploadSingleFileViaLfs,
+                                    enabled = !state.isUploadingLfs && !state.isCommitting,
                                 )
                             }
-                            TextButton(onClick = viewModel::clearLoadedFile) { Text("Clear") }
                         }
                     }
                     state.loadedFolder != null -> {

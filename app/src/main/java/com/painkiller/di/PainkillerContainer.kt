@@ -8,11 +8,13 @@ import com.painkiller.data.files.SafFileReader
 import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubAuthRepository
+import com.painkiller.data.github.GithubLfsRepository
 import com.painkiller.data.github.GithubPullRequestRepository
 import com.painkiller.data.github.GithubReleaseRepository
 import com.painkiller.data.github.GithubRepoBranchRepository
 import com.painkiller.data.github.GithubTokenProbeApi
 import com.painkiller.data.github.KtorGithubGitDataApi
+import com.painkiller.data.github.KtorGithubLfsApi
 import com.painkiller.data.github.KtorGithubPullRequestApi
 import com.painkiller.data.github.KtorGithubReleaseApi
 import com.painkiller.data.github.KtorGithubRepositoryApi
@@ -71,6 +73,10 @@ class PainkillerContainer(appContext: Context) {
         KtorGithubGitDataApi(httpClient, tokenProvider)
     }
 
+    private val lfsApi: KtorGithubLfsApi by lazy {
+        KtorGithubLfsApi(httpClient, tokenProvider)
+    }
+
     private val repositoryApi: GithubRepositoryApi by lazy {
         KtorGithubRepositoryApi(httpClient, tokenProvider)
     }
@@ -109,5 +115,12 @@ class PainkillerContainer(appContext: Context) {
 
     val multiFileCommitRepository: MultiFileCommitRepository by lazy {
         MultiFileCommitRepository(gitDataApi, secureTokenStore)
+    }
+
+    val lfsRepository: GithubLfsRepository by lazy {
+        GithubLfsRepository(
+            lfsApi = lfsApi,
+            singleFileCommitRepository = singleFileCommitRepository,
+        )
     }
 }
