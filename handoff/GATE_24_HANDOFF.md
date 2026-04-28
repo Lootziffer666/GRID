@@ -8,16 +8,19 @@ PASS
 
 - Implement Gate 24 only: GitHub Release Assets workflow.
 - Add release selection/creation support and release asset upload orchestration with explicit error mapping.
+- Harden release asset input validation (name/content-type/data) before API call.
 
 ## Implemented
 
 - Extended release boundary contract with `uploadReleaseAsset(owner, repo, releaseId, request)`.
 - Added release asset domain models: `UploadReleaseAssetRequest` and `GithubReleaseAssetSummary`.
+- Added domain `ReleaseAssetValidation` with tests for blank name/content-type and empty payload.
 - Implemented uploads host call in `KtorGithubReleaseApi` using `uploads.github.com` with `name` query parameter and binary body upload.
 - Extended `GithubReleaseRepository` with:
   - `createRelease(...)`
   - `uploadReleaseAsset(...)`
   - explicit result types for create/upload failures.
+  - preflight validation errors for blank content type and empty upload payload.
 - Extended `UploadFlowViewModel` with:
   - optional release creation inputs (tag/name)
   - release creation action
@@ -43,6 +46,8 @@ PASS
 
 - `domain/src/main/kotlin/com/painkiller/domain/github/GithubGitDataApi.kt`
 - `domain/src/main/kotlin/com/painkiller/domain/github/GitDataModels.kt`
+- `domain/src/main/kotlin/com/painkiller/domain/github/ReleaseAssetValidation.kt`
+- `domain/src/test/kotlin/com/painkiller/domain/github/ReleaseAssetValidationTest.kt`
 - `app/src/main/java/com/painkiller/data/github/KtorGithubReleaseApi.kt`
 - `app/src/main/java/com/painkiller/data/github/GithubReleaseRepository.kt`
 - `app/src/main/java/com/painkiller/ui/flow/UploadFlowViewModel.kt`
@@ -62,6 +67,9 @@ PASS
 ## Checks Run
 
 - command: `./gradlew :domain:test :domain:build`
+- result: PASS
+
+- command: `./gradlew :domain:test --tests "com.painkiller.domain.github.ReleaseAssetValidationTest"`
 - result: PASS
 
 - command: `./gradlew :app:testDebugUnitTest :app:assembleDebug`

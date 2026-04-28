@@ -9,6 +9,8 @@ import com.painkiller.data.files.LoadedFile
 import com.painkiller.data.files.SafFileReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubBranchListResult
+import com.painkiller.data.github.GithubLfsUploadResult
+import com.painkiller.data.github.GithubLfsRepository
 import com.painkiller.data.github.GithubPullRequestListResult
 import com.painkiller.data.github.GithubPullRequestMergeResult
 import com.painkiller.data.github.GithubPullRequestRepository
@@ -32,6 +34,8 @@ import com.painkiller.domain.files.FilePlanBuilder
 import com.painkiller.domain.files.PlannedFile
 import com.painkiller.domain.files.SelectedSource
 import com.painkiller.domain.files.SourceKind
+import com.painkiller.domain.files.ZipIntakeIssue
+import com.painkiller.domain.files.ZipIntakeIssueCode
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubReleaseSummary
@@ -72,6 +76,7 @@ class UploadFlowViewModel(
     private val releaseRepository: GithubReleaseRepository,
     private val singleFileCommitRepository: SingleFileCommitRepository,
     private val multiFileCommitRepository: MultiFileCommitRepository,
+    private val lfsRepository: GithubLfsRepository,
     private val settingsStore: RepoTargetSettingsStore,
 ) : ViewModel() {
 
@@ -105,6 +110,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 plan = null,
                 errorMessage = null,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -118,6 +124,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 plan = null,
                 errorMessage = null,
+                zipIssues = result.issues,
             )
         }
     }
@@ -131,6 +138,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 errorMessage = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
         viewModelScope.launch {
@@ -162,7 +170,7 @@ class UploadFlowViewModel(
                 file.sourceItem.copy(relativePath = file.displayName)
             }.sortedBy { it.displayName.lowercase() }
             val encoded = loaded.associate { file ->
-                file.sourceItem.sourceId to file.contentBase64
+                file.sourceItem.sourceId to (file.contentBase64 ?: "")
             }
             _state.update {
                 it.copy(
@@ -175,6 +183,7 @@ class UploadFlowViewModel(
                     loadedFilePlan = null,
                     plan = null,
                     errorMessage = null,
+                    zipIssues = emptyList(),
                 )
             }
         }
@@ -187,6 +196,7 @@ class UploadFlowViewModel(
                 loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -200,23 +210,31 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 errorMessage = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
         viewModelScope.launch {
-            val loaded = safFileReader.read(uri)
-            if (loaded == null) {
+            val loadedMetadata = safFileReader.readMetadata(uri)
+            if (loadedMetadata == null) {
                 _state.update {
                     it.copy(errorMessage = "Could not read the selected file. The link may have expired.")
                 }
                 return@launch
             }
-            if (loaded.sizeBytes > MAX_NORMAL_COMMIT_BYTES) {
+            if (loadedMetadata.sizeBytes > MAX_NORMAL_COMMIT_BYTES) {
                 _state.update {
                     it.copy(
-                        loadedFile = loaded,
+                        loadedFile = loadedMetadata,
                         errorMessage = "This file is too large for a normal Git commit (>100 MiB). " +
                             "Painkiller blocked the upload.",
                     )
+                }
+                return@launch
+            }
+            val loaded = safFileReader.read(uri)
+            if (loaded == null) {
+                _state.update {
+                    it.copy(errorMessage = "Could not read the selected file. The link may have expired.")
                 }
                 return@launch
             }
@@ -232,6 +250,7 @@ class UploadFlowViewModel(
                 loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -420,13 +439,16 @@ class UploadFlowViewModel(
         if (s.isUploadingReleaseAsset) return
         _state.update { it.copy(isUploadingReleaseAsset = true, errorMessage = null) }
         viewModelScope.launch {
-            val data = try {
-                java.util.Base64.getDecoder().decode(file.contentBase64)
+            val payload = try {
+                safFileReader.createUploadPayload(file.sourceItem.sourceId, file.sizeBytes)
             } catch (e: Throwable) {
+                null
+            }
+            if (payload == null) {
                 _state.update {
                     it.copy(
                         isUploadingReleaseAsset = false,
-                        errorMessage = "Could not decode selected file for release upload.",
+                        errorMessage = "Could not open selected file stream for release upload.",
                     )
                 }
                 return@launch
@@ -440,7 +462,7 @@ class UploadFlowViewModel(
                     request = UploadReleaseAssetRequest(
                         name = file.displayName,
                         contentType = contentType,
-                        data = data,
+                        payload = payload,
                     ),
                 )
             ) {
@@ -529,6 +551,12 @@ class UploadFlowViewModel(
     fun buildPlan() {
         val s = _state.value
         val target = buildRepoTargetOrError() ?: return
+        if (s.isZipSource && s.hasZipUnsafeEntries) {
+            _state.update {
+                it.copy(errorMessage = "ZIP contains unsafe paths. Remove blocked entries and pick a safe ZIP.")
+            }
+            return
+        }
         when {
             s.loadedFolder != null -> buildMultiFilePlan(s.loadedFolder, target)
             s.loadedFile != null -> buildFilePlan(s.loadedFile, target)
@@ -608,7 +636,10 @@ class UploadFlowViewModel(
         val input = SingleFileCommitInput(
             target = plan.target,
             fileName = loaded.displayName,
-            contentBase64 = loaded.contentBase64,
+            contentBase64 = loaded.contentBase64 ?: run {
+                _state.update { it.copy(isCommitting = false, errorMessage = "Could not read selected file content.") }
+                return
+            },
             commitMessage = message,
         )
         handleSingleFileCommitResult(singleFileCommitRepository.commitSingleFile(input))
@@ -661,6 +692,55 @@ class UploadFlowViewModel(
         }
     }
 
+    fun uploadSingleFileViaLfs() {
+        val s = _state.value
+        val file = s.loadedFile ?: run {
+            _state.update { it.copy(errorMessage = "Pick a single file first.") }
+            return
+        }
+        if (file.sizeBytes <= MAX_NORMAL_COMMIT_BYTES) {
+            _state.update { it.copy(errorMessage = "This file is within normal commit size. LFS is optional and not required.") }
+            return
+        }
+        val target = buildRepoTargetOrError() ?: return
+        val commitMessage = s.commitMessageInput.ifBlank { "Track ${file.displayName} via Git LFS" }
+        if (s.isUploadingLfs) return
+
+        _state.update { it.copy(isUploadingLfs = true, errorMessage = null) }
+        viewModelScope.launch {
+            when (
+                val result = lfsRepository.uploadSingleFileAndCommitPointer(
+                    target = target,
+                    fileName = file.displayName,
+                    payload = safFileReader.createUploadPayload(file.sourceItem.sourceId, file.sizeBytes)
+                        ?: run {
+                            _state.update {
+                                it.copy(isUploadingLfs = false, errorMessage = "Could not open selected file stream for Git LFS upload.")
+                            }
+                            return@launch
+                        },
+                    commitMessage = commitMessage,
+                )
+            ) {
+                is GithubLfsUploadResult.Success -> _state.update {
+                    it.copy(
+                        isUploadingLfs = false,
+                        successCommitSha = result.commitSha,
+                        successCommitUrl = result.commitUrl,
+                        successCommittedPaths = listOf(result.committedPath),
+                    )
+                }
+
+                is GithubLfsUploadResult.Failure -> _state.update {
+                    it.copy(
+                        isUploadingLfs = false,
+                        errorMessage = result.reason,
+                    )
+                }
+            }
+        }
+    }
+
     fun dismissError() {
         _state.update { it.copy(humanError = null, errorMessage = null) }
     }
@@ -672,6 +752,7 @@ class UploadFlowViewModel(
                 repoInput = it.repoInput,
                 branchInput = it.branchInput,
                 targetPathInput = it.targetPathInput,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -730,6 +811,7 @@ class UploadFlowViewModel(
             singleFileCommitRepository: SingleFileCommitRepository,
             pullRequestRepository: GithubPullRequestRepository,
             multiFileCommitRepository: MultiFileCommitRepository,
+            lfsRepository: GithubLfsRepository,
             settingsStore: RepoTargetSettingsStore,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
@@ -742,6 +824,7 @@ class UploadFlowViewModel(
                         releaseRepository = releaseRepository,
                         singleFileCommitRepository = singleFileCommitRepository,
                         multiFileCommitRepository = multiFileCommitRepository,
+                        lfsRepository = lfsRepository,
                         settingsStore = settingsStore,
                     ) as T
             }
@@ -753,6 +836,7 @@ data class UploadFlowUiState(
     val loadedFolder: SelectedSource? = null,
     val loadedMultiContent: Map<String, String>? = null,
     val loadedFilePlan: FilePlan? = null,
+    val zipIssues: List<ZipIntakeIssue> = emptyList(),
     val ownerInput: String = "",
     val repoInput: String = "",
     val branchInput: String = "",
@@ -779,6 +863,7 @@ data class UploadFlowUiState(
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,
     val isCommitting: Boolean = false,
+    val isUploadingLfs: Boolean = false,
     val errorMessage: String? = null,
     val humanError: HumanReadableError? = null,
     val successCommitSha: String? = null,
@@ -790,7 +875,10 @@ data class UploadFlowUiState(
     val isZipSource: Boolean get() = loadedFolder?.kind == SourceKind.ZIP
     val isMultipleFileSource: Boolean get() = loadedFolder?.kind == SourceKind.MULTIPLE_FILES
     val isMultiFileSource: Boolean get() = loadedFolder != null
+    val zipCollisionCount: Int get() = zipIssues.count { it.code == ZipIntakeIssueCode.COLLISION }
+    val hasZipUnsafeEntries: Boolean get() = zipIssues.any { it.code == ZipIntakeIssueCode.UNSAFE_PATH }
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
+    val isSingleLargeFileEligibleForLfs: Boolean get() = loadedFile?.sizeBytes?.let { it > (100L * 1024L * 1024L) } == true
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
     val retrySafety: RetrySafety? get() = humanError?.retrySafety
 }

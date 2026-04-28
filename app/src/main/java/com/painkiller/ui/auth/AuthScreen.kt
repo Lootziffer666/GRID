@@ -141,33 +141,6 @@ fun AuthScreen(
                 onClick = viewModel::signInWithAuthorizationCode,
                 enabled = state.canSubmitOAuthCode && state.isOAuthAvailable,
             )
-
-            HorizontalDivider()
-
-            PainkillerInfoCard(
-                title = "GitHub App installation (dev-only broker)",
-                body = if (state.isGithubAppAvailable) {
-                    "Experimental/dev path: paste installation id for broker exchange."
-                } else {
-                    "Disabled in this build. A hosted token broker is required. " +
-                        "Normal users should use PAT sign-in.",
-                },
-            )
-
-            OutlinedTextField(
-                value = state.installationIdInput,
-                onValueChange = viewModel::onInstallationIdChanged,
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Installation ID") },
-                placeholder = { Text("e.g. 12345678") },
-                singleLine = true,
-            )
-
-            PainkillerPrimaryActionButton(
-                text = if (state.isSubmitting) "Signing in…" else "Sign in with GitHub App",
-                onClick = viewModel::signInWithGithubAppInstallation,
-                enabled = state.canSubmitInstallation && state.isGithubAppAvailable,
-            )
         }
     }
 }
