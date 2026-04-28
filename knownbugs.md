@@ -414,18 +414,19 @@ Action:
 
 ## BUG-20260427-020
 
-Status: ACCEPTED
-Gate: 24.5
+Status: FIXED
+Gate: 28
 Severity: LOW
 Summary: Some auth and release actions are visible in UI even when build/runtime support is limited; labels and enablement must truthfully reflect availability.
 
 Evidence:
 - OAuth section is visible in auth screen while backend exchange may be unavailable in default builds.
-- Release asset upload path is single-file only and currently decodes file content into memory.
+- Gate 28 added a dedicated large-file routing panel that marks unsupported source routes as unavailable and keeps their action buttons disabled.
+- Gate 27 removed eager ByteArray decoding for release asset uploads.
 
 Action:
-- Label OAuth as experimental and disable action when backend is unavailable.
-- Add explicit release-asset UI copy noting single-file-only and memory limitation.
+- Fixed for large-file routing in Gate 28: action cards now explain availability and keep unsupported routes non-executable.
+- OAuth remains future-path work and is out of scope for this gate.
 
 ---
 
