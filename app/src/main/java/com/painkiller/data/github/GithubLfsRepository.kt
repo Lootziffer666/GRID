@@ -62,27 +62,40 @@ class GithubLfsRepository(
                 "Git LFS server did not return upload instructions for this object. Nothing was changed on GitHub.",
             )
 
-        if (objectResult.error != null) {
-            val mapped = if (objectResult.error.code == 507 || objectResult.error.message.contains("quota", ignoreCase = true)) {
+        val error = objectResult.error
+        if (error != null) {
+            val mapped = if (error.code == 507 || error.message.contains("quota", ignoreCase = true)) {
                 "Git LFS quota or storage limit was reached. Pointer was not committed."
             } else {
-                "Git LFS server rejected this object: ${objectResult.error.message}. Pointer was not committed."
+                "Git LFS server rejected this object: ${error.message}. Pointer was not committed."
             }
             return GithubLfsUploadResult.Failure(mapped)
         }
 
-        val uploadAction = objectResult.actions?.upload
-        if (uploadAction != null) {
-            try {
-                lfsApi.uploadObject(uploadAction, bytes)
-                objectResult.actions.verify?.let { verify ->
-                    lfsApi.verifyObject(verify, plan.oid.value, plan.sizeBytes)
-                }
-            } catch (e: Throwable) {
-                return GithubLfsUploadResult.Failure(
-                    "LFS upload failed before the pointer file was committed. Nothing was changed on GitHub.",
-                )
+        val actions = objectResult.actions
+            ?: return GithubLfsUploadResult.Failure(
+                "Git LFS response was missing upload actions. Pointer was not committed.",
+            )
+        val uploadAction = actions.upload
+            ?: return GithubLfsUploadResult.Failure(
+                "Git LFS response did not include an upload action. Pointer was not committed.",
+            )
+        val uploadHref = uploadAction.href
+        if (uploadHref.isBlank()) {
+            return GithubLfsUploadResult.Failure(
+                "Git LFS upload URL was missing. Pointer was not committed.",
+            )
+        }
+        try {
+            lfsApi.uploadObject(uploadAction, bytes)
+            val verifyAction = actions.verify
+            if (verifyAction != null) {
+                lfsApi.verifyObject(verifyAction, plan.oid.value, plan.sizeBytes)
             }
+        } catch (e: Throwable) {
+            return GithubLfsUploadResult.Failure(
+                "LFS upload failed before the pointer file was committed. Nothing was changed on GitHub.",
+            )
         }
 
         val pointerBase64 = java.util.Base64.getEncoder().encodeToString(plan.pointerText.toByteArray())
@@ -97,7 +110,10 @@ class GithubLfsRepository(
         return when (commitResult) {
             is SingleFileCommitResult.Success -> GithubLfsUploadResult.Success(
                 commitSha = commitResult.commitSha,
-                commitUrl = commitResult.commitUrl,
+                commitUrl = commitResult.commitUrl
+                    ?: return GithubLfsUploadResult.Failure(
+                        "Pointer commit finished without a commit URL. Treating as failed for safety.",
+                    ),
                 committedPath = commitResult.committedPath,
             )
             is SingleFileCommitResult.ShaMismatch -> GithubLfsUploadResult.Failure(

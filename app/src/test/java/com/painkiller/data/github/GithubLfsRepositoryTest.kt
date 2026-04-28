@@ -67,6 +67,35 @@ class GithubLfsRepositoryTest {
         assertTrue(result is GithubLfsUploadResult.Failure)
     }
 
+    @Test
+    fun missingUploadHref_returnsFailure_beforeCommit() = runTest {
+        var committed = false
+        val lfsApi = object : KtorGithubLfsApi(PainkillerHttpClient.create(), { "token" }) {
+            override suspend fun requestUploadAction(owner: String, repo: String, oid: String, size: Long, refName: String): LfsBatchResponse =
+                LfsBatchResponse(
+                    objects = listOf(
+                        LfsBatchObjectResponse(
+                            oid = oid,
+                            size = size,
+                            actions = LfsObjectActions(upload = LfsObjectAction(href = "")),
+                        ),
+                    ),
+                )
+        }
+        val singleRepo = object : SingleFileCommitRepository(fakeGitDataApi(), tokenStore()) {
+            override suspend fun commitSingleFile(input: com.painkiller.domain.github.SingleFileCommitInput): SingleFileCommitResult {
+                committed = true
+                return super.commitSingleFile(input)
+            }
+        }
+        val repo = GithubLfsRepository(lfsApi, singleRepo)
+
+        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", base64("data"), "msg")
+
+        assertTrue(result is GithubLfsUploadResult.Failure)
+        assertTrue(!committed)
+    }
+
     private fun base64(value: String): String = java.util.Base64.getEncoder().encodeToString(value.toByteArray())
 
     private fun target() = RepoTarget("o", "r", BranchTarget("main"), TargetPath(""))
