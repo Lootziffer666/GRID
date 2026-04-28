@@ -861,7 +861,7 @@ class UploadFlowViewModel(
                 source.items.mapNotNull { item ->
                     val encoded = state.loadedMultiContent?.get(item.sourceId) ?: return@mapNotNull null
                     val decoded = decodeBase64Text(encoded) ?: return@mapNotNull null
-                    ConflictSourceFile(path = item.relativePath, content = decoded)
+                    ConflictSourceFile(path = item.relativePath ?: item.displayName, content = decoded)
                 }
             }
 
@@ -869,7 +869,7 @@ class UploadFlowViewModel(
                 source.items.mapNotNull { item ->
                     val read = safFileReader.read(Uri.parse(item.sourceId)) ?: return@mapNotNull null
                     val decoded = decodeBase64Text(read.contentBase64) ?: return@mapNotNull null
-                    ConflictSourceFile(path = item.relativePath, content = decoded)
+                    ConflictSourceFile(path = item.relativePath ?: item.displayName, content = decoded)
                 }
             }
 

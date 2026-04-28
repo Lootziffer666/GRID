@@ -45,6 +45,7 @@ PARTIAL
 - Added ViewModel support:
   - preset selection
   - in-memory preview plan generation from selected source data
+  - safe fallback for nullable source relative paths (`relativePath ?: displayName`) when building `ConflictSourceFile`
   - no write/commit/push path added
 
 ## Parser / Preview / Write-back Status
