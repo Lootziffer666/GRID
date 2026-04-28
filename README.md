@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 27 PASS: large upload streaming added for single-file Git LFS and single-file Release Asset paths.**
+**Gate 30 PARTIAL: collision card-by-card review and decision preview are implemented; swipe gestures and write-back remain deferred for safety.**
 
 Painkiller now includes:
 
@@ -43,8 +43,9 @@ Painkiller now includes:
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 - large-file routing panel now explains Normal commit vs Git LFS vs Release Asset vs Blocked/Unsupported per source type
 - conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
+- collision card review path now supports per-block decisions (keep current/incoming/both/manual) with summary preview before any write
 
-## Runtime feature status (Gate 27 streaming large uploads baseline)
+## Runtime feature status (Gate 28 routing baseline)
 
 - **Stable**
   - PAT sign-in
@@ -52,12 +53,17 @@ Painkiller now includes:
   - Git Data API commit flow and safety guards
 - **Experimental**
   - Git LFS single-file upload flow (streaming object upload; uploads object first, then commits pointer)
-  - Release asset workflow (single-file source only, streaming upload path)
+  - Release asset workflow (single-file source only, streaming upload path; requires explicit release selection)
+  - Large-file routing decision panel (meaning-first route cards with recommended/blocked/unsupported states)
   - PR merge-assist diagnostics/actions
   - Codex collision cleanup preset preview (KEEP_CURRENT / KEEP_INCOMING / KEEP_BOTH / manual review)
+  - Collision card review flow (button-first card decisions + in-memory summary preview)
 - **Deferred**
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
+  - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
+  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 29)
+  - swipe gesture mapping for collision cards (button controls are available now)
 - **Hidden**
   - none currently
 
@@ -356,3 +362,21 @@ Painkiller now includes a minimal collision-cleanup preset flow for Git conflict
 Current limitation:
 
 - Write-back through SAF is deferred; Gate 29 keeps this flow preview-only for safety.
+
+## Collision cards review (Gate 30)
+
+Painkiller now adds a second conflict-review path for phone UX:
+
+- Review collisions one by one as cards.
+- Decisions per card:
+  - Keep current version
+  - Keep incoming version
+  - Keep both blocks
+  - Review later (manual)
+- Decisions are in-memory only until preview.
+- Summary preview shows decision counts and unresolved/manual blocks.
+- No file writes, commits, or pushes in this gate.
+
+Current limitation:
+
+- Swipe gestures are deferred; Gate 30 ships button-first controls.

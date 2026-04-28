@@ -30,6 +30,12 @@ import com.painkiller.domain.error.RecoveryHint
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.conflict.ConflictPreset
 import com.painkiller.domain.conflict.ConflictPresetPlanner
+import com.painkiller.domain.conflict.ConflictDecision
+import com.painkiller.domain.conflict.ConflictReviewPreview
+import com.painkiller.domain.conflict.ConflictReviewPreviewPlanner
+import com.painkiller.domain.conflict.ConflictReviewSession
+import com.painkiller.domain.conflict.ConflictReviewSessionBuilder
+import com.painkiller.domain.conflict.ConflictReviewSessionReducer
 import com.painkiller.domain.conflict.ConflictResolutionPlan
 import com.painkiller.domain.conflict.ConflictSourceFile
 import com.painkiller.domain.files.DefaultIgnoreRules
@@ -593,6 +599,78 @@ class UploadFlowViewModel(
         _state.update { it.copy(conflictPlan = null, conflictMessage = null) }
     }
 
+    fun startConflictCardReview() {
+        val s = _state.value
+        if (!s.hasSource) {
+            _state.update {
+                it.copy(conflictReviewMessage = "No collision session available. Pick source files first.")
+            }
+            return
+        }
+        viewModelScope.launch {
+            val conflictSources = collectConflictSourceFiles(_state.value)
+            if (conflictSources.isEmpty()) {
+                _state.update {
+                    it.copy(conflictReviewMessage = "No readable text files were found for card review.")
+                }
+                return@launch
+            }
+            val session = ConflictReviewSessionBuilder.create(conflictSources)
+            _state.update {
+                it.copy(
+                    conflictReviewSession = session,
+                    conflictReviewPreview = null,
+                    conflictReviewMessage = if (session.totalCollisions == 0)
+                        "No collisions found for card review."
+                    else
+                        "Collision cards ready. Choose what should stay.",
+                )
+            }
+        }
+    }
+
+    fun decideCurrentConflictCard(decision: ConflictDecision) {
+        val session = _state.value.conflictReviewSession ?: return
+        val updated = ConflictReviewSessionReducer.decide(session, decision)
+        _state.update { it.copy(conflictReviewSession = updated, conflictReviewPreview = null) }
+    }
+
+    fun nextConflictCard() {
+        val session = _state.value.conflictReviewSession ?: return
+        _state.update { it.copy(conflictReviewSession = ConflictReviewSessionReducer.next(session)) }
+    }
+
+    fun previousConflictCard() {
+        val session = _state.value.conflictReviewSession ?: return
+        _state.update { it.copy(conflictReviewSession = ConflictReviewSessionReducer.previous(session)) }
+    }
+
+    fun buildConflictCardPreview() {
+        val session = _state.value.conflictReviewSession ?: run {
+            _state.update {
+                it.copy(conflictReviewMessage = "No conflict session available. Painkiller did not change any files.")
+            }
+            return
+        }
+        val preview = ConflictReviewPreviewPlanner.buildPreview(session)
+        _state.update {
+            it.copy(
+                conflictReviewPreview = preview,
+                conflictReviewMessage = preview.summary,
+            )
+        }
+    }
+
+    fun closeConflictCardReview() {
+        _state.update {
+            it.copy(
+                conflictReviewSession = null,
+                conflictReviewPreview = null,
+                conflictReviewMessage = null,
+            )
+        }
+    }
+
     // ─── plan building ───────────────────────────────────────────────────────
 
     fun buildPlan() {
@@ -948,6 +1026,9 @@ data class UploadFlowUiState(
     val selectedConflictPreset: ConflictPreset = ConflictPreset.KEEP_CURRENT,
     val conflictPlan: ConflictResolutionPlan? = null,
     val conflictMessage: String? = null,
+    val conflictReviewSession: ConflictReviewSession? = null,
+    val conflictReviewPreview: ConflictReviewPreview? = null,
+    val conflictReviewMessage: String? = null,
     val newReleaseTagInput: String = "",
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,
