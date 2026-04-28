@@ -414,18 +414,19 @@ Action:
 
 ## BUG-20260427-020
 
-Status: ACCEPTED
-Gate: 24.5
+Status: FIXED
+Gate: 28
 Severity: LOW
 Summary: Some auth and release actions are visible in UI even when build/runtime support is limited; labels and enablement must truthfully reflect availability.
 
 Evidence:
 - OAuth section is visible in auth screen while backend exchange may be unavailable in default builds.
-- Release asset upload path is single-file only and currently decodes file content into memory.
+- Gate 28 added a dedicated large-file routing panel that marks unsupported source routes as unavailable and keeps their action buttons disabled.
+- Gate 27 removed eager ByteArray decoding for release asset uploads.
 
 Action:
-- Label OAuth as experimental and disable action when backend is unavailable.
-- Add explicit release-asset UI copy noting single-file-only and memory limitation.
+- Fixed for large-file routing in Gate 28: action cards now explain availability and keep unsupported routes non-executable.
+- OAuth remains future-path work and is out of scope for this gate.
 
 ---
 
@@ -443,3 +444,56 @@ Evidence:
 Action:
 - Fixed in Gate 27 for the single-file LFS path.
 - Multi-file/folder/ZIP LFS routing remains out of scope.
+
+---
+
+## BUG-20260428-022
+
+Status: ACCEPTED
+Gate: 28
+Severity: LOW
+Summary: Large-file alternate routes are intentionally limited by source type; multi-file/folder/ZIP LFS and batch Release Asset upload remain unavailable.
+
+Evidence:
+- Gate 28 routing model keeps Git LFS executable only for single-file large uploads.
+- Gate 28 routing model keeps Release Asset executable only for selected single-file uploads with an explicit selected release.
+- Multi-file/folder/ZIP sources show these routes as unavailable with reason text instead of executable actions.
+
+Action:
+- Accepted as current product boundary.
+- Future gates may expand routing transport support, but Gate 28 intentionally does not.
+
+---
+
+## BUG-20260428-023
+
+Status: ACCEPTED
+Gate: 29
+Severity: LOW
+Summary: Conflict preset flow is preview-only in Gate 29 because safe SAF write-back is not yet implemented.
+
+Evidence:
+- Gate 29 adds parser + preset resolver + preview summary for conflict markers.
+- UI action "Write resolved files" is intentionally disabled in this gate.
+- Existing file adapters provide read paths; no dedicated verified write path exists for selected multi-source SAF inputs.
+
+Action:
+- Accepted as safety-first scope boundary for Gate 29.
+- Follow-up gate may add explicit SAF write-permission handling and write-back after preview confirmation.
+
+---
+
+## BUG-20260428-024
+
+Status: ACCEPTED
+Gate: 30
+Severity: LOW
+Summary: Collision cards ship as button-first review; swipe gestures are deferred to avoid accidental mobile decisions in MVP scope.
+
+Evidence:
+- Gate 30 card review path includes visible buttons for keep current/incoming/both/manual decisions.
+- Gesture mapping is not wired in this gate.
+
+Action:
+- Accepted for Gate 30 to keep UX safe and deterministic.
+- Swipe gestures may be added in a later gate without removing visible button controls.

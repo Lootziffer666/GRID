@@ -45,6 +45,10 @@ import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
+import com.painkiller.domain.upload.LargeFileRoute
+import com.painkiller.domain.upload.LargeFileRouteAvailability
+import com.painkiller.domain.conflict.ConflictDecision
+import com.painkiller.domain.conflict.ConflictPreset
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubReleaseSummary
@@ -170,14 +174,9 @@ fun UploadFlowScreen(
                             if (state.isSingleLargeFileEligibleForLfs) {
                                 Text(
                                     text = "This file is too large for a normal Git commit. " +
-                                        "Painkiller streams this file to Git LFS first, then commits a small pointer file. If upload fails, the repo is not changed.",
+                                        "Review routing options below to choose Git LFS or Release Asset.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.tertiary,
-                                )
-                                PainkillerPrimaryActionButton(
-                                    text = if (state.isUploadingLfs) "Uploading with Git LFS…" else "Upload via Git LFS",
-                                    onClick = viewModel::uploadSingleFileViaLfs,
-                                    enabled = !state.isUploadingLfs && !state.isCommitting,
                                 )
                             }
                         }
@@ -368,6 +367,18 @@ fun UploadFlowScreen(
                 )
                 TextButton(onClick = viewModel::dismissReleaseAssetMessage) { Text("Dismiss release message") }
             }
+            state.conflictMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Codex cleanup preset",
+                    body = message,
+                )
+            }
+            state.conflictReviewMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Collision card review",
+                    body = message,
+                )
+            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -433,12 +444,6 @@ fun UploadFlowScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary,
                         )
-                        val canUploadSelectedFile = state.loadedFile != null && !state.isUploadingReleaseAsset
-                        PainkillerPrimaryActionButton(
-                            text = if (state.isUploadingReleaseAsset) "Uploading asset…" else "Upload selected file as asset",
-                            onClick = viewModel::uploadSelectedFileAsReleaseAsset,
-                            enabled = canUploadSelectedFile,
-                        )
                     }
                 }
             }
@@ -469,6 +474,162 @@ fun UploadFlowScreen(
                 }
             }
 
+            SectionCard(title = "Codex collision cleanup (MVP)") {
+                Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                    Text(
+                        text = "Use a preset to resolve repeated collision markers in preview. Nothing is written yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "Default cleanup: keep current version for all.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.KEEP_CURRENT) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.KEEP_CURRENT) "Keep current ✓" else "Keep current")
+                        }
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.KEEP_INCOMING) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.KEEP_INCOMING) "Keep incoming ✓" else "Keep incoming")
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.KEEP_BOTH) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.KEEP_BOTH) "Keep both ✓" else "Keep both")
+                        }
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.REVIEW_MANUALLY) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.REVIEW_MANUALLY) "Manual ✓" else "Manual review")
+                        }
+                    }
+                    PainkillerPrimaryActionButton(
+                        text = "Build collision preview",
+                        onClick = viewModel::buildConflictPreview,
+                        enabled = state.hasSource,
+                    )
+                    state.conflictPlan?.let { conflictPlan ->
+                        Text(
+                            text = "${conflictPlan.filesWithCollisions} file(s) with collisions · " +
+                                "${conflictPlan.totalCollisionBlocks} collision block(s) · " +
+                                "${conflictPlan.malformedFiles} malformed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        conflictPlan.previews.take(1).forEach { preview ->
+                            Text(
+                                text = "Preview: ${preview.path}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = preview.resolvedContent?.take(400)
+                                    ?: (preview.unresolvedReason ?: "Needs manual review."),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        PainkillerPrimaryActionButton(
+                            text = "Write resolved files (disabled in Gate 29)",
+                            onClick = {},
+                            enabled = false,
+                        )
+                        TextButton(onClick = viewModel::clearConflictPreview) {
+                            Text("Cancel preview")
+                        }
+                    }
+                }
+            }
+
+            SectionCard(title = "Collision cards review (Gate 30)") {
+                Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                    Text(
+                        text = "Review collisions one by one with visible controls. Nothing is written until final confirmation.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PainkillerPrimaryActionButton(
+                        text = "Start collision cards",
+                        onClick = viewModel::startConflictCardReview,
+                        enabled = state.hasSource,
+                    )
+                    state.conflictReviewSession?.let { session ->
+                        val card = session.currentCard
+                        if (card != null) {
+                            Text(
+                                text = "Collision ${card.cardIndex} of ${card.totalCards}",
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                            Text(
+                                text = card.filePath,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = "Both versions changed this same place. Choose what should stay.",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                text = "Current version",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                            Text(card.currentTextPreview, style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                text = "Incoming version",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                            Text(card.incomingTextPreview, style = MaterialTheme.typography.bodySmall)
+                            Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                                TextButton(onClick = { viewModel.decideCurrentConflictCard(ConflictDecision.KEEP_CURRENT) }) {
+                                    Text("Keep current")
+                                }
+                                TextButton(onClick = { viewModel.decideCurrentConflictCard(ConflictDecision.KEEP_INCOMING) }) {
+                                    Text("Keep incoming")
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                                TextButton(onClick = { viewModel.decideCurrentConflictCard(ConflictDecision.KEEP_BOTH) }) {
+                                    Text("Keep both")
+                                }
+                                TextButton(onClick = { viewModel.decideCurrentConflictCard(ConflictDecision.REVIEW_MANUALLY) }) {
+                                    Text("Review later")
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                                TextButton(onClick = viewModel::previousConflictCard) { Text("Previous") }
+                                TextButton(onClick = viewModel::nextConflictCard) { Text("Next") }
+                                TextButton(onClick = viewModel::buildConflictCardPreview) { Text("Summary / preview") }
+                            }
+                            Text(
+                                text = "Resolved ${session.resolvedCount} · Manual ${session.manualCount} · Malformed ${session.malformedFiles.size}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        state.conflictReviewPreview?.let { preview ->
+                            Text(
+                                text = "Preview summary: ${preview.summary}",
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                text = "Keep current ${preview.keepCurrentCount} · Keep incoming ${preview.keepIncomingCount} · " +
+                                    "Keep both ${preview.keepBothCount} · Manual ${preview.manualCount}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            PainkillerPrimaryActionButton(
+                                text = "Write resolved files (still disabled)",
+                                onClick = {},
+                                enabled = false,
+                            )
+                        }
+                        TextButton(onClick = viewModel::closeConflictCardReview) {
+                            Text("Close card review")
+                        }
+                    }
+                }
+            }
+
             if (state.plan == null) {
                 PainkillerPrimaryActionButton(
                     text = "Review upload",
@@ -477,6 +638,78 @@ fun UploadFlowScreen(
                 )
             } else {
                 val plan = state.plan!!
+                state.routingDecision?.let { decision ->
+                    SectionCard(title = "Large-file routing") {
+                        Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.sm)) {
+                            Text(
+                                text = decision.summary,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            decision.options.forEach { option ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(PainkillerSpacing.sm),
+                                        verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                                    ) {
+                                        Text(
+                                            text = option.title +
+                                                if (option.recommended) " (Recommended)" else "",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        Text(option.explanation, style = MaterialTheme.typography.bodySmall)
+                                        Text("GitHub result: ${option.githubEffect}", style = MaterialTheme.typography.bodySmall)
+                                        Text("Repo change: ${option.repoChange}", style = MaterialTheme.typography.bodySmall)
+                                        option.reason?.let {
+                                            Text(
+                                                text = "Why unavailable: $it",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
+                                        Text(
+                                            text = option.safetyNote,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.tertiary,
+                                        )
+                                        when (option.route) {
+                                            LargeFileRoute.GIT_LFS_SINGLE_FILE -> {
+                                                PainkillerPrimaryActionButton(
+                                                    text = if (state.isUploadingLfs) "Uploading with Git LFS…" else option.actionLabel,
+                                                    onClick = viewModel::uploadSingleFileViaLfs,
+                                                    enabled = option.executable &&
+                                                        option.availability == LargeFileRouteAvailability.AVAILABLE &&
+                                                        !state.isUploadingLfs &&
+                                                        !state.isCommitting,
+                                                )
+                                            }
+
+                                            LargeFileRoute.RELEASE_ASSET_SINGLE_FILE -> {
+                                                PainkillerPrimaryActionButton(
+                                                    text = if (state.isUploadingReleaseAsset) "Uploading asset…" else option.actionLabel,
+                                                    onClick = viewModel::uploadSelectedFileAsReleaseAsset,
+                                                    enabled = option.executable &&
+                                                        option.availability == LargeFileRouteAvailability.AVAILABLE &&
+                                                        !state.isUploadingReleaseAsset,
+                                                )
+                                            }
+
+                                            else -> Unit
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 SectionCard(title = "Upload plan") {
                     Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                         Text(
