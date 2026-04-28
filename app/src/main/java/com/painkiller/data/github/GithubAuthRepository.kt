@@ -6,7 +6,7 @@ import com.painkiller.domain.github.GithubGitDataException
 /**
  * GitHub auth boundary used by the auth screen and the upload flow.
  *
- * Painkiller v0 supports two sign-in paths:
+ * Painkiller currently supports two auth states:
  *
  * 1. **Personal Access Token** ([signInWithPersonalAccessToken]) — the user
  *    pastes a classic `ghp_…` or fine-grained `github_pat_…` token into the
@@ -14,23 +14,19 @@ import com.painkiller.domain.github.GithubGitDataException
  *    [GithubTokenProbeApi] before being persisted in [SecureTokenStore]
  *    (encrypted via AndroidX Security in production builds).
  *
- * 2. **OAuth authorization code** ([authenticateWithAuthorizationCode]) —
- *    contract preserved from Gate 3, but no public-app implementation
- *    exists in v0 because the OAuth code-for-token exchange requires a
- *    `client_secret` that cannot ship in a public Android app. Kept here
- *    so a future server-mediated flow can drop in without an API change.
+ * 2. **OAuth authorization code candidate** ([authenticateWithAuthorizationCode]) —
+ *    preserved as a disabled-by-default capability check. No production flow
+ *    is enabled in this build.
  *
  * No raw token is ever logged, returned in [authState], or surfaced in
  * exception messages.
  */
 class GithubAuthRepository(
     private val oauthApi: GithubOAuthApi?,
-    private val appAuthApi: GithubAppAuthApi?,
     private val tokenProbeApi: GithubTokenProbeApi?,
     private val secureTokenStore: SecureTokenStore,
 ) {
     fun isOAuthExchangeAvailable(): Boolean = oauthApi != null
-    fun isGithubAppExchangeAvailable(): Boolean = appAuthApi != null
 
     suspend fun authState(): GithubAuthState {
         val token = secureTokenStore.readGithubToken() ?: return GithubAuthState.Unauthenticated
@@ -57,31 +53,6 @@ class GithubAuthRepository(
             },
             onFailure = {
                 GithubAuthResult.Failure("GitHub authentication failed.")
-            },
-        )
-    }
-
-    suspend fun signInWithGithubAppInstallation(installationId: String): GithubAuthResult {
-        val api = appAuthApi
-            ?: return GithubAuthResult.Failure("GitHub App flow is not available in this build.")
-        val cleanId = installationId.trim()
-        if (cleanId.isEmpty()) {
-            return GithubAuthResult.Failure("Installation ID is required.")
-        }
-
-        return runCatching { api.exchangeInstallationToken(cleanId) }.fold(
-            onSuccess = { token ->
-                if (token.isBlank()) {
-                    GithubAuthResult.Failure("Received empty installation token.")
-                } else {
-                    secureTokenStore.writeGithubToken(token)
-                    GithubAuthResult.Success(
-                        state = GithubAuthState.Authenticated(tokenPreview = token.preview()),
-                    )
-                }
-            },
-            onFailure = {
-                GithubAuthResult.Failure("GitHub App authentication failed.")
             },
         )
     }

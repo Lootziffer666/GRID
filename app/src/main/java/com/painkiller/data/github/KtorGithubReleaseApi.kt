@@ -15,11 +15,14 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.client.statement.HttpResponse
-import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLBuilder
-import io.ktor.http.content.ByteArrayContent
+import io.ktor.http.content.OutgoingContent
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeFully
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -75,9 +78,9 @@ class KtorGithubReleaseApi(
                 withBearer(token)
                 header(HttpHeaders.ContentType, request.contentType)
                 setBody(
-                    ByteArrayContent(
-                        bytes = request.data,
-                        contentType = ContentType.parse(request.contentType),
+                    StreamingUploadContent(
+                        payload = request.payload,
+                        contentType = request.contentType,
                     ),
                 )
             }
@@ -117,5 +120,27 @@ class KtorGithubReleaseApi(
         response.body()
     } catch (e: Throwable) {
         throw GithubGitDataException.NetworkUnavailable()
+    }
+}
+
+private class StreamingUploadContent(
+    private val payload: com.painkiller.domain.github.UploadPayload,
+    private val uploadContentType: String,
+) : OutgoingContent.WriteChannelContent() {
+    override val contentType = io.ktor.http.ContentType.parse(uploadContentType)
+    override val contentLength: Long = payload.sizeBytes
+
+    override suspend fun writeTo(channel: ByteWriteChannel) {
+        withContext(Dispatchers.IO) {
+            payload.openStream().use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    if (read == 0) continue
+                    channel.writeFully(buffer, 0, read)
+                }
+            }
+        }
     }
 }

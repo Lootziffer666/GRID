@@ -11,29 +11,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
-/**
- * Reads a single SAF [Uri] into a [LoadedFile] containing display name, MIME
- * type, byte size, and Base64-encoded content. The file is fully read into
- * memory — Painkiller's blocked-size threshold (>100 MiB) is enforced
- * upstream by `LargeFileDoctor`, so this reader can safely buffer the bytes.
- *
- * All disk I/O hops to [Dispatchers.IO]. ContentResolver lookups can be
- * slow on cold caches, so callers should not invoke this from the main
- * thread.
- */
 class SafFileReader(
     appContext: Context,
 ) {
     private val resolver: ContentResolver = appContext.applicationContext.contentResolver
 
-    /**
-     * Reads [uri] and returns its metadata + Base64-encoded content. Returns
-     * null if the URI is no longer readable (e.g. permission revoked, file
-     * deleted, content provider gone).
-     */
     suspend fun read(uri: Uri): LoadedFile? = withContext(Dispatchers.IO) {
-        val (displayName, sizeBytes) = queryMetadata(uri) ?: return@withContext null
-        val mimeType = resolver.getType(uri)
+        val metadata = readMetadataInternal(uri) ?: return@withContext null
         val bytes = try {
             resolver.openInputStream(uri)?.use { it.readBytes() }
         } catch (e: SecurityException) {
@@ -42,19 +26,29 @@ class SafFileReader(
             null
         } ?: return@withContext null
 
-        LoadedFile(
-            displayName = displayName,
-            sizeBytes = sizeBytes ?: bytes.size.toLong(),
-            mimeType = mimeType,
+        metadata.toLoadedFile(
             contentBase64 = Base64.encodeToString(bytes, Base64.NO_WRAP),
-            sourceItem = SelectedSourceItem(
-                sourceId = uri.toString(),
-                displayName = displayName,
-                relativePath = displayName,
-                sizeBytes = sizeBytes ?: bytes.size.toLong(),
-                mimeType = mimeType,
-            ),
+            sizeBytes = metadata.sizeBytes ?: bytes.size.toLong(),
         )
+    }
+
+    suspend fun readMetadata(uri: Uri): LoadedFile? = withContext(Dispatchers.IO) {
+        val metadata = readMetadataInternal(uri) ?: return@withContext null
+        metadata.toLoadedFile(
+            contentBase64 = null,
+            sizeBytes = metadata.sizeBytes ?: 0L,
+        )
+    }
+
+    fun createUploadPayload(sourceId: String, sizeBytes: Long): SafUriUploadPayload? {
+        val uri = runCatching { Uri.parse(sourceId) }.getOrNull() ?: return null
+        return SafUriUploadPayload(resolver = resolver, uri = uri, sizeBytes = sizeBytes)
+    }
+
+    private fun readMetadataInternal(uri: Uri): FileMetadata? {
+        val (displayName, sizeBytes) = queryMetadata(uri) ?: return null
+        val mimeType = resolver.getType(uri)
+        return FileMetadata(uri, displayName, sizeBytes, mimeType)
     }
 
     private fun queryMetadata(uri: Uri): Pair<String, Long?>? {
@@ -62,7 +56,9 @@ class SafFileReader(
             resolver.query(
                 uri,
                 arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE),
-                null, null, null,
+                null,
+                null,
+                null,
             )?.use { cursor ->
                 if (!cursor.moveToFirst()) return null
                 val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -75,18 +71,36 @@ class SafFileReader(
             null
         }
     }
+
+    private data class FileMetadata(
+        val uri: Uri,
+        val displayName: String,
+        val sizeBytes: Long?,
+        val mimeType: String?,
+    ) {
+        fun toLoadedFile(contentBase64: String?, sizeBytes: Long): LoadedFile {
+            return LoadedFile(
+                displayName = displayName,
+                sizeBytes = sizeBytes,
+                mimeType = mimeType,
+                contentBase64 = contentBase64,
+                sourceItem = SelectedSourceItem(
+                    sourceId = uri.toString(),
+                    displayName = displayName,
+                    relativePath = displayName,
+                    sizeBytes = sizeBytes,
+                    mimeType = mimeType,
+                ),
+            )
+        }
+    }
 }
 
-/**
- * Result of reading one file via SAF.
- */
 data class LoadedFile(
     val displayName: String,
     val sizeBytes: Long,
     val mimeType: String?,
-    /** Base64-encoded file content, suitable for `CreateBlobRequest`. */
-    val contentBase64: String,
-    /** [SelectedSourceItem] view of this file for `:domain` planning. */
+    val contentBase64: String?,
     val sourceItem: SelectedSourceItem,
 ) {
     fun sourceKind(): SourceKind = SourceKind.SINGLE_FILE

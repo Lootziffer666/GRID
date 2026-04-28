@@ -1,6 +1,7 @@
 package com.painkiller.data.github
 
 import com.painkiller.domain.github.GithubGitDataException
+import com.painkiller.domain.github.UploadPayload
 import com.painkiller.domain.github.UploadReleaseAssetRequest
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -15,11 +16,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.ByteArrayInputStream
 
 class KtorGithubReleaseApiTest {
 
     @Test
     fun uploadReleaseAsset_postsToUploadsHost_withNameQueryAndContentType() = runTest {
+        var opened = 0
         val api = api(MockEngine { request ->
             assertEquals("uploads.github.com", request.url.host)
             assertTrue(request.url.encodedPath.endsWith("/repos/o/r/releases/22/assets"))
@@ -39,12 +42,13 @@ class KtorGithubReleaseApiTest {
             request = UploadReleaseAssetRequest(
                 name = "video.mp4",
                 contentType = "video/mp4",
-                data = byteArrayOf(1, 2, 3, 4, 5),
+                payload = payload(5) { opened++ },
             ),
         )
 
         assertEquals("video.mp4", result.name)
         assertEquals(99L, result.id)
+        assertEquals(1, opened)
     }
 
     @Test
@@ -56,7 +60,7 @@ class KtorGithubReleaseApiTest {
                     owner = "o",
                     repo = "r",
                     releaseId = 3L,
-                    request = UploadReleaseAssetRequest("a.bin", "application/octet-stream", byteArrayOf(1)),
+                    request = UploadReleaseAssetRequest("a.bin", "application/octet-stream", payload(1)),
                 )
             }
         }
@@ -78,7 +82,7 @@ class KtorGithubReleaseApiTest {
                     owner = "o",
                     repo = "r",
                     releaseId = 3L,
-                    request = UploadReleaseAssetRequest("a.bin", "application/octet-stream", byteArrayOf(1)),
+                    request = UploadReleaseAssetRequest("a.bin", "application/octet-stream", payload(1)),
                 )
             }
         }
@@ -89,4 +93,9 @@ class KtorGithubReleaseApiTest {
         client = PainkillerHttpClient.create(engine),
         tokenProvider = { token },
     )
+
+    private fun payload(size: Int, onOpen: () -> Unit = {}): UploadPayload = object : UploadPayload {
+        override val sizeBytes: Long = size.toLong()
+        override fun openStream() = ByteArrayInputStream(ByteArray(size) { 1 }).also { onOpen() }
+    }
 }

@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 24.5 PASS: runtime/scope reconciliation completed (truth-labeling for auth/release paths).**
+**Gate 27 PASS: large upload streaming added for single-file Git LFS and single-file Release Asset paths.**
 
 Painkiller now includes:
 
@@ -34,30 +34,27 @@ Painkiller now includes:
 - single and multi-file Git Data API orchestration
 - Ktor-based GitHub API adapters (repo/branch listing + git-data + token probe)
 - PAT-based sign-in with encrypted secure storage
-- OAuth authorization-code sign-in path added as optional second login mode (build-dependent exchange support)
-- GitHub App installation sign-in path scaffolded (backend token exchange required)
-- ZIP intake safety checks (ZIP-Slip defense in depth)
+- OAuth Device Flow / OAuth App documented as a future mobile-friendly auth candidate (not yet implemented)
+- ZIP intake as a real source path with root normalization, ZIP-Slip blocking, collision surfacing, and commit integration
 - dark mode toggle (default is light mode)
 - splash screen + vector app icon branding
 - intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
-- user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
+- user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), and further LFS/release hardening in later gates
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 
-## Runtime feature status (Gate 24.5 reconciliation)
+## Runtime feature status (Gate 27 streaming large uploads baseline)
 
 - **Stable**
   - PAT sign-in
   - single-file/multi-file/folder/ZIP intake + upload planning
   - Git Data API commit flow and safety guards
 - **Experimental**
-  - Release asset workflow (single-file source only, memory-heavy upload path)
+  - Git LFS single-file upload flow (streaming object upload; uploads object first, then commits pointer)
+  - Release asset workflow (single-file source only, streaming upload path)
   - PR merge-assist diagnostics/actions
-- **Dev-only**
-  - GitHub App installation sign-in via broker (only when `GITHUB_APP_BROKER_BASE_URL` is configured)
-  - local Node exchange server under `tools/github-app-exchange-server` (development bridge only)
 - **Deferred**
-  - OAuth code exchange in default builds (backend not configured by default)
-  - multi-file release asset batch upload and streaming upload body
+  - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
+  - multi-file release asset batch upload
 - **Hidden**
   - none currently
 
@@ -83,7 +80,11 @@ verification of the gated layers.
 - Gate 22: `handoff/GATE_22_HANDOFF.md`
 - Gate 23: `handoff/GATE_23_HANDOFF.md`
 - Gate 24: `handoff/GATE_24_HANDOFF.md`
-- Gate 24.5 (aktueller Stand): `handoff/GATE_24_5_HANDOFF.md`
+- Gate 24.5: `handoff/GATE_24_5_HANDOFF.md`
+- Gate 24.6: `handoff/GATE_24_6_HANDOFF.md`
+- Gate 25: `handoff/GATE_25_HANDOFF.md`
+- Gate 26: `handoff/GATE_26_HANDOFF.md`
+- Gate 27 (aktueller Stand): `handoff/GATE_27_HANDOFF.md`
 - Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
@@ -275,8 +276,10 @@ Then:
 
 ## Known limitations
 
-- OAuth authorization-code sign-in flow remains deferred; PAT flow is active.
-- ZIP parsing currently follows root-path heuristics and deterministic ordering, but does not provide advanced archive conflict UI yet.
+- PAT sign-in is the active product auth path.
+- OAuth Device Flow / OAuth App remains a future candidate and is not implemented yet.
+- ZIP collisions and unsafe paths are surfaced in the upload flow; unsafe paths block plan build before upload.
+- Git LFS is single-file only; object upload is streaming in Gate 27.
 - Some UX polish (progress feedback, richer source summaries) is still pending.
 
 ## What this candidate is and is not
@@ -305,7 +308,7 @@ BUG-20260426-009 for the planned next-step contract.
 
 ## Out of scope (whole project)
 
-- Git LFS upload (only diagnosed, not executed).
+- Git LFS upload (Gate 26: real single-file object upload + pointer commit).
 - GitHub Release Asset upload (only diagnosed).
 - Conflict Cards / automatic merge resolution.
 - PRs, branch graphs, full Git history.

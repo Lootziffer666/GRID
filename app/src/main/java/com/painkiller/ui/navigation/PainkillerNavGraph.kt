@@ -53,6 +53,7 @@ fun PainkillerNavGraph(
                     releaseRepository = container.releaseRepository,
                     singleFileCommitRepository = container.singleFileCommitRepository,
                     multiFileCommitRepository = container.multiFileCommitRepository,
+                    lfsRepository = container.lfsRepository,
                     settingsStore = container.repoTargetSettingsStore,
                 ),
             )
