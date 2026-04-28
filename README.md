@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 29 PARTIAL: Codex conflict preset parser/resolver + preview are implemented; write-back is intentionally blocked pending safe SAF write support.**
+**Gate 27 PASS: large upload streaming added for single-file Git LFS and single-file Release Asset paths.**
 
 Painkiller now includes:
 
@@ -44,7 +44,7 @@ Painkiller now includes:
 - large-file routing panel now explains Normal commit vs Git LFS vs Release Asset vs Blocked/Unsupported per source type
 - conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
 
-## Runtime feature status (Gate 28 routing baseline)
+## Runtime feature status (Gate 27 streaming large uploads baseline)
 
 - **Stable**
   - PAT sign-in
@@ -52,15 +52,12 @@ Painkiller now includes:
   - Git Data API commit flow and safety guards
 - **Experimental**
   - Git LFS single-file upload flow (streaming object upload; uploads object first, then commits pointer)
-  - Release asset workflow (single-file source only, streaming upload path; requires explicit release selection)
-  - Large-file routing decision panel (meaning-first route cards with recommended/blocked/unsupported states)
+  - Release asset workflow (single-file source only, streaming upload path)
   - PR merge-assist diagnostics/actions
   - Codex collision cleanup preset preview (KEEP_CURRENT / KEEP_INCOMING / KEEP_BOTH / manual review)
 - **Deferred**
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
-  - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
-  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 29)
 - **Hidden**
   - none currently
 

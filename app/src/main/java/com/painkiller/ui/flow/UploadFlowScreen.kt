@@ -173,7 +173,7 @@ fun UploadFlowScreen(
                             if (state.isSingleLargeFileEligibleForLfs) {
                                 Text(
                                     text = "This file is too large for a normal Git commit. " +
-                                        "Review routing options below to choose Git LFS or Release Asset.",
+                                        "Painkiller streams this file to Git LFS first, then commits a small pointer file. If upload fails, the repo is not changed.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.tertiary,
                                 )
