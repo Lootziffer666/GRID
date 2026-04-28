@@ -50,6 +50,9 @@ import com.painkiller.domain.target.BranchTarget
 import com.painkiller.domain.target.RepoTarget
 import com.painkiller.domain.target.TargetPath
 import com.painkiller.domain.target.TargetPathValidationResult
+import com.painkiller.domain.upload.LargeFileRoutingDecision
+import com.painkiller.domain.upload.LargeFileRoutingDecider
+import com.painkiller.domain.upload.LargeFileRoutingInput
 import com.painkiller.domain.upload.UploadPlan
 import com.painkiller.domain.upload.UploadPlanBuilder
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -878,7 +881,33 @@ data class UploadFlowUiState(
     val zipCollisionCount: Int get() = zipIssues.count { it.code == ZipIntakeIssueCode.COLLISION }
     val hasZipUnsafeEntries: Boolean get() = zipIssues.any { it.code == ZipIntakeIssueCode.UNSAFE_PATH }
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
+    val sourceKind: SourceKind?
+        get() = when {
+            loadedFile != null -> SourceKind.SINGLE_FILE
+            loadedFolder != null -> loadedFolder.kind
+            else -> null
+        }
     val isSingleLargeFileEligibleForLfs: Boolean get() = loadedFile?.sizeBytes?.let { it > (100L * 1024L * 1024L) } == true
+    val hasAnyLargeFilesInPlan: Boolean
+        get() = plan?.let { current ->
+            current.blockedEntries.isNotEmpty() ||
+                current.warningEntries.any { entry -> entry.sizeBytes?.let { it > (100L * 1024L * 1024L) } == true }
+        } == true
+    val routingDecision: LargeFileRoutingDecision?
+        get() {
+            val kind = sourceKind ?: return null
+            val currentPlan = plan ?: return null
+            return LargeFileRoutingDecider.decide(
+                LargeFileRoutingInput(
+                    sourceKind = kind,
+                    hasBlockedEntries = currentPlan.isBlockedForCommit,
+                    hasUnsafeZipEntries = isZipSource && hasZipUnsafeEntries,
+                    hasSingleLargeFile = kind == SourceKind.SINGLE_FILE && isSingleLargeFileEligibleForLfs,
+                    hasAnyLargeFiles = hasAnyLargeFilesInPlan,
+                    hasReleaseSelected = selectedRelease != null,
+                ),
+            )
+        }
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
     val retrySafety: RetrySafety? get() = humanError?.retrySafety
 }
