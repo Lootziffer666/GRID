@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +40,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.painkiller.data.files.SafFolderReader
@@ -568,17 +571,59 @@ fun UploadFlowScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                text = "Current version",
+                                text = "Swipe right = Keep current · Swipe left = Keep incoming",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Text(card.currentTextPreview, style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                text = "Incoming version",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
-                            Text(card.incomingTextPreview, style = MaterialTheme.typography.bodySmall)
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(card.ref, card.selectedDecision) {
+                                        var totalDrag = 0f
+                                        detectHorizontalDragGestures(
+                                            onHorizontalDrag = { change, dragAmount ->
+                                                totalDrag += dragAmount
+                                                change.consume()
+                                            },
+                                            onDragEnd = {
+                                                when {
+                                                    totalDrag >= 120f -> {
+                                                        viewModel.decideAndAdvanceConflictCard(
+                                                            ConflictDecision.KEEP_CURRENT,
+                                                        )
+                                                    }
+
+                                                    totalDrag <= -120f -> {
+                                                        viewModel.decideAndAdvanceConflictCard(
+                                                            ConflictDecision.KEEP_INCOMING,
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                        )
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(PainkillerSpacing.sm),
+                                    verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                                ) {
+                                    Text(
+                                        text = "Current version",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                    Text(card.currentTextPreview, style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        text = "Incoming version",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                    Text(card.incomingTextPreview, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
                             Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                                 TextButton(onClick = { viewModel.decideCurrentConflictCard(ConflictDecision.KEEP_CURRENT) }) {
                                     Text("Keep current")
