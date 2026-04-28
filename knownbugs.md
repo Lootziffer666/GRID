@@ -275,18 +275,19 @@ Action:
 
 ## BUG-20260427-012
 
-Status: ACCEPTED
-Gate: 16
+Status: FIXED
+Gate: 25
 Severity: LOW
-Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+Summary: ZIP intake collisions are now surfaced in UI and unsafe ZIP paths are blocked before upload planning.
 
 Evidence:
-- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
-- Colliding entries are dropped deterministically to prevent silent map overwrite.
+- `ZipIntakePlanner` records collision and unsafe-path issues during ZIP normalization.
+- `UploadFlowViewModel` stores ZIP issues and blocks plan-build when unsafe entries are present.
+- `UploadFlowScreen` shows collision and unsafe-path warnings for ZIP sources.
 
 Action:
-- Accepted short-term for intake hardening.
-- Follow-up in later UX gate: surface a collision warning in the source summary.
+- Fixed in Gate 25 ZIP-core recentering.
+- Keep deterministic first-entry-wins behavior for collisions, now with explicit user-visible warnings.
 
 ---
 
@@ -360,18 +361,19 @@ Action:
 
 ## BUG-20260427-017
 
-Status: ACCEPTED
-Gate: 23
+Status: FIXED
+Gate: 24.6
 Severity: LOW
-Summary: GitHub App installation sign-in is wired in UI/domain boundary, but requires backend exchange endpoint configuration to be functional.
+Summary: GitHub App installation sign-in dev spike has been removed from the product auth path.
 
 Evidence:
-- `GithubAuthRepository.signInWithGithubAppInstallation()` returns a failure when `appAuthApi` is not configured.
-- `PainkillerContainer` currently wires `appAuthApi = null`.
+- `GithubAuthRepository` no longer accepts `GithubAppAuthApi` and no longer exposes `signInWithGithubAppInstallation(...)`.
+- `AuthViewModel`/`AuthScreen` no longer expose installation-id input or GitHub App broker sign-in actions.
+- `PainkillerContainer` no longer wires `appAuthApi`.
 
 Action:
-- Keep GitHub App flow visible as preferred path.
-- Implement backend exchange endpoint and wire `GithubAppAuthApi` in a follow-up infrastructure gate.
+- Keep PAT as the only active auth path.
+- Evaluate OAuth Device Flow / OAuth App as the future mobile-friendly path in a later gate.
 
 ---
 
@@ -394,22 +396,19 @@ Action:
 
 ## BUG-20260427-019
 
-Status: OPEN
-Gate: 24+
+Status: FIXED
+Gate: 24.6
 Severity: MEDIUM
-Summary: Final auth architecture decision is pending between OAuth Device Flow/OAuth App vs GitHub App external broker; local Node helper is dev-only and must not be required for normal users.
+Summary: GitHub App broker has been removed from the product path by decision; PAT remains active and OAuth Device Flow / OAuth App is the future candidate.
 
 Evidence:
-- `PainkillerContainer` enables GitHub App broker auth only when `BuildConfig.GITHUB_APP_BROKER_BASE_URL` is non-blank; default remains disabled.
-- `tools/github-app-exchange-server/README.md` explicitly marks the Node server as temporary development/testing bridge.
-- User requirement explicitly disallows requiring npm/Termux/.pem management in normal UX.
+- `BuildConfig.GITHUB_APP_BROKER_BASE_URL` was removed from app build config.
+- `RetrofitGithubAppAuthApi` production wiring and broker injection path were removed.
+- `tools/github-app-exchange-server` was removed from the repository.
 
 Action:
-- Keep default builds independent of local helper server.
-- Finalize architecture decision:
-  - Option A: OAuth Device Flow/OAuth App mobile-first path, or
-  - Option B: GitHub App with hosted external token broker.
-- Keep Option C (local private-key import) as advanced/dev-only mode, never default.
+- Keep PAT as the current login path.
+- Do not implement OAuth yet; evaluate OAuth Device Flow / OAuth App in a later gate.
 
 ---
 
@@ -421,10 +420,26 @@ Severity: LOW
 Summary: Some auth and release actions are visible in UI even when build/runtime support is limited; labels and enablement must truthfully reflect availability.
 
 Evidence:
-- OAuth and GitHub App sections are visible in auth screen while backend exchange may be unavailable in default builds.
+- OAuth section is visible in auth screen while backend exchange may be unavailable in default builds.
 - Release asset upload path is single-file only and currently decodes file content into memory.
 
 Action:
 - Label OAuth as experimental and disable action when backend is unavailable.
-- Label GitHub App broker path as dev-only and disable when broker URL is not configured.
 - Add explicit release-asset UI copy noting single-file-only and memory limitation.
+
+---
+
+## BUG-20260428-021
+
+Status: ACCEPTED
+Gate: 26
+Severity: LOW
+Summary: Gate 26 real Git LFS path is single-file only and currently decodes selected file content in-memory before upload.
+
+Evidence:
+- `GithubLfsRepository.uploadSingleFileAndCommitPointer()` decodes selected file base64 to `ByteArray` before LFS batch/upload.
+- `UploadFlowViewModel.uploadSingleFileViaLfs()` is wired only for single selected files above 100 MiB.
+
+Action:
+- Accepted for Gate 26 MVP scope.
+- Follow-up gate should move LFS object upload to streaming input for lower peak memory and larger-file resilience.

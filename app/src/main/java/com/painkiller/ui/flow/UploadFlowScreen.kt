@@ -146,44 +146,83 @@ fun UploadFlowScreen(
             SectionCard(title = "Source") {
                 when {
                     state.loadedFile != null -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = state.loadedFile!!.displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = formatBytes(state.loadedFile!!.sizeBytes),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                TextButton(onClick = viewModel::clearLoadedFile) { Text("Clear") }
+                            }
+                            if (state.isSingleLargeFileEligibleForLfs) {
                                 Text(
-                                    text = state.loadedFile!!.displayName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = formatBytes(state.loadedFile!!.sizeBytes),
+                                    text = "This file is too large for a normal Git commit. " +
+                                        "Painkiller can upload it through Git LFS, then commit a small pointer file.",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                                PainkillerPrimaryActionButton(
+                                    text = if (state.isUploadingLfs) "Uploading with Git LFS…" else "Upload via Git LFS",
+                                    onClick = viewModel::uploadSingleFileViaLfs,
+                                    enabled = !state.isUploadingLfs && !state.isCommitting,
                                 )
                             }
-                            TextButton(onClick = viewModel::clearLoadedFile) { Text("Clear") }
                         }
                     }
                     state.loadedFolder != null -> {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = when {
-                                        state.isZipSource -> "ZIP — ${state.loadedFolder!!.items.size} file(s)"
-                                        state.isMultipleFileSource -> "Multiple files — ${state.loadedFolder!!.items.size} file(s)"
-                                        else -> "Folder — ${state.loadedFolder!!.items.size} file(s)"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
+                        Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = when {
+                                            state.isZipSource -> "ZIP — ${state.loadedFolder!!.items.size} safe file(s)"
+                                            state.isMultipleFileSource -> "Multiple files — ${state.loadedFolder!!.items.size} file(s)"
+                                            else -> "Folder — ${state.loadedFolder!!.items.size} file(s)"
+                                        },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                                TextButton(onClick = viewModel::clearLoadedFolder) { Text("Clear") }
                             }
-                            TextButton(onClick = viewModel::clearLoadedFolder) { Text("Clear") }
+                            if (state.isZipSource && state.zipIssues.isNotEmpty()) {
+                                val collisionLabel = if (state.zipCollisionCount > 0) {
+                                    "Collisions: ${state.zipCollisionCount}. First normalized path is kept."
+                                } else null
+                                val unsafeCount = state.zipIssues.count {
+                                    it.code == com.painkiller.domain.files.ZipIntakeIssueCode.UNSAFE_PATH
+                                }
+                                if (unsafeCount > 0) {
+                                    Text(
+                                        text = "Blocked unsafe ZIP paths: $unsafeCount. Review ZIP and retry.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                                collisionLabel?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                }
+                            }
                         }
                     }
                     isLoadingFolder || isLoadingZip -> {
@@ -477,6 +516,20 @@ fun UploadFlowScreen(
                         if (plan.blockedEntries.isNotEmpty()) {
                             Text(
                                 "Blocked entries must be removed or replaced before upload.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                        if (state.isZipSource && state.zipCollisionCount > 0) {
+                            Text(
+                                "ZIP collisions detected: ${state.zipCollisionCount}. Conflicting paths were normalized and deduplicated.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
+                        if (state.isZipSource && state.hasZipUnsafeEntries) {
+                            Text(
+                                "ZIP contains unsafe paths and is blocked before upload.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )

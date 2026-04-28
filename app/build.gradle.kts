@@ -17,7 +17,6 @@ android {
         versionName = "0.0.1-gate0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
-        buildConfigField("String", "GITHUB_APP_BROKER_BASE_URL", "\"\"")
     }
 
     buildTypes {
@@ -66,8 +65,6 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.retrofit.core)
-    implementation(libs.retrofit.converter.gson)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
