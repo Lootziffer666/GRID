@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.painkiller.data.files.SafFileReader
+import com.painkiller.data.files.SafFileWriter
 import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.GithubAuthRepository
@@ -60,6 +61,7 @@ class PainkillerContainer(appContext: Context) {
     }
 
     val safFileReader: SafFileReader by lazy { SafFileReader(app) }
+    val safFileWriter: SafFileWriter by lazy { SafFileWriter(app) }
     val safFolderReader: SafFolderReader by lazy { SafFolderReader(app) }
     val safZipReader: SafZipReader by lazy { SafZipReader(app) }
 

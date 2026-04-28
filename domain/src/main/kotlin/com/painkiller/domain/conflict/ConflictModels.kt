@@ -1,8 +1,13 @@
 package com.painkiller.domain.conflict
 
+import com.painkiller.domain.files.SourceKind
+
 data class ConflictSourceFile(
     val path: String,
     val content: String,
+    val sourceId: String? = null,
+    val sourceKind: SourceKind = SourceKind.SINGLE_FILE,
+    val writableBySaf: Boolean = sourceId != null,
 )
 
 data class ConflictBlock(

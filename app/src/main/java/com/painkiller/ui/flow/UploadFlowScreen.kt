@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.activity.result.contract.ActivityResultContracts.OpenMultipleDocuments
 import androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -39,6 +40,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.painkiller.data.files.SafFolderReader
@@ -107,6 +109,7 @@ fun UploadFlowScreen(
     var showPullRequestDialog by remember { mutableStateOf(false) }
     var showReleaseDialog by remember { mutableStateOf(false) }
     var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
+    var showWriteResolvedConfirm by remember { mutableStateOf(false) }
 
     if (state.hasSucceeded) {
         SuccessScreen(
@@ -379,6 +382,12 @@ fun UploadFlowScreen(
                     body = message,
                 )
             }
+            state.conflictWriteMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Write resolved files",
+                    body = message,
+                )
+            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -528,10 +537,30 @@ fun UploadFlowScreen(
                             )
                         }
                         PainkillerPrimaryActionButton(
-                            text = "Write resolved files (disabled in Gate 29)",
-                            onClick = {},
-                            enabled = false,
+                            text = "Save these decisions",
+                            onClick = viewModel::buildConflictWritePlanFromPresetPreview,
+                            enabled = true,
                         )
+                        state.conflictWritePlan?.let { writePlan ->
+                            Text(
+                                text = "Write plan: ${writePlan.filesToWrite.size} file(s) ready · ${writePlan.blockedFiles.size} blocked",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (writePlan.blockedFiles.isNotEmpty()) {
+                                Text(
+                                    text = "Blocked for safety: " +
+                                        writePlan.blockedFiles.take(2).joinToString { it.path },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                            }
+                            PainkillerPrimaryActionButton(
+                                text = "Write resolved files",
+                                onClick = { showWriteResolvedConfirm = true },
+                                enabled = writePlan.hasEligibleFiles,
+                            )
+                        }
                         TextButton(onClick = viewModel::clearConflictPreview) {
                             Text("Cancel preview")
                         }
@@ -568,17 +597,59 @@ fun UploadFlowScreen(
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                text = "Current version",
+                                text = "Swipe right = Keep current · Swipe left = Keep incoming",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Text(card.currentTextPreview, style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                text = "Incoming version",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.tertiary,
-                            )
-                            Text(card.incomingTextPreview, style = MaterialTheme.typography.bodySmall)
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(card.ref, card.selectedDecision) {
+                                        var totalDrag = 0f
+                                        detectHorizontalDragGestures(
+                                            onHorizontalDrag = { change, dragAmount ->
+                                                totalDrag += dragAmount
+                                                change.consume()
+                                            },
+                                            onDragEnd = {
+                                                when {
+                                                    totalDrag >= 120f -> {
+                                                        viewModel.decideAndAdvanceConflictCard(
+                                                            ConflictDecision.KEEP_CURRENT,
+                                                        )
+                                                    }
+
+                                                    totalDrag <= -120f -> {
+                                                        viewModel.decideAndAdvanceConflictCard(
+                                                            ConflictDecision.KEEP_INCOMING,
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                        )
+                                    },
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                ),
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(PainkillerSpacing.sm),
+                                    verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                                ) {
+                                    Text(
+                                        text = "Current version",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                    Text(card.currentTextPreview, style = MaterialTheme.typography.bodySmall)
+                                    Text(
+                                        text = "Incoming version",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.tertiary,
+                                    )
+                                    Text(card.incomingTextPreview, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
                             Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                                 TextButton(onClick = { viewModel.decideCurrentConflictCard(ConflictDecision.KEEP_CURRENT) }) {
                                     Text("Keep current")
@@ -618,10 +689,22 @@ fun UploadFlowScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             PainkillerPrimaryActionButton(
-                                text = "Write resolved files (still disabled)",
-                                onClick = {},
-                                enabled = false,
+                                text = "Save these decisions",
+                                onClick = viewModel::buildConflictWritePlanFromCardPreview,
+                                enabled = true,
                             )
+                            state.conflictWritePlan?.let { writePlan ->
+                                Text(
+                                    text = "Write plan: ${writePlan.filesToWrite.size} file(s) ready · ${writePlan.blockedFiles.size} blocked",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                PainkillerPrimaryActionButton(
+                                    text = "Write resolved files",
+                                    onClick = { showWriteResolvedConfirm = true },
+                                    enabled = writePlan.hasEligibleFiles,
+                                )
+                            }
                         }
                         TextButton(onClick = viewModel::closeConflictCardReview) {
                             Text("Close card review")
@@ -800,6 +883,31 @@ fun UploadFlowScreen(
 
             Spacer(modifier = Modifier.height(PainkillerSpacing.lg))
         }
+    }
+
+    if (showWriteResolvedConfirm) {
+        AlertDialog(
+            onDismissRequest = { showWriteResolvedConfirm = false },
+            title = { Text("Write resolved files") },
+            text = {
+                Text(
+                    "Painkiller writes only the files shown in this preview. " +
+                        "This changes local selected files only. No commit will be created and nothing will be pushed. " +
+                        "Files with unresolved/manual collisions will not be written.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showWriteResolvedConfirm = false
+                        viewModel.writeResolvedFiles(confirmed = true)
+                    },
+                ) { Text("Write resolved files") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWriteResolvedConfirm = false }) { Text("Cancel") }
+            },
+        )
     }
 
     // ── Repo picker dialog ──────────────────────────────────────────────────
