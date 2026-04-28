@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 30 PARTIAL: collision card-by-card review and decision preview are implemented; swipe gestures and write-back remain deferred for safety.**
+**Gate 30 PASS: collision card-by-card review now includes directional swipe decisions plus decision preview; write-back remains deferred for safety.**
 
 Painkiller now includes:
 
@@ -62,8 +62,7 @@ Painkiller now includes:
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
   - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
-  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 29)
-  - swipe gesture mapping for collision cards (button controls are available now)
+  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 30)
 - **Hidden**
   - none currently
 
@@ -379,4 +378,4 @@ Painkiller now adds a second conflict-review path for phone UX:
 
 Current limitation:
 
-- Swipe gestures are deferred; Gate 30 ships button-first controls.
+- SAF write-back is still deferred; Gate 30 keeps this flow preview-only.

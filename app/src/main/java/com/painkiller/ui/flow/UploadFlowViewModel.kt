@@ -635,6 +635,17 @@ class UploadFlowViewModel(
         _state.update { it.copy(conflictReviewSession = updated, conflictReviewPreview = null) }
     }
 
+    fun decideAndAdvanceConflictCard(decision: ConflictDecision) {
+        val session = _state.value.conflictReviewSession ?: return
+        val decided = ConflictReviewSessionReducer.decide(session, decision)
+        val advanced = if (decided.currentIndex < decided.cards.lastIndex) {
+            ConflictReviewSessionReducer.next(decided)
+        } else {
+            decided
+        }
+        _state.update { it.copy(conflictReviewSession = advanced, conflictReviewPreview = null) }
+    }
+
     fun nextConflictCard() {
         val session = _state.value.conflictReviewSession ?: return
         _state.update { it.copy(conflictReviewSession = ConflictReviewSessionReducer.next(session)) }

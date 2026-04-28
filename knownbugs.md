@@ -485,15 +485,17 @@ Action:
 
 ## BUG-20260428-024
 
-Status: ACCEPTED
+Status: FIXED
 Gate: 30
 Severity: LOW
-Summary: Collision cards ship as button-first review; swipe gestures are deferred to avoid accidental mobile decisions in MVP scope.
+Summary: Collision cards now support swipe review with explicit directional mapping while preserving visible decision buttons.
 
 Evidence:
-- Gate 30 card review path includes visible buttons for keep current/incoming/both/manual decisions.
-- Gesture mapping is not wired in this gate.
+- Gate 30 card review card now supports horizontal swipe handling:
+  - right swipe => keep current
+  - left swipe => keep incoming
+- Existing visible decision buttons remain available for keep current/incoming/both/manual decisions.
 
 Action:
-- Accepted for Gate 30 to keep UX safe and deterministic.
-- Swipe gestures may be added in a later gate without removing visible button controls.
+- Fixed in continued Gate 30 work by adding swipe mapping for directional decisions.
+- Kept explicit visible buttons to avoid gesture-only control.
