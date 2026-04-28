@@ -20,14 +20,14 @@ import com.painkiller.domain.github.SingleFileCommitResult
  * from Gate 3 — Gate 6 ships the orchestration and contract, the network
  * transport lands separately).
  */
-class SingleFileCommitRepository(
+open class SingleFileCommitRepository(
     private val gitDataApi: GithubGitDataApi,
     private val secureTokenStore: SecureTokenStore,
 ) {
 
     private val orchestrator = SingleFileCommitOrchestrator(gitDataApi)
 
-    suspend fun commitSingleFile(input: SingleFileCommitInput): SingleFileCommitResult {
+    open suspend fun commitSingleFile(input: SingleFileCommitInput): SingleFileCommitResult {
         val token = secureTokenStore.readGithubToken()
         if (token.isNullOrBlank()) {
             return SingleFileCommitResult.AuthError(

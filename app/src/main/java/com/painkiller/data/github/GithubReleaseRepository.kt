@@ -5,6 +5,7 @@ import com.painkiller.domain.github.CreateReleaseRequest
 import com.painkiller.domain.github.GithubGitDataException
 import com.painkiller.domain.github.GithubReleaseAssetSummary
 import com.painkiller.domain.github.GithubReleaseApi
+import com.painkiller.domain.github.ReleaseAssetValidation
 import com.painkiller.domain.github.GithubReleaseSummary
 import com.painkiller.domain.github.UploadReleaseAssetRequest
 
@@ -68,8 +69,20 @@ class GithubReleaseRepository(
         if (owner.isBlank() || repo.isBlank() || releaseId <= 0L) {
             return GithubReleaseAssetUploadResult.Failure("Owner, repo, and release are required.")
         }
-        if (request.name.isBlank()) {
-            return GithubReleaseAssetUploadResult.Failure("Asset file name is required.")
+        when (ReleaseAssetValidation.validate(request)) {
+            ReleaseAssetValidation.ValidationError.NameRequired -> {
+                return GithubReleaseAssetUploadResult.Failure("Asset file name is required.")
+            }
+
+            ReleaseAssetValidation.ValidationError.ContentTypeRequired -> {
+                return GithubReleaseAssetUploadResult.Failure("Asset content type is required.")
+            }
+
+            ReleaseAssetValidation.ValidationError.DataRequired -> {
+                return GithubReleaseAssetUploadResult.Failure("Asset data is empty.")
+            }
+
+            null -> Unit
         }
         secureTokenStore.readGithubToken() ?: return GithubReleaseAssetUploadResult.Failure("Sign in required.")
         return try {
