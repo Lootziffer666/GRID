@@ -36,7 +36,6 @@ class AuthViewModel(
     private val _state = MutableStateFlow(
         AuthUiState(
             isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
-            isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
         ),
     )
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
@@ -76,20 +75,6 @@ class AuthViewModel(
         }
     }
 
-    fun onInstallationIdChanged(value: String) {
-        _state.update {
-            it.copy(
-                installationIdInput = value,
-                errorMessage = null,
-                statusHint = if (value.trim().isBlank()) {
-                    "Paste a Personal Access Token to continue."
-                } else {
-                    "GitHub App installation id ready."
-                },
-            )
-        }
-    }
-
     fun signIn() {
         val current = _state.value
         if (current.isSubmitting) return
@@ -111,8 +96,8 @@ class AuthViewModel(
                     tokenKindLabel = null,
                     statusHint = "Signed in.",
                     isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
-                    isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
                 )
+
                 is GithubAuthResult.Failure -> _state.update {
                     it.copy(
                         isSubmitting = false,
@@ -146,8 +131,8 @@ class AuthViewModel(
                     tokenKindLabel = null,
                     statusHint = "Signed in.",
                     isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
-                    isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
                 )
+
                 is GithubAuthResult.Failure -> _state.update {
                     it.copy(
                         isSubmitting = false,
@@ -160,46 +145,11 @@ class AuthViewModel(
         }
     }
 
-    fun signInWithGithubAppInstallation() {
-        val current = _state.value
-        if (current.isSubmitting) return
-        val installationId = current.installationIdInput.trim()
-        if (installationId.isEmpty()) {
-            _state.update { it.copy(errorMessage = "Installation ID is required.") }
-            return
-        }
-        _state.update { it.copy(isSubmitting = true, errorMessage = null) }
-        viewModelScope.launch {
-            when (val result = authRepository.signInWithGithubAppInstallation(installationId)) {
-                is GithubAuthResult.Success -> _state.value = AuthUiState(
-                    authState = result.state,
-                    tokenInput = "",
-                    oauthCodeInput = "",
-                    installationIdInput = "",
-                    formatLooksValid = false,
-                    tokenKindLabel = null,
-                    statusHint = "Signed in with GitHub App token.",
-                    isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
-                    isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
-                )
-                is GithubAuthResult.Failure -> _state.update {
-                    it.copy(
-                        isSubmitting = false,
-                        installationIdInput = "",
-                        statusHint = "GitHub App sign-in failed. Check backend exchange setup.",
-                        errorMessage = result.reason,
-                    )
-                }
-            }
-        }
-    }
-
     fun signOut() {
         viewModelScope.launch {
             authRepository.logout()
             _state.value = AuthUiState(
                 isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
-                isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
             )
         }
     }
@@ -239,17 +189,14 @@ data class AuthUiState(
     val authState: GithubAuthState = GithubAuthState.Unauthenticated,
     val tokenInput: String = "",
     val oauthCodeInput: String = "",
-    val installationIdInput: String = "",
     val formatLooksValid: Boolean = false,
     val tokenKindLabel: String? = null,
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val statusHint: String = "Paste a Personal Access Token to continue.",
     val isOAuthAvailable: Boolean = false,
-    val isGithubAppAvailable: Boolean = false,
 ) {
     val isAuthenticated: Boolean get() = authState is GithubAuthState.Authenticated
     val canSubmit: Boolean get() = !isSubmitting && tokenInput.isNotBlank()
     val canSubmitOAuthCode: Boolean get() = !isSubmitting && oauthCodeInput.isNotBlank()
-    val canSubmitInstallation: Boolean get() = !isSubmitting && installationIdInput.isNotBlank()
 }
