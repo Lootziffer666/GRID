@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 27 PASS: large upload streaming added for single-file Git LFS and single-file Release Asset paths.**
+**Gate 29 PARTIAL: Codex conflict preset parser/resolver + preview are implemented; write-back is intentionally blocked pending safe SAF write support.**
 
 Painkiller now includes:
 
@@ -41,8 +41,10 @@ Painkiller now includes:
 - intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
 - user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), and further LFS/release hardening in later gates
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
+- large-file routing panel now explains Normal commit vs Git LFS vs Release Asset vs Blocked/Unsupported per source type
+- conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
 
-## Runtime feature status (Gate 27 streaming large uploads baseline)
+## Runtime feature status (Gate 28 routing baseline)
 
 - **Stable**
   - PAT sign-in
@@ -50,11 +52,15 @@ Painkiller now includes:
   - Git Data API commit flow and safety guards
 - **Experimental**
   - Git LFS single-file upload flow (streaming object upload; uploads object first, then commits pointer)
-  - Release asset workflow (single-file source only, streaming upload path)
+  - Release asset workflow (single-file source only, streaming upload path; requires explicit release selection)
+  - Large-file routing decision panel (meaning-first route cards with recommended/blocked/unsupported states)
   - PR merge-assist diagnostics/actions
+  - Codex collision cleanup preset preview (KEEP_CURRENT / KEEP_INCOMING / KEEP_BOTH / manual review)
 - **Deferred**
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
+  - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
+  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 29)
 - **Hidden**
   - none currently
 
@@ -314,3 +320,42 @@ BUG-20260426-009 for the planned next-step contract.
 - PRs, branch graphs, full Git history.
 - Background sync.
 - A general-purpose file manager.
+## Large-file routing truth (Gate 28)
+
+Painkiller now shows a dedicated routing panel after **Review upload**. The panel states what each path means, whether it is available, and whether it changes the repo.
+
+- **Put into repo normally (Normal repo commit)**  
+  Best for small text/code files. Creates one normal Git commit.
+- **Store large file with Git LFS (single-file only)**  
+  Uploads the large object first, then commits a small pointer file.
+- **Publish as Release Asset (single-file only)**  
+  Uploads a downloadable artifact to a selected GitHub Release; no normal repo commit.
+- **Blocked for safety**  
+  Appears when GitHub would reject the normal path (e.g., >100 MiB) or ZIP safety checks fail.
+
+Current source-type mapping:
+
+- Single small file: normal commit recommended.
+- Single file >100 MiB: normal commit blocked; Git LFS and Release Asset routes shown.
+- Multiple files / folder with large entries: normal commit blocked; LFS/Release Asset routes shown as unavailable for this source.
+- ZIP with large entries: normal commit blocked for affected entries; ZIP-to-LFS and ZIP-entry Release routing are unavailable.
+- Unsafe ZIP: blocked; no alternate route can bypass unsafe ZIP validation.
+
+## Codex conflict presets MVP (Gate 29)
+
+Painkiller now includes a minimal collision-cleanup preset flow for Git conflict markers:
+
+- Detects standard markers (`<<<<<<<`, `=======`, `>>>>>>>`) in selected source files.
+- Supports presets:
+  - Keep current version
+  - Keep incoming version
+  - Keep both blocks
+  - Manual review
+- Builds an in-memory preview first.
+- Blocks malformed markers (no guessing).
+- Does **not** commit or push.
+- Does **not** write resolved files yet in Gate 29.
+
+Current limitation:
+
+- Write-back through SAF is deferred; Gate 29 keeps this flow preview-only for safety.
