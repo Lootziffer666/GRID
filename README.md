@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 28 PASS: large-file routing decision UI is now explicit and action-safe.**
+**Gate 29 PARTIAL: Codex conflict preset parser/resolver + preview are implemented; write-back is intentionally blocked pending safe SAF write support.**
 
 Painkiller now includes:
 
@@ -42,6 +42,7 @@ Painkiller now includes:
 - user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), and further LFS/release hardening in later gates
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 - large-file routing panel now explains Normal commit vs Git LFS vs Release Asset vs Blocked/Unsupported per source type
+- conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
 
 ## Runtime feature status (Gate 28 routing baseline)
 
@@ -54,10 +55,12 @@ Painkiller now includes:
   - Release asset workflow (single-file source only, streaming upload path; requires explicit release selection)
   - Large-file routing decision panel (meaning-first route cards with recommended/blocked/unsupported states)
   - PR merge-assist diagnostics/actions
+  - Codex collision cleanup preset preview (KEEP_CURRENT / KEEP_INCOMING / KEEP_BOTH / manual review)
 - **Deferred**
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
   - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
+  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 29)
 - **Hidden**
   - none currently
 
@@ -337,3 +340,22 @@ Current source-type mapping:
 - Multiple files / folder with large entries: normal commit blocked; LFS/Release Asset routes shown as unavailable for this source.
 - ZIP with large entries: normal commit blocked for affected entries; ZIP-to-LFS and ZIP-entry Release routing are unavailable.
 - Unsafe ZIP: blocked; no alternate route can bypass unsafe ZIP validation.
+
+## Codex conflict presets MVP (Gate 29)
+
+Painkiller now includes a minimal collision-cleanup preset flow for Git conflict markers:
+
+- Detects standard markers (`<<<<<<<`, `=======`, `>>>>>>>`) in selected source files.
+- Supports presets:
+  - Keep current version
+  - Keep incoming version
+  - Keep both blocks
+  - Manual review
+- Builds an in-memory preview first.
+- Blocks malformed markers (no guessing).
+- Does **not** commit or push.
+- Does **not** write resolved files yet in Gate 29.
+
+Current limitation:
+
+- Write-back through SAF is deferred; Gate 29 keeps this flow preview-only for safety.

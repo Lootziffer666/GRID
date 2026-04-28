@@ -1,6 +1,7 @@
 package com.painkiller.ui.flow
 
 import android.net.Uri
+import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -27,6 +28,10 @@ import com.painkiller.domain.error.HumanReadableError
 import com.painkiller.domain.error.PainkillerErrorMapper
 import com.painkiller.domain.error.RecoveryHint
 import com.painkiller.domain.error.RetrySafety
+import com.painkiller.domain.conflict.ConflictPreset
+import com.painkiller.domain.conflict.ConflictPresetPlanner
+import com.painkiller.domain.conflict.ConflictResolutionPlan
+import com.painkiller.domain.conflict.ConflictSourceFile
 import com.painkiller.domain.files.DefaultIgnoreRules
 import com.painkiller.domain.files.FilePlan
 import com.painkiller.domain.files.FilePlanBuildResult
@@ -60,6 +65,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.nio.charset.StandardCharsets
 
 /**
  * Owns the end-to-end upload flow:
@@ -549,6 +555,44 @@ class UploadFlowViewModel(
         _state.update { it.copy(releaseAssetUploadMessage = null) }
     }
 
+    fun onConflictPresetChanged(preset: ConflictPreset) {
+        _state.update { it.copy(selectedConflictPreset = preset, conflictPlan = null, conflictMessage = null) }
+    }
+
+    fun buildConflictPreview() {
+        val s = _state.value
+        if (!s.hasSource) {
+            _state.update { it.copy(conflictMessage = "Pick source files first. Painkiller did not change any files.") }
+            return
+        }
+        viewModelScope.launch {
+            val conflictSources = collectConflictSourceFiles(_state.value)
+            if (conflictSources.isEmpty()) {
+                _state.update {
+                    it.copy(
+                        conflictMessage = "No readable text files were found for collision preview. Nothing was changed.",
+                        conflictPlan = null,
+                    )
+                }
+                return@launch
+            }
+            val plan = ConflictPresetPlanner.buildPreviewPlan(
+                files = conflictSources,
+                preset = _state.value.selectedConflictPreset,
+            )
+            _state.update {
+                it.copy(
+                    conflictPlan = plan,
+                    conflictMessage = plan.summary,
+                )
+            }
+        }
+    }
+
+    fun clearConflictPreview() {
+        _state.update { it.copy(conflictPlan = null, conflictMessage = null) }
+    }
+
     // ─── plan building ───────────────────────────────────────────────────────
 
     fun buildPlan() {
@@ -804,6 +848,45 @@ class UploadFlowViewModel(
         )
     }
 
+    private suspend fun collectConflictSourceFiles(state: UploadFlowUiState): List<ConflictSourceFile> {
+        val single = state.loadedFile
+        if (single != null) {
+            val content = decodeBase64Text(single.contentBase64) ?: return emptyList()
+            return listOf(ConflictSourceFile(path = single.displayName, content = content))
+        }
+
+        val source = state.loadedFolder ?: return emptyList()
+        return when {
+            state.isMultipleFileSource || state.isZipSource -> {
+                source.items.mapNotNull { item ->
+                    val encoded = state.loadedMultiContent?.get(item.sourceId) ?: return@mapNotNull null
+                    val decoded = decodeBase64Text(encoded) ?: return@mapNotNull null
+                    ConflictSourceFile(path = item.relativePath, content = decoded)
+                }
+            }
+
+            state.isFolderSource -> {
+                source.items.mapNotNull { item ->
+                    val read = safFileReader.read(Uri.parse(item.sourceId)) ?: return@mapNotNull null
+                    val decoded = decodeBase64Text(read.contentBase64) ?: return@mapNotNull null
+                    ConflictSourceFile(path = item.relativePath, content = decoded)
+                }
+            }
+
+            else -> emptyList()
+        }
+    }
+
+    private fun decodeBase64Text(encoded: String?): String? {
+        if (encoded.isNullOrBlank()) return null
+        return try {
+            val bytes = Base64.decode(encoded, Base64.DEFAULT)
+            bytes.toString(StandardCharsets.UTF_8)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     companion object {
         private const val MAX_NORMAL_COMMIT_BYTES = 100L * 1024L * 1024L
 
@@ -862,6 +945,9 @@ data class UploadFlowUiState(
     val isMergingPullRequest: Boolean = false,
     val pullRequestMergeMessage: String? = null,
     val releaseAssetUploadMessage: String? = null,
+    val selectedConflictPreset: ConflictPreset = ConflictPreset.KEEP_CURRENT,
+    val conflictPlan: ConflictResolutionPlan? = null,
+    val conflictMessage: String? = null,
     val newReleaseTagInput: String = "",
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,

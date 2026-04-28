@@ -462,3 +462,21 @@ Evidence:
 Action:
 - Accepted as current product boundary.
 - Future gates may expand routing transport support, but Gate 28 intentionally does not.
+
+---
+
+## BUG-20260428-023
+
+Status: ACCEPTED
+Gate: 29
+Severity: LOW
+Summary: Conflict preset flow is preview-only in Gate 29 because safe SAF write-back is not yet implemented.
+
+Evidence:
+- Gate 29 adds parser + preset resolver + preview summary for conflict markers.
+- UI action "Write resolved files" is intentionally disabled in this gate.
+- Existing file adapters provide read paths; no dedicated verified write path exists for selected multi-source SAF inputs.
+
+Action:
+- Accepted as safety-first scope boundary for Gate 29.
+- Follow-up gate may add explicit SAF write-permission handling and write-back after preview confirmation.

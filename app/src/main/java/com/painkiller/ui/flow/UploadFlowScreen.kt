@@ -47,6 +47,7 @@ import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.upload.LargeFileRoute
 import com.painkiller.domain.upload.LargeFileRouteAvailability
+import com.painkiller.domain.conflict.ConflictPreset
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubReleaseSummary
@@ -365,6 +366,12 @@ fun UploadFlowScreen(
                 )
                 TextButton(onClick = viewModel::dismissReleaseAssetMessage) { Text("Dismiss release message") }
             }
+            state.conflictMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Codex cleanup preset",
+                    body = message,
+                )
+            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -457,6 +464,71 @@ fun UploadFlowScreen(
                             state.repoInput.isNotBlank() &&
                             state.newReleaseTagInput.isNotBlank(),
                     )
+                }
+            }
+
+            SectionCard(title = "Codex collision cleanup (MVP)") {
+                Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                    Text(
+                        text = "Use a preset to resolve repeated collision markers in preview. Nothing is written yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "Default cleanup: keep current version for all.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.tertiary,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.KEEP_CURRENT) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.KEEP_CURRENT) "Keep current ✓" else "Keep current")
+                        }
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.KEEP_INCOMING) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.KEEP_INCOMING) "Keep incoming ✓" else "Keep incoming")
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.KEEP_BOTH) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.KEEP_BOTH) "Keep both ✓" else "Keep both")
+                        }
+                        TextButton(onClick = { viewModel.onConflictPresetChanged(ConflictPreset.REVIEW_MANUALLY) }) {
+                            Text(if (state.selectedConflictPreset == ConflictPreset.REVIEW_MANUALLY) "Manual ✓" else "Manual review")
+                        }
+                    }
+                    PainkillerPrimaryActionButton(
+                        text = "Build collision preview",
+                        onClick = viewModel::buildConflictPreview,
+                        enabled = state.hasSource,
+                    )
+                    state.conflictPlan?.let { conflictPlan ->
+                        Text(
+                            text = "${conflictPlan.filesWithCollisions} file(s) with collisions · " +
+                                "${conflictPlan.totalCollisionBlocks} collision block(s) · " +
+                                "${conflictPlan.malformedFiles} malformed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        conflictPlan.previews.take(1).forEach { preview ->
+                            Text(
+                                text = "Preview: ${preview.path}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Text(
+                                text = preview.resolvedContent?.take(400)
+                                    ?: (preview.unresolvedReason ?: "Needs manual review."),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                        PainkillerPrimaryActionButton(
+                            text = "Write resolved files (disabled in Gate 29)",
+                            onClick = {},
+                            enabled = false,
+                        )
+                        TextButton(onClick = viewModel::clearConflictPreview) {
+                            Text("Cancel preview")
+                        }
+                    }
                 }
             }
 
