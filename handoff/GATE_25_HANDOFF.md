@@ -11,6 +11,19 @@ PASS
 
 ## Implemented
 
+## ZIP Audit Result
+
+- ZIP file selection: **Working** (`UploadFlowScreen` ZIP picker wired).
+- SAF ZIP reading + entry enumeration: **Working** (`SafZipReader` streams all file entries up to cap).
+- ZIP-Slip / unsafe path handling: **Working** (unsafe paths reported by `ZipIntakePlanner`; plan-build blocked in VM).
+- Root folder normalization: **Working** (single wrapper root stripped deterministically by planner).
+- Duplicate/collision handling: **Working** (detected and surfaced; first normalized path wins deterministically).
+- Ignored entry handling: **Working** (ZIP entries pass through `FilePlanBuilder` + default ignore rules).
+- User-facing preview display: **Partially working** (counts/warnings shown; no per-entry conflict-resolution UI by design).
+- UploadPlan integration: **Working** (safe ZIP entries become `FilePlan`/`UploadPlan` entries with diagnosis).
+- Multi-file commit integration: **Working** (ZIP safe entries use existing multi-file Git Data API flow).
+- ZIP-specific tests: **Working** (new planner tests cover unsafe paths, collisions, root normalization, ignore integration, and multi-file conversion).
+
 - Added pure domain ZIP intake planner:
   - `ZipIntakePlanner` now performs ZIP path normalization, single-root stripping, collision detection, and unsafe-path detection.
   - Planner emits deterministic selected ZIP source + content map + issues list.

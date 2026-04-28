@@ -3,6 +3,7 @@ package com.painkiller.domain.files
 import com.painkiller.domain.target.BranchTarget
 import com.painkiller.domain.target.RepoTarget
 import com.painkiller.domain.target.TargetPath
+import com.painkiller.domain.github.MultiFileCommitEntry
 import com.painkiller.domain.upload.UploadPlanBuilder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -78,6 +79,48 @@ class ZipIntakePlannerTest {
             listOf("imports/docs/changelog.md", "imports/docs/readme.md"),
             uploadPlan.safeEntries.map { it.repoPath }.sorted(),
         )
+    }
+
+    @Test
+    fun ignoredZipEntries_areClassifiedByDefaultIgnoreRules() {
+        val zip = ZipIntakePlanner.build(
+            listOf(
+                entry("bundle/.git/config"),
+                entry("bundle/src/App.kt"),
+            ),
+        )
+
+        val filePlan = (FilePlanBuilder.build(zip.source, targetPathRaw = "") as FilePlanBuildResult.Success).plan
+
+        assertEquals(listOf("src/App.kt"), filePlan.includedFiles.map { it.repoPath })
+        assertEquals(listOf(".git/config"), filePlan.ignoredFiles.map { it.repoPath })
+    }
+
+    @Test
+    fun safeZipEntries_canBeConvertedToMultiFileCommitEntries() {
+        val zip = ZipIntakePlanner.build(
+            listOf(
+                entry("wrapper/docs/a.md", content = "A"),
+                entry("wrapper/docs/b.md", content = "B"),
+            ),
+        )
+        val target = RepoTarget(
+            owner = "octo",
+            repo = "painkiller",
+            branch = BranchTarget("main"),
+            targetPath = TargetPath("imports"),
+        )
+        val filePlan = (FilePlanBuilder.build(zip.source, target.targetPath.normalized) as FilePlanBuildResult.Success).plan
+
+        val commitEntries = filePlan.includedFiles.map { planned ->
+            MultiFileCommitEntry(
+                repoPath = planned.repoPath,
+                contentBase64 = zip.contentByRelativePath.getValue(planned.sourceId),
+            )
+        }
+
+        assertEquals(listOf("imports/docs/a.md", "imports/docs/b.md"), commitEntries.map { it.repoPath }.sorted())
+        assertEquals(listOf("A", "B"), commitEntries.map { it.contentBase64 }.sorted())
     }
 
     private fun entry(path: String, content: String = "x"): ZipIntakeEntry = ZipIntakeEntry(
