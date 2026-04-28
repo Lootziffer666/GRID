@@ -45,6 +45,8 @@ import com.painkiller.data.files.SafFolderReader
 import com.painkiller.data.files.SafZipReader
 import com.painkiller.data.github.PullRequestMergeMethod
 import com.painkiller.domain.error.RetrySafety
+import com.painkiller.domain.upload.LargeFileRoute
+import com.painkiller.domain.upload.LargeFileRouteAvailability
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubReleaseSummary
@@ -170,14 +172,9 @@ fun UploadFlowScreen(
                             if (state.isSingleLargeFileEligibleForLfs) {
                                 Text(
                                     text = "This file is too large for a normal Git commit. " +
-                                        "Painkiller streams this file to Git LFS first, then commits a small pointer file. If upload fails, the repo is not changed.",
+                                        "Review routing options below to choose Git LFS or Release Asset.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.tertiary,
-                                )
-                                PainkillerPrimaryActionButton(
-                                    text = if (state.isUploadingLfs) "Uploading with Git LFS…" else "Upload via Git LFS",
-                                    onClick = viewModel::uploadSingleFileViaLfs,
-                                    enabled = !state.isUploadingLfs && !state.isCommitting,
                                 )
                             }
                         }
@@ -433,12 +430,6 @@ fun UploadFlowScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary,
                         )
-                        val canUploadSelectedFile = state.loadedFile != null && !state.isUploadingReleaseAsset
-                        PainkillerPrimaryActionButton(
-                            text = if (state.isUploadingReleaseAsset) "Uploading asset…" else "Upload selected file as asset",
-                            onClick = viewModel::uploadSelectedFileAsReleaseAsset,
-                            enabled = canUploadSelectedFile,
-                        )
                     }
                 }
             }
@@ -477,6 +468,78 @@ fun UploadFlowScreen(
                 )
             } else {
                 val plan = state.plan!!
+                state.routingDecision?.let { decision ->
+                    SectionCard(title = "Large-file routing") {
+                        Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.sm)) {
+                            Text(
+                                text = decision.summary,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            decision.options.forEach { option ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(PainkillerSpacing.sm),
+                                        verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs),
+                                    ) {
+                                        Text(
+                                            text = option.title +
+                                                if (option.recommended) " (Recommended)" else "",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                        Text(option.explanation, style = MaterialTheme.typography.bodySmall)
+                                        Text("GitHub result: ${option.githubEffect}", style = MaterialTheme.typography.bodySmall)
+                                        Text("Repo change: ${option.repoChange}", style = MaterialTheme.typography.bodySmall)
+                                        option.reason?.let {
+                                            Text(
+                                                text = "Why unavailable: $it",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
+                                        Text(
+                                            text = option.safetyNote,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.tertiary,
+                                        )
+                                        when (option.route) {
+                                            LargeFileRoute.GIT_LFS_SINGLE_FILE -> {
+                                                PainkillerPrimaryActionButton(
+                                                    text = if (state.isUploadingLfs) "Uploading with Git LFS…" else option.actionLabel,
+                                                    onClick = viewModel::uploadSingleFileViaLfs,
+                                                    enabled = option.executable &&
+                                                        option.availability == LargeFileRouteAvailability.AVAILABLE &&
+                                                        !state.isUploadingLfs &&
+                                                        !state.isCommitting,
+                                                )
+                                            }
+
+                                            LargeFileRoute.RELEASE_ASSET_SINGLE_FILE -> {
+                                                PainkillerPrimaryActionButton(
+                                                    text = if (state.isUploadingReleaseAsset) "Uploading asset…" else option.actionLabel,
+                                                    onClick = viewModel::uploadSelectedFileAsReleaseAsset,
+                                                    enabled = option.executable &&
+                                                        option.availability == LargeFileRouteAvailability.AVAILABLE &&
+                                                        !state.isUploadingReleaseAsset,
+                                                )
+                                            }
+
+                                            else -> Unit
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 SectionCard(title = "Upload plan") {
                     Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                         Text(
