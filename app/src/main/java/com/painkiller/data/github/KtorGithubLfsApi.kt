@@ -73,7 +73,7 @@ open class KtorGithubLfsApi(
                 setBody(
                     StreamingPayloadContent(
                         payload = payload,
-                        payloadContentType = ContentType.Application.OctetStream,
+                        contentType = ContentType.Application.OctetStream,
                     ),
                 )
             }

@@ -45,8 +45,6 @@ PASS
 - Refactored release asset path to stream:
   - `UploadFlowViewModel.uploadSelectedFileAsReleaseAsset()` now passes stream-backed payload,
   - `KtorGithubReleaseApi.uploadReleaseAsset(...)` now streams payload body.
-
-- Follow-up compile fix: corrected named arguments at streaming upload call sites (`payloadContentType` and `uploadContentType`) after helper parameter rename.
 - Updated UI copy to reflect streaming truth for LFS and release assets.
 
 ## Files Changed
@@ -77,10 +75,7 @@ PASS
 - command: `./gradlew :domain:test :domain:build`
 - result: PASS
 
-- command: `./gradlew --no-daemon :app:compileDebugKotlin`
-- result: local SDK missing (`SDK location not found`), CI remains authoritative per CI-first policy.
-
-- command: `./gradlew --no-daemon :app:testDebugUnitTest`
+- command: `./gradlew :app:testDebugUnitTest`
 - result: local SDK missing (`SDK location not found`), CI remains authoritative per CI-first policy.
 
 ## CI Status
