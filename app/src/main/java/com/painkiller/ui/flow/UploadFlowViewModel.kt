@@ -36,6 +36,10 @@ import com.painkiller.domain.conflict.ConflictReviewPreviewPlanner
 import com.painkiller.domain.conflict.ConflictReviewSession
 import com.painkiller.domain.conflict.ConflictReviewSessionBuilder
 import com.painkiller.domain.conflict.ConflictReviewSessionReducer
+import com.painkiller.domain.conflict.ConflictWriteExecutor
+import com.painkiller.domain.conflict.ConflictWritePlan
+import com.painkiller.domain.conflict.ConflictWritePlanner
+import com.painkiller.domain.conflict.ConflictWriteResult
 import com.painkiller.domain.conflict.ConflictResolutionPlan
 import com.painkiller.domain.conflict.ConflictSourceFile
 import com.painkiller.domain.files.DefaultIgnoreRules
@@ -93,6 +97,7 @@ class UploadFlowViewModel(
     private val multiFileCommitRepository: MultiFileCommitRepository,
     private val lfsRepository: GithubLfsRepository,
     private val settingsStore: RepoTargetSettingsStore,
+    private val conflictFileWriter: com.painkiller.domain.conflict.ConflictFileWriter,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UploadFlowUiState())
@@ -596,7 +601,14 @@ class UploadFlowViewModel(
     }
 
     fun clearConflictPreview() {
-        _state.update { it.copy(conflictPlan = null, conflictMessage = null) }
+        _state.update {
+            it.copy(
+                conflictPlan = null,
+                conflictMessage = null,
+                conflictWritePlan = null,
+                conflictWriteResult = null,
+            )
+        }
     }
 
     fun startConflictCardReview() {
@@ -678,6 +690,58 @@ class UploadFlowViewModel(
                 conflictReviewSession = null,
                 conflictReviewPreview = null,
                 conflictReviewMessage = null,
+                conflictWritePlan = null,
+                conflictWriteResult = null,
+            )
+        }
+    }
+
+    fun buildConflictWritePlanFromPresetPreview() {
+        viewModelScope.launch {
+            val sources = collectConflictSourceFiles(_state.value)
+            val plan = ConflictWritePlanner.fromPresetPlan(
+                previewPlan = _state.value.conflictPlan,
+                sources = sources,
+            )
+            _state.update {
+                it.copy(
+                    conflictWritePlan = plan,
+                    conflictWriteResult = null,
+                    conflictWriteMessage = plan.summary,
+                )
+            }
+        }
+    }
+
+    fun buildConflictWritePlanFromCardPreview() {
+        viewModelScope.launch {
+            val state = _state.value
+            val sources = collectConflictSourceFiles(state)
+            val plan = ConflictWritePlanner.fromCardPreview(
+                preview = state.conflictReviewPreview,
+                session = state.conflictReviewSession,
+                sources = sources,
+            )
+            _state.update {
+                it.copy(
+                    conflictWritePlan = plan,
+                    conflictWriteResult = null,
+                    conflictWriteMessage = plan.summary,
+                )
+            }
+        }
+    }
+
+    fun writeResolvedFiles(confirmed: Boolean) {
+        val result = ConflictWriteExecutor.execute(
+            plan = _state.value.conflictWritePlan,
+            confirmed = confirmed,
+            writer = conflictFileWriter,
+        )
+        _state.update {
+            it.copy(
+                conflictWriteResult = result,
+                conflictWriteMessage = result.summary,
             )
         }
     }
@@ -941,7 +1005,15 @@ class UploadFlowViewModel(
         val single = state.loadedFile
         if (single != null) {
             val content = decodeBase64Text(single.contentBase64) ?: return emptyList()
-            return listOf(ConflictSourceFile(path = single.displayName, content = content))
+            return listOf(
+                ConflictSourceFile(
+                    path = single.displayName,
+                    content = content,
+                    sourceId = single.sourceItem.sourceId,
+                    sourceKind = SourceKind.SINGLE_FILE,
+                    writableBySaf = true,
+                ),
+            )
         }
 
         val source = state.loadedFolder ?: return emptyList()
@@ -950,7 +1022,13 @@ class UploadFlowViewModel(
                 source.items.mapNotNull { item ->
                     val encoded = state.loadedMultiContent?.get(item.sourceId) ?: return@mapNotNull null
                     val decoded = decodeBase64Text(encoded) ?: return@mapNotNull null
-                    ConflictSourceFile(path = item.relativePath ?: item.displayName, content = decoded)
+                    ConflictSourceFile(
+                        path = item.relativePath ?: item.displayName,
+                        content = decoded,
+                        sourceId = if (state.isZipSource) null else item.sourceId,
+                        sourceKind = source.kind,
+                        writableBySaf = !state.isZipSource,
+                    )
                 }
             }
 
@@ -958,7 +1036,13 @@ class UploadFlowViewModel(
                 source.items.mapNotNull { item ->
                     val read = safFileReader.read(Uri.parse(item.sourceId)) ?: return@mapNotNull null
                     val decoded = decodeBase64Text(read.contentBase64) ?: return@mapNotNull null
-                    ConflictSourceFile(path = item.relativePath ?: item.displayName, content = decoded)
+                    ConflictSourceFile(
+                        path = item.relativePath ?: item.displayName,
+                        content = decoded,
+                        sourceId = item.sourceId,
+                        sourceKind = SourceKind.FOLDER,
+                        writableBySaf = true,
+                    )
                 }
             }
 
@@ -988,6 +1072,7 @@ class UploadFlowViewModel(
             multiFileCommitRepository: MultiFileCommitRepository,
             lfsRepository: GithubLfsRepository,
             settingsStore: RepoTargetSettingsStore,
+            conflictFileWriter: com.painkiller.domain.conflict.ConflictFileWriter,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -1001,6 +1086,7 @@ class UploadFlowViewModel(
                         multiFileCommitRepository = multiFileCommitRepository,
                         lfsRepository = lfsRepository,
                         settingsStore = settingsStore,
+                        conflictFileWriter = conflictFileWriter,
                     ) as T
             }
     }
@@ -1040,6 +1126,9 @@ data class UploadFlowUiState(
     val conflictReviewSession: ConflictReviewSession? = null,
     val conflictReviewPreview: ConflictReviewPreview? = null,
     val conflictReviewMessage: String? = null,
+    val conflictWritePlan: ConflictWritePlan? = null,
+    val conflictWriteResult: ConflictWriteResult? = null,
+    val conflictWriteMessage: String? = null,
     val newReleaseTagInput: String = "",
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,

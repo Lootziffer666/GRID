@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 30 PASS: collision card-by-card review now includes directional swipe decisions plus decision preview; write-back remains deferred for safety.**
+**Gate 31 PASS: conflict resolution now supports explicit-confirmation SAF write-back for eligible selected files; commit/push remains disabled.**
 
 Painkiller now includes:
 
@@ -44,6 +44,7 @@ Painkiller now includes:
 - large-file routing panel now explains Normal commit vs Git LFS vs Release Asset vs Blocked/Unsupported per source type
 - conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
 - collision card review path now supports per-block decisions (keep current/incoming/both/manual) with summary preview before any write
+- safe conflict write-back plan + execution for eligible selected SAF files after explicit final confirmation
 
 ## Runtime feature status (Gate 28 routing baseline)
 
@@ -62,7 +63,7 @@ Painkiller now includes:
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
   - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
-  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 30)
+  - conflict write-back for ZIP-entry sources (blocked for safety)
 - **Hidden**
   - none currently
 
@@ -379,3 +380,15 @@ Painkiller now adds a second conflict-review path for phone UX:
 Current limitation:
 
 - SAF write-back is still deferred; Gate 30 keeps this flow preview-only.
+
+## Safe conflict write-back (Gate 31)
+
+Painkiller now closes the preview loop for conflict cleanup:
+
+- Build a write plan from preset preview or card-review preview.
+- Require explicit final confirmation before writing.
+- Write only eligible selected local SAF files.
+- Block malformed/unresolved/manual files.
+- Block ZIP-entry sources for safety.
+- Report written/blocked/failed counts clearly.
+- No commit is created and nothing is pushed.

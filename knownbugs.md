@@ -499,3 +499,21 @@ Evidence:
 Action:
 - Fixed in continued Gate 30 work by adding swipe mapping for directional decisions.
 - Kept explicit visible buttons to avoid gesture-only control.
+
+---
+
+## BUG-20260428-025
+
+Status: ACCEPTED
+Gate: 31
+Severity: LOW
+Summary: Conflict write-back supports selected SAF files only; ZIP-entry write-back remains blocked for safety.
+
+Evidence:
+- Gate 31 write planner allows write eligibility only when a writable SAF source id exists.
+- ZIP conflict sources are marked blocked with reason: "Blocked for safety: ZIP entries cannot be written back in this gate."
+- Preview and explicit confirmation are required before any write execution.
+
+Action:
+- Accepted as current safety boundary.
+- Future gate may add explicit export/write target flow for ZIP-derived conflict outputs if required.

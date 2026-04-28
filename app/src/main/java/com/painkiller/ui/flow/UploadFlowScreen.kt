@@ -109,6 +109,7 @@ fun UploadFlowScreen(
     var showPullRequestDialog by remember { mutableStateOf(false) }
     var showReleaseDialog by remember { mutableStateOf(false) }
     var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
+    var showWriteResolvedConfirm by remember { mutableStateOf(false) }
 
     if (state.hasSucceeded) {
         SuccessScreen(
@@ -381,6 +382,12 @@ fun UploadFlowScreen(
                     body = message,
                 )
             }
+            state.conflictWriteMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Write resolved files",
+                    body = message,
+                )
+            }
             state.humanError?.let { err ->
                 Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
                     PainkillerErrorBanner(title = err.title, body = err.detail)
@@ -530,10 +537,30 @@ fun UploadFlowScreen(
                             )
                         }
                         PainkillerPrimaryActionButton(
-                            text = "Write resolved files (disabled in Gate 29)",
-                            onClick = {},
-                            enabled = false,
+                            text = "Save these decisions",
+                            onClick = viewModel::buildConflictWritePlanFromPresetPreview,
+                            enabled = true,
                         )
+                        state.conflictWritePlan?.let { writePlan ->
+                            Text(
+                                text = "Write plan: ${writePlan.filesToWrite.size} file(s) ready · ${writePlan.blockedFiles.size} blocked",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            if (writePlan.blockedFiles.isNotEmpty()) {
+                                Text(
+                                    text = "Blocked for safety: " +
+                                        writePlan.blockedFiles.take(2).joinToString { it.path },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary,
+                                )
+                            }
+                            PainkillerPrimaryActionButton(
+                                text = "Write resolved files",
+                                onClick = { showWriteResolvedConfirm = true },
+                                enabled = writePlan.hasEligibleFiles,
+                            )
+                        }
                         TextButton(onClick = viewModel::clearConflictPreview) {
                             Text("Cancel preview")
                         }
@@ -662,10 +689,22 @@ fun UploadFlowScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             PainkillerPrimaryActionButton(
-                                text = "Write resolved files (still disabled)",
-                                onClick = {},
-                                enabled = false,
+                                text = "Save these decisions",
+                                onClick = viewModel::buildConflictWritePlanFromCardPreview,
+                                enabled = true,
                             )
+                            state.conflictWritePlan?.let { writePlan ->
+                                Text(
+                                    text = "Write plan: ${writePlan.filesToWrite.size} file(s) ready · ${writePlan.blockedFiles.size} blocked",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                PainkillerPrimaryActionButton(
+                                    text = "Write resolved files",
+                                    onClick = { showWriteResolvedConfirm = true },
+                                    enabled = writePlan.hasEligibleFiles,
+                                )
+                            }
                         }
                         TextButton(onClick = viewModel::closeConflictCardReview) {
                             Text("Close card review")
@@ -844,6 +883,31 @@ fun UploadFlowScreen(
 
             Spacer(modifier = Modifier.height(PainkillerSpacing.lg))
         }
+    }
+
+    if (showWriteResolvedConfirm) {
+        AlertDialog(
+            onDismissRequest = { showWriteResolvedConfirm = false },
+            title = { Text("Write resolved files") },
+            text = {
+                Text(
+                    "Painkiller writes only the files shown in this preview. " +
+                        "This changes local selected files only. No commit will be created and nothing will be pushed. " +
+                        "Files with unresolved/manual collisions will not be written.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showWriteResolvedConfirm = false
+                        viewModel.writeResolvedFiles(confirmed = true)
+                    },
+                ) { Text("Write resolved files") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWriteResolvedConfirm = false }) { Text("Cancel") }
+            },
+        )
     }
 
     // ── Repo picker dialog ──────────────────────────────────────────────────
