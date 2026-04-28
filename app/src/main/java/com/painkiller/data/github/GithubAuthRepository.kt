@@ -29,6 +29,8 @@ class GithubAuthRepository(
     private val tokenProbeApi: GithubTokenProbeApi?,
     private val secureTokenStore: SecureTokenStore,
 ) {
+    fun isOAuthExchangeAvailable(): Boolean = oauthApi != null
+    fun isGithubAppExchangeAvailable(): Boolean = appAuthApi != null
 
     suspend fun authState(): GithubAuthState {
         val token = secureTokenStore.readGithubToken() ?: return GithubAuthState.Unauthenticated

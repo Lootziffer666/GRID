@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 24 PASS (expanded plan): release selection/creation + release-asset upload path added for oversized/binary artifacts.**
+**Gate 24.5 PASS: runtime/scope reconciliation completed (truth-labeling for auth/release paths).**
 
 Painkiller now includes:
 
@@ -42,6 +42,24 @@ Painkiller now includes:
 - intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
 - user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
+
+## Runtime feature status (Gate 24.5 reconciliation)
+
+- **Stable**
+  - PAT sign-in
+  - single-file/multi-file/folder/ZIP intake + upload planning
+  - Git Data API commit flow and safety guards
+- **Experimental**
+  - Release asset workflow (single-file source only, memory-heavy upload path)
+  - PR merge-assist diagnostics/actions
+- **Dev-only**
+  - GitHub App installation sign-in via broker (only when `GITHUB_APP_BROKER_BASE_URL` is configured)
+  - local Node exchange server under `tools/github-app-exchange-server` (development bridge only)
+- **Deferred**
+  - OAuth code exchange in default builds (backend not configured by default)
+  - multi-file release asset batch upload and streaming upload body
+- **Hidden**
+  - none currently
 
 This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
@@ -64,7 +82,8 @@ verification of the gated layers.
 - Gate 21: `handoff/GATE_21_HANDOFF.md`
 - Gate 22: `handoff/GATE_22_HANDOFF.md`
 - Gate 23: `handoff/GATE_23_HANDOFF.md`
-- Gate 24 (aktueller Stand): `handoff/GATE_24_HANDOFF.md`
+- Gate 24: `handoff/GATE_24_HANDOFF.md`
+- Gate 24.5 (aktueller Stand): `handoff/GATE_24_5_HANDOFF.md`
 - Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |

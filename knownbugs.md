@@ -410,3 +410,21 @@ Action:
   - Option A: OAuth Device Flow/OAuth App mobile-first path, or
   - Option B: GitHub App with hosted external token broker.
 - Keep Option C (local private-key import) as advanced/dev-only mode, never default.
+
+---
+
+## BUG-20260427-020
+
+Status: ACCEPTED
+Gate: 24.5
+Severity: LOW
+Summary: Some auth and release actions are visible in UI even when build/runtime support is limited; labels and enablement must truthfully reflect availability.
+
+Evidence:
+- OAuth and GitHub App sections are visible in auth screen while backend exchange may be unavailable in default builds.
+- Release asset upload path is single-file only and currently decodes file content into memory.
+
+Action:
+- Label OAuth as experimental and disable action when backend is unavailable.
+- Label GitHub App broker path as dev-only and disable when broker URL is not configured.
+- Add explicit release-asset UI copy noting single-file-only and memory limitation.

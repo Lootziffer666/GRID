@@ -117,9 +117,14 @@ fun AuthScreen(
             HorizontalDivider()
 
             PainkillerInfoCard(
-                title = "OAuth authorization code (optional)",
-                body = "If OAuth exchange is configured for your build, paste the one-time " +
-                    "authorization code here. PAT remains supported as the primary login.",
+                title = "OAuth authorization code (experimental)",
+                body = if (state.isOAuthAvailable) {
+                    "Optional path: paste the one-time authorization code. " +
+                        "PAT remains the default stable login."
+                } else {
+                    "Disabled in this build. OAuth code exchange backend is not configured. " +
+                        "Use Personal Access Token."
+                },
             )
 
             OutlinedTextField(
@@ -134,15 +139,19 @@ fun AuthScreen(
             PainkillerPrimaryActionButton(
                 text = if (state.isSubmitting) "Exchanging…" else "Sign in with OAuth code",
                 onClick = viewModel::signInWithAuthorizationCode,
-                enabled = state.canSubmitOAuthCode,
+                enabled = state.canSubmitOAuthCode && state.isOAuthAvailable,
             )
 
             HorizontalDivider()
 
             PainkillerInfoCard(
-                title = "GitHub App installation (recommended)",
-                body = "For official GitHub App auth, paste the installation id. " +
-                    "Painkiller expects a backend endpoint that exchanges this for a short-lived token.",
+                title = "GitHub App installation (dev-only broker)",
+                body = if (state.isGithubAppAvailable) {
+                    "Experimental/dev path: paste installation id for broker exchange."
+                } else {
+                    "Disabled in this build. A hosted token broker is required. " +
+                        "Normal users should use PAT sign-in.",
+                },
             )
 
             OutlinedTextField(
@@ -157,7 +166,7 @@ fun AuthScreen(
             PainkillerPrimaryActionButton(
                 text = if (state.isSubmitting) "Signing in…" else "Sign in with GitHub App",
                 onClick = viewModel::signInWithGithubAppInstallation,
-                enabled = state.canSubmitInstallation,
+                enabled = state.canSubmitInstallation && state.isGithubAppAvailable,
             )
         }
     }

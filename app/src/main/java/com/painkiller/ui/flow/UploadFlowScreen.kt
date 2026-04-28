@@ -384,6 +384,16 @@ fun UploadFlowScreen(
                         TextButton(onClick = viewModel::clearSelectedRelease) {
                             Text("Clear selected release")
                         }
+                        Text(
+                            text = "Release asset upload currently supports single-file source only.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Large assets are loaded in memory before upload (experimental limitation).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
                         val canUploadSelectedFile = state.loadedFile != null && !state.isUploadingReleaseAsset
                         PainkillerPrimaryActionButton(
                             text = if (state.isUploadingReleaseAsset) "Uploading asset…" else "Upload selected file as asset",

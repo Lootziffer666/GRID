@@ -33,7 +33,12 @@ class AuthViewModel(
     private val authRepository: GithubAuthRepository,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(AuthUiState())
+    private val _state = MutableStateFlow(
+        AuthUiState(
+            isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
+            isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
+        ),
+    )
     val state: StateFlow<AuthUiState> = _state.asStateFlow()
 
     init {
@@ -105,6 +110,8 @@ class AuthViewModel(
                     formatLooksValid = false,
                     tokenKindLabel = null,
                     statusHint = "Signed in.",
+                    isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
+                    isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
                 )
                 is GithubAuthResult.Failure -> _state.update {
                     it.copy(
@@ -138,6 +145,8 @@ class AuthViewModel(
                     formatLooksValid = false,
                     tokenKindLabel = null,
                     statusHint = "Signed in.",
+                    isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
+                    isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
                 )
                 is GithubAuthResult.Failure -> _state.update {
                     it.copy(
@@ -170,6 +179,8 @@ class AuthViewModel(
                     formatLooksValid = false,
                     tokenKindLabel = null,
                     statusHint = "Signed in with GitHub App token.",
+                    isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
+                    isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
                 )
                 is GithubAuthResult.Failure -> _state.update {
                     it.copy(
@@ -186,7 +197,10 @@ class AuthViewModel(
     fun signOut() {
         viewModelScope.launch {
             authRepository.logout()
-            _state.value = AuthUiState()
+            _state.value = AuthUiState(
+                isOAuthAvailable = authRepository.isOAuthExchangeAvailable(),
+                isGithubAppAvailable = authRepository.isGithubAppExchangeAvailable(),
+            )
         }
     }
 
@@ -231,6 +245,8 @@ data class AuthUiState(
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
     val statusHint: String = "Paste a Personal Access Token to continue.",
+    val isOAuthAvailable: Boolean = false,
+    val isGithubAppAvailable: Boolean = false,
 ) {
     val isAuthenticated: Boolean get() = authState is GithubAuthState.Authenticated
     val canSubmit: Boolean get() = !isSubmitting && tokenInput.isNotBlank()
