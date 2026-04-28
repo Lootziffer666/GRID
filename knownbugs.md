@@ -275,18 +275,19 @@ Action:
 
 ## BUG-20260427-012
 
-Status: ACCEPTED
-Gate: 16
+Status: FIXED
+Gate: 25
 Severity: LOW
-Summary: ZIP intake now de-duplicates normalized paths by keeping the first entry; users are not yet shown an explicit collision warning.
+Summary: ZIP intake collisions are now surfaced in UI and unsafe ZIP paths are blocked before upload planning.
 
 Evidence:
-- `SafZipReader` applies `distinctBy { normalizedPath }` after root normalization.
-- Colliding entries are dropped deterministically to prevent silent map overwrite.
+- `ZipIntakePlanner` records collision and unsafe-path issues during ZIP normalization.
+- `UploadFlowViewModel` stores ZIP issues and blocks plan-build when unsafe entries are present.
+- `UploadFlowScreen` shows collision and unsafe-path warnings for ZIP sources.
 
 Action:
-- Accepted short-term for intake hardening.
-- Follow-up in later UX gate: surface a collision warning in the source summary.
+- Fixed in Gate 25 ZIP-core recentering.
+- Keep deterministic first-entry-wins behavior for collisions, now with explicit user-visible warnings.
 
 ---
 

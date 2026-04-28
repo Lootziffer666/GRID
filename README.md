@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 24.6 PASS: GitHub App broker removed from the product path.**
+**Gate 25 PASS: ZIP core flow recentered and completed as first-class source path.**
 
 Painkiller now includes:
 
@@ -35,14 +35,14 @@ Painkiller now includes:
 - Ktor-based GitHub API adapters (repo/branch listing + git-data + token probe)
 - PAT-based sign-in with encrypted secure storage
 - OAuth Device Flow / OAuth App documented as a future mobile-friendly auth candidate (not yet implemented)
-- ZIP intake safety checks (ZIP-Slip defense in depth)
+- ZIP intake as a real source path with root normalization, ZIP-Slip blocking, collision surfacing, and commit integration
 - dark mode toggle (default is light mode)
 - splash screen + vector app icon branding
 - intake hardening + UX polish in progress (see `handoff/NEXT_GATES_PLAN.md`)
 - user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), Git LFS, and Release Assets in later gates
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 
-## Runtime feature status (Gate 24.6 broker removal baseline)
+## Runtime feature status (Gate 25 ZIP-core baseline)
 
 - **Stable**
   - PAT sign-in
@@ -80,7 +80,8 @@ verification of the gated layers.
 - Gate 23: `handoff/GATE_23_HANDOFF.md`
 - Gate 24: `handoff/GATE_24_HANDOFF.md`
 - Gate 24.5: `handoff/GATE_24_5_HANDOFF.md`
-- Gate 24.6 (aktueller Stand): `handoff/GATE_24_6_HANDOFF.md`
+- Gate 24.6: `handoff/GATE_24_6_HANDOFF.md`
+- Gate 25 (aktueller Stand): `handoff/GATE_25_HANDOFF.md`
 - Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
@@ -274,7 +275,7 @@ Then:
 
 - PAT sign-in is the active product auth path.
 - OAuth Device Flow / OAuth App remains a future candidate and is not implemented yet.
-- ZIP parsing currently follows root-path heuristics and deterministic ordering, but does not provide advanced archive conflict UI yet.
+- ZIP collisions and unsafe paths are surfaced in the upload flow; unsafe paths block plan build before upload.
 - Some UX polish (progress feedback, richer source summaries) is still pending.
 
 ## What this candidate is and is not

@@ -32,6 +32,8 @@ import com.painkiller.domain.files.FilePlanBuilder
 import com.painkiller.domain.files.PlannedFile
 import com.painkiller.domain.files.SelectedSource
 import com.painkiller.domain.files.SourceKind
+import com.painkiller.domain.files.ZipIntakeIssue
+import com.painkiller.domain.files.ZipIntakeIssueCode
 import com.painkiller.domain.github.GithubBranchSummary
 import com.painkiller.domain.github.GithubPullRequestSummary
 import com.painkiller.domain.github.GithubReleaseSummary
@@ -105,6 +107,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 plan = null,
                 errorMessage = null,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -118,6 +121,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 plan = null,
                 errorMessage = null,
+                zipIssues = result.issues,
             )
         }
     }
@@ -131,6 +135,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 errorMessage = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
         viewModelScope.launch {
@@ -175,6 +180,7 @@ class UploadFlowViewModel(
                     loadedFilePlan = null,
                     plan = null,
                     errorMessage = null,
+                    zipIssues = emptyList(),
                 )
             }
         }
@@ -187,6 +193,7 @@ class UploadFlowViewModel(
                 loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -200,6 +207,7 @@ class UploadFlowViewModel(
                 loadedFilePlan = null,
                 errorMessage = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
         viewModelScope.launch {
@@ -232,6 +240,7 @@ class UploadFlowViewModel(
                 loadedMultiContent = null,
                 loadedFilePlan = null,
                 plan = null,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -529,6 +538,12 @@ class UploadFlowViewModel(
     fun buildPlan() {
         val s = _state.value
         val target = buildRepoTargetOrError() ?: return
+        if (s.isZipSource && s.hasZipUnsafeEntries) {
+            _state.update {
+                it.copy(errorMessage = "ZIP contains unsafe paths. Remove blocked entries and pick a safe ZIP.")
+            }
+            return
+        }
         when {
             s.loadedFolder != null -> buildMultiFilePlan(s.loadedFolder, target)
             s.loadedFile != null -> buildFilePlan(s.loadedFile, target)
@@ -672,6 +687,7 @@ class UploadFlowViewModel(
                 repoInput = it.repoInput,
                 branchInput = it.branchInput,
                 targetPathInput = it.targetPathInput,
+                zipIssues = emptyList(),
             )
         }
     }
@@ -753,6 +769,7 @@ data class UploadFlowUiState(
     val loadedFolder: SelectedSource? = null,
     val loadedMultiContent: Map<String, String>? = null,
     val loadedFilePlan: FilePlan? = null,
+    val zipIssues: List<ZipIntakeIssue> = emptyList(),
     val ownerInput: String = "",
     val repoInput: String = "",
     val branchInput: String = "",
@@ -790,6 +807,8 @@ data class UploadFlowUiState(
     val isZipSource: Boolean get() = loadedFolder?.kind == SourceKind.ZIP
     val isMultipleFileSource: Boolean get() = loadedFolder?.kind == SourceKind.MULTIPLE_FILES
     val isMultiFileSource: Boolean get() = loadedFolder != null
+    val zipCollisionCount: Int get() = zipIssues.count { it.code == ZipIntakeIssueCode.COLLISION }
+    val hasZipUnsafeEntries: Boolean get() = zipIssues.any { it.code == ZipIntakeIssueCode.UNSAFE_PATH }
     val hasSource: Boolean get() = loadedFile != null || loadedFolder != null
     val retryHint: RecoveryHint? get() = humanError?.recoveryHint
     val retrySafety: RetrySafety? get() = humanError?.retrySafety
