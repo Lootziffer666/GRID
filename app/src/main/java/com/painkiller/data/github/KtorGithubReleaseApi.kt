@@ -80,7 +80,7 @@ class KtorGithubReleaseApi(
                 setBody(
                     StreamingUploadContent(
                         payload = request.payload,
-                        contentType = request.contentType,
+                        uploadContentType = request.contentType,
                     ),
                 )
             }
