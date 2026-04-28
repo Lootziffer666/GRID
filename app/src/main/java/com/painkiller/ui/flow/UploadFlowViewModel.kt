@@ -170,7 +170,7 @@ class UploadFlowViewModel(
                 file.sourceItem.copy(relativePath = file.displayName)
             }.sortedBy { it.displayName.lowercase() }
             val encoded = loaded.associate { file ->
-                file.sourceItem.sourceId to file.contentBase64
+                file.sourceItem.sourceId to (file.contentBase64 ?: "")
             }
             _state.update {
                 it.copy(
@@ -214,20 +214,27 @@ class UploadFlowViewModel(
             )
         }
         viewModelScope.launch {
-            val loaded = safFileReader.read(uri)
-            if (loaded == null) {
+            val loadedMetadata = safFileReader.readMetadata(uri)
+            if (loadedMetadata == null) {
                 _state.update {
                     it.copy(errorMessage = "Could not read the selected file. The link may have expired.")
                 }
                 return@launch
             }
-            if (loaded.sizeBytes > MAX_NORMAL_COMMIT_BYTES) {
+            if (loadedMetadata.sizeBytes > MAX_NORMAL_COMMIT_BYTES) {
                 _state.update {
                     it.copy(
-                        loadedFile = loaded,
+                        loadedFile = loadedMetadata,
                         errorMessage = "This file is too large for a normal Git commit (>100 MiB). " +
                             "Painkiller blocked the upload.",
                     )
+                }
+                return@launch
+            }
+            val loaded = safFileReader.read(uri)
+            if (loaded == null) {
+                _state.update {
+                    it.copy(errorMessage = "Could not read the selected file. The link may have expired.")
                 }
                 return@launch
             }
@@ -432,13 +439,16 @@ class UploadFlowViewModel(
         if (s.isUploadingReleaseAsset) return
         _state.update { it.copy(isUploadingReleaseAsset = true, errorMessage = null) }
         viewModelScope.launch {
-            val data = try {
-                java.util.Base64.getDecoder().decode(file.contentBase64)
+            val payload = try {
+                safFileReader.createUploadPayload(file.sourceItem.sourceId, file.sizeBytes)
             } catch (e: Throwable) {
+                null
+            }
+            if (payload == null) {
                 _state.update {
                     it.copy(
                         isUploadingReleaseAsset = false,
-                        errorMessage = "Could not decode selected file for release upload.",
+                        errorMessage = "Could not open selected file stream for release upload.",
                     )
                 }
                 return@launch
@@ -452,7 +462,7 @@ class UploadFlowViewModel(
                     request = UploadReleaseAssetRequest(
                         name = file.displayName,
                         contentType = contentType,
-                        data = data,
+                        payload = payload,
                     ),
                 )
             ) {
@@ -626,7 +636,10 @@ class UploadFlowViewModel(
         val input = SingleFileCommitInput(
             target = plan.target,
             fileName = loaded.displayName,
-            contentBase64 = loaded.contentBase64,
+            contentBase64 = loaded.contentBase64 ?: run {
+                _state.update { it.copy(isCommitting = false, errorMessage = "Could not read selected file content.") }
+                return
+            },
             commitMessage = message,
         )
         handleSingleFileCommitResult(singleFileCommitRepository.commitSingleFile(input))
@@ -699,7 +712,13 @@ class UploadFlowViewModel(
                 val result = lfsRepository.uploadSingleFileAndCommitPointer(
                     target = target,
                     fileName = file.displayName,
-                    contentBase64 = file.contentBase64,
+                    payload = safFileReader.createUploadPayload(file.sourceItem.sourceId, file.sizeBytes)
+                        ?: run {
+                            _state.update {
+                                it.copy(isUploadingLfs = false, errorMessage = "Could not open selected file stream for Git LFS upload.")
+                            }
+                            return@launch
+                        },
                     commitMessage = commitMessage,
                 )
             ) {

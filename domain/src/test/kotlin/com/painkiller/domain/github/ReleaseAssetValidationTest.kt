@@ -3,6 +3,7 @@ package com.painkiller.domain.github
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.io.ByteArrayInputStream
 
 class ReleaseAssetValidationTest {
 
@@ -12,7 +13,7 @@ class ReleaseAssetValidationTest {
             UploadReleaseAssetRequest(
                 name = "   ",
                 contentType = "application/octet-stream",
-                data = byteArrayOf(1),
+                payload = testPayload(size = 1L),
             ),
         )
 
@@ -25,7 +26,7 @@ class ReleaseAssetValidationTest {
             UploadReleaseAssetRequest(
                 name = "archive.zip",
                 contentType = "",
-                data = byteArrayOf(1),
+                payload = testPayload(size = 1L),
             ),
         )
 
@@ -38,7 +39,7 @@ class ReleaseAssetValidationTest {
             UploadReleaseAssetRequest(
                 name = "archive.zip",
                 contentType = "application/zip",
-                data = byteArrayOf(),
+                payload = testPayload(size = 0L),
             ),
         )
 
@@ -51,10 +52,14 @@ class ReleaseAssetValidationTest {
             UploadReleaseAssetRequest(
                 name = "archive.zip",
                 contentType = "application/zip",
-                data = byteArrayOf(1, 2, 3),
+                payload = testPayload(size = 3L),
             ),
         )
 
         assertNull(error)
+    }
+    private fun testPayload(size: Long): UploadPayload = object : UploadPayload {
+        override val sizeBytes: Long = size
+        override fun openStream() = ByteArrayInputStream(ByteArray(size.coerceAtLeast(0L).toInt()))
     }
 }

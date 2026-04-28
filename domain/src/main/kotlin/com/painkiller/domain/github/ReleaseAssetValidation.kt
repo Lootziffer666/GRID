@@ -4,7 +4,7 @@ object ReleaseAssetValidation {
     fun validate(request: UploadReleaseAssetRequest): ValidationError? {
         if (request.name.isBlank()) return ValidationError.NameRequired
         if (request.contentType.isBlank()) return ValidationError.ContentTypeRequired
-        if (request.data.isEmpty()) return ValidationError.DataRequired
+        if (request.payload.sizeBytes <= 0L) return ValidationError.DataRequired
         return null
     }
 

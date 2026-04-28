@@ -3,6 +3,7 @@ package com.painkiller.data.github
 import com.painkiller.domain.github.GithubGitDataException
 import com.painkiller.domain.github.SingleFileCommitInput
 import com.painkiller.domain.github.SingleFileCommitResult
+import com.painkiller.domain.github.UploadPayload
 import com.painkiller.domain.lfs.LfsPointer
 import com.painkiller.domain.target.RepoTarget
 
@@ -26,19 +27,13 @@ class GithubLfsRepository(
     suspend fun uploadSingleFileAndCommitPointer(
         target: RepoTarget,
         fileName: String,
-        contentBase64: String,
+        payload: UploadPayload,
         commitMessage: String,
     ): GithubLfsUploadResult {
-        val bytes = try {
-            java.util.Base64.getDecoder().decode(contentBase64)
-        } catch (e: Throwable) {
-            return GithubLfsUploadResult.Failure("Selected file could not be read for Git LFS upload.")
-        }
-
         val plan = try {
-            LfsPointer.buildPlan(bytes)
+            payload.openStream().use { LfsPointer.buildPlanFromStream(it) }
         } catch (e: Throwable) {
-            return GithubLfsUploadResult.Failure("Could not build a valid Git LFS pointer for this file.")
+            return GithubLfsUploadResult.Failure("Selected file stream could not be read for Git LFS upload. Nothing was changed on GitHub.")
         }
 
         val batch = try {
@@ -65,9 +60,9 @@ class GithubLfsRepository(
         val error = objectResult.error
         if (error != null) {
             val mapped = if (error.code == 507 || error.message.contains("quota", ignoreCase = true)) {
-                "Git LFS quota or storage limit was reached. Pointer was not committed."
+                "Git LFS quota or storage limit was reached. Pointer was not committed. GitHub repo files were not updated."
             } else {
-                "Git LFS server rejected this object: ${error.message}. Pointer was not committed."
+                "Git LFS server rejected this object: ${error.message}. Pointer was not committed. GitHub repo files were not updated."
             }
             return GithubLfsUploadResult.Failure(mapped)
         }
@@ -80,21 +75,20 @@ class GithubLfsRepository(
             ?: return GithubLfsUploadResult.Failure(
                 "Git LFS response did not include an upload action. Pointer was not committed.",
             )
-        val uploadHref = uploadAction.href
-        if (uploadHref.isBlank()) {
+        if (uploadAction.href.isBlank()) {
             return GithubLfsUploadResult.Failure(
                 "Git LFS upload URL was missing. Pointer was not committed.",
             )
         }
+
         try {
-            lfsApi.uploadObject(uploadAction, bytes)
-            val verifyAction = actions.verify
-            if (verifyAction != null) {
+            lfsApi.uploadObject(uploadAction, payload)
+            actions.verify?.let { verifyAction ->
                 lfsApi.verifyObject(verifyAction, plan.oid.value, plan.sizeBytes)
             }
         } catch (e: Throwable) {
             return GithubLfsUploadResult.Failure(
-                "LFS upload failed before the pointer file was committed. Nothing was changed on GitHub.",
+                "LFS upload stream failed before the pointer file was committed. GitHub repo files were not updated.",
             )
         }
 
@@ -116,11 +110,13 @@ class GithubLfsRepository(
                     ),
                 committedPath = commitResult.committedPath,
             )
+
             is SingleFileCommitResult.ShaMismatch -> GithubLfsUploadResult.Failure(
-                "Branch changed before pointer commit (SHA mismatch). LFS object may be uploaded, but repo pointer was not updated.",
+                "Branch changed before pointer commit (SHA mismatch). LFS object may exist server-side, but GitHub repo files were not updated.",
             )
+
             else -> GithubLfsUploadResult.Failure(
-                "Pointer commit failed after LFS upload. GitHub branch was not updated.",
+                "Pointer commit failed after LFS upload. GitHub repo files were not updated.",
             )
         }
     }

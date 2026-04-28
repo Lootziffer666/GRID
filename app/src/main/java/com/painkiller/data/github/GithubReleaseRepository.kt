@@ -98,7 +98,7 @@ class GithubReleaseRepository(
         } catch (e: GithubGitDataException.NetworkUnavailable) {
             GithubReleaseAssetUploadResult.Failure("Could not reach GitHub.")
         } catch (e: Throwable) {
-            GithubReleaseAssetUploadResult.Failure("Could not upload release asset.")
+            GithubReleaseAssetUploadResult.Failure("Could not stream upload release asset. GitHub repo files were not changed.")
         }
     }
 }

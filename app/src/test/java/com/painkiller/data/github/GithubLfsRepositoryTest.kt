@@ -15,6 +15,7 @@ import com.painkiller.domain.github.GithubGitDataApi
 import com.painkiller.domain.github.GithubGitDataException
 import com.painkiller.domain.github.SingleFileCommitResult
 import com.painkiller.domain.github.UpdateRefRequest
+import com.painkiller.domain.github.UploadPayload
 import com.painkiller.domain.lfs.LfsBatchObjectResponse
 import com.painkiller.domain.lfs.LfsBatchResponse
 import com.painkiller.domain.lfs.LfsObjectAction
@@ -25,6 +26,7 @@ import com.painkiller.domain.target.TargetPath
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.ByteArrayInputStream
 
 class GithubLfsRepositoryTest {
 
@@ -35,7 +37,7 @@ class GithubLfsRepositoryTest {
             override suspend fun requestUploadAction(owner: String, repo: String, oid: String, size: Long, refName: String): LfsBatchResponse =
                 LfsBatchResponse(objects = listOf(LfsBatchObjectResponse(oid, size, actions = LfsObjectActions(upload = LfsObjectAction("https://upload")))))
 
-            override suspend fun uploadObject(action: LfsObjectAction, bytes: ByteArray) {
+            override suspend fun uploadObject(action: LfsObjectAction, payload: UploadPayload) {
                 throw GithubGitDataException.NetworkUnavailable()
             }
         }
@@ -47,7 +49,7 @@ class GithubLfsRepositoryTest {
         }
         val repo = GithubLfsRepository(lfsApi, singleRepo)
 
-        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", base64("data"), "msg")
+        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", payload("data"), "msg")
 
         assertTrue(result is GithubLfsUploadResult.Failure)
         assertTrue(!committed)
@@ -62,7 +64,7 @@ class GithubLfsRepositoryTest {
         val singleRepo = SingleFileCommitRepository(fakeGitDataApi(shaMismatch = true), tokenStore())
         val repo = GithubLfsRepository(lfsApi, singleRepo)
 
-        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", base64("data"), "msg")
+        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", payload("data"), "msg")
 
         assertTrue(result is GithubLfsUploadResult.Failure)
     }
@@ -90,13 +92,17 @@ class GithubLfsRepositoryTest {
         }
         val repo = GithubLfsRepository(lfsApi, singleRepo)
 
-        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", base64("data"), "msg")
+        val result = repo.uploadSingleFileAndCommitPointer(target(), "big.bin", payload("data"), "msg")
 
         assertTrue(result is GithubLfsUploadResult.Failure)
         assertTrue(!committed)
     }
 
-    private fun base64(value: String): String = java.util.Base64.getEncoder().encodeToString(value.toByteArray())
+    private fun payload(value: String): UploadPayload = object : UploadPayload {
+        private val bytes = value.toByteArray()
+        override val sizeBytes: Long = bytes.size.toLong()
+        override fun openStream() = ByteArrayInputStream(bytes)
+    }
 
     private fun target() = RepoTarget("o", "r", BranchTarget("main"), TargetPath(""))
 

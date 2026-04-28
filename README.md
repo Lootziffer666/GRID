@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 26 PASS: real single-file Git LFS path added (upload object first, then pointer commit).**
+**Gate 27 PASS: large upload streaming added for single-file Git LFS and single-file Release Asset paths.**
 
 Painkiller now includes:
 
@@ -42,19 +42,19 @@ Painkiller now includes:
 - user-directed scope expansion roadmap now includes OAuth (additional login), PR merge assist/management (optional ONNX local scoring), and further LFS/release hardening in later gates
 - release workflow now supports listing releases, creating a release, and uploading the currently selected single file as a GitHub Release Asset
 
-## Runtime feature status (Gate 26 single-file LFS baseline)
+## Runtime feature status (Gate 27 streaming large uploads baseline)
 
 - **Stable**
   - PAT sign-in
   - single-file/multi-file/folder/ZIP intake + upload planning
   - Git Data API commit flow and safety guards
 - **Experimental**
-  - Git LFS single-file upload flow (memory-limited; uploads object first, then commits pointer)
-  - Release asset workflow (single-file source only, memory-heavy upload path)
+  - Git LFS single-file upload flow (streaming object upload; uploads object first, then commits pointer)
+  - Release asset workflow (single-file source only, streaming upload path)
   - PR merge-assist diagnostics/actions
 - **Deferred**
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
-  - multi-file release asset batch upload and streaming upload body
+  - multi-file release asset batch upload
 - **Hidden**
   - none currently
 
@@ -83,7 +83,8 @@ verification of the gated layers.
 - Gate 24.5: `handoff/GATE_24_5_HANDOFF.md`
 - Gate 24.6: `handoff/GATE_24_6_HANDOFF.md`
 - Gate 25: `handoff/GATE_25_HANDOFF.md`
-- Gate 26 (aktueller Stand): `handoff/GATE_26_HANDOFF.md`
+- Gate 26: `handoff/GATE_26_HANDOFF.md`
+- Gate 27 (aktueller Stand): `handoff/GATE_27_HANDOFF.md`
 - Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
@@ -278,7 +279,7 @@ Then:
 - PAT sign-in is the active product auth path.
 - OAuth Device Flow / OAuth App remains a future candidate and is not implemented yet.
 - ZIP collisions and unsafe paths are surfaced in the upload flow; unsafe paths block plan build before upload.
-- Git LFS in Gate 26 is single-file only and currently uses in-memory byte handling for selected files.
+- Git LFS is single-file only; object upload is streaming in Gate 27.
 - Some UX polish (progress feedback, richer source summaries) is still pending.
 
 ## What this candidate is and is not

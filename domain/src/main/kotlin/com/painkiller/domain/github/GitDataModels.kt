@@ -188,11 +188,10 @@ data class CreateReleaseRequest(
     @SerialName("prerelease") val prerelease: Boolean = false,
 )
 
-@Serializable
 data class UploadReleaseAssetRequest(
     val name: String,
     val contentType: String,
-    val data: ByteArray,
+    val payload: UploadPayload,
 )
 
 @Serializable

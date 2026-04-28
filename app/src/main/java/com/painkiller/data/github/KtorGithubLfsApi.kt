@@ -1,6 +1,7 @@
 package com.painkiller.data.github
 
 import com.painkiller.domain.github.GithubGitDataException
+import com.painkiller.domain.github.UploadPayload
 import com.painkiller.domain.lfs.LfsBatchObjectRequest
 import com.painkiller.domain.lfs.LfsBatchRef
 import com.painkiller.domain.lfs.LfsBatchRequest
@@ -17,8 +18,12 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.content.ByteArrayContent
+import io.ktor.http.content.OutgoingContent
 import io.ktor.http.contentType
+import io.ktor.utils.io.ByteWriteChannel
+import io.ktor.utils.io.writeFully
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -60,12 +65,17 @@ open class KtorGithubLfsApi(
         }
     }
 
-    open suspend fun uploadObject(action: LfsObjectAction, bytes: ByteArray) {
+    open suspend fun uploadObject(action: LfsObjectAction, payload: UploadPayload) {
         val response = transport {
             client.put(action.href) {
                 action.header.forEach { (key, value) -> header(key, value) }
                 header(HttpHeaders.ContentType, ContentType.Application.OctetStream.toString())
-                setBody(ByteArrayContent(bytes, contentType = ContentType.Application.OctetStream))
+                setBody(
+                    StreamingPayloadContent(
+                        payload = payload,
+                        payloadContentType = ContentType.Application.OctetStream,
+                    ),
+                )
             }
         }
         if (response.status.value !in 200..299) {
@@ -116,5 +126,27 @@ open class KtorGithubLfsApi(
 
     private companion object {
         const val LFS_CONTENT_TYPE = "application/vnd.git-lfs+json"
+    }
+}
+
+private class StreamingPayloadContent(
+    private val payload: UploadPayload,
+    private val payloadContentType: ContentType,
+) : OutgoingContent.WriteChannelContent() {
+    override val contentLength: Long = payload.sizeBytes
+    override val contentType: ContentType = payloadContentType
+
+    override suspend fun writeTo(channel: ByteWriteChannel) {
+        withContext(Dispatchers.IO) {
+            payload.openStream().use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    if (read == 0) continue
+                    channel.writeFully(buffer, 0, read)
+                }
+            }
+        }
     }
 }

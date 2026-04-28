@@ -379,18 +379,18 @@ Action:
 
 ## BUG-20260427-018
 
-Status: OPEN
-Gate: 24
+Status: FIXED
+Gate: 27
 Severity: LOW
-Summary: Release asset upload currently decodes selected file content into memory before network POST, which may increase peak memory usage for large artifacts.
+Summary: Release asset upload now streams selected file content to GitHub without eager ByteArray materialization (single-file scope).
 
 Evidence:
-- `UploadFlowViewModel.uploadSelectedFileAsReleaseAsset()` decodes `LoadedFile.contentBase64` to `ByteArray` before repository upload.
-- `UploadReleaseAssetRequest` carries an eager `ByteArray` payload (non-streaming path).
+- `UploadFlowViewModel.uploadSelectedFileAsReleaseAsset()` now builds a stream-backed payload from SAF URI metadata.
+- `UploadReleaseAssetRequest` now carries `UploadPayload` with `openStream()` + `sizeBytes`.
 
 Action:
-- Keep Gate 24 behavior for functional release-asset upload correctness.
-- Follow-up gate should switch to streaming upload body to reduce peak memory pressure.
+- Fixed in Gate 27 by streaming release asset body in `KtorGithubReleaseApi` via `OutgoingContent.WriteChannelContent`.
+- Scope remains single-file release uploads only.
 
 ---
 
@@ -431,15 +431,15 @@ Action:
 
 ## BUG-20260428-021
 
-Status: ACCEPTED
-Gate: 26
+Status: FIXED
+Gate: 27
 Severity: LOW
-Summary: Gate 26 real Git LFS path is single-file only and currently decodes selected file content in-memory before upload.
+Summary: Git LFS single-file upload now hashes and uploads from stream without eager full-file ByteArray.
 
 Evidence:
-- `GithubLfsRepository.uploadSingleFileAndCommitPointer()` decodes selected file base64 to `ByteArray` before LFS batch/upload.
-- `UploadFlowViewModel.uploadSingleFileViaLfs()` is wired only for single selected files above 100 MiB.
+- `GithubLfsRepository.uploadSingleFileAndCommitPointer()` now builds LFS oid/size via streaming digest and uploads from `UploadPayload` stream.
+- `UploadFlowViewModel.uploadSingleFileViaLfs()` now passes SAF-backed stream payload and remains single-file-only.
 
 Action:
-- Accepted for Gate 26 MVP scope.
-- Follow-up gate should move LFS object upload to streaming input for lower peak memory and larger-file resilience.
+- Fixed in Gate 27 for the single-file LFS path.
+- Multi-file/folder/ZIP LFS routing remains out of scope.
