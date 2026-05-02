@@ -569,3 +569,21 @@ Action:
 - Accepted as documentation drift risk.
 - Gate 34 added explicit truth-audit section in README aligned to code constants.
 
+
+---
+
+## BUG-20260502-029
+
+Status: ACCEPTED
+Gate: 35
+Severity: LOW
+Summary: Release asset upload remains single-file only; batch release upload for multi-file/folder/ZIP sources is intentionally unavailable.
+
+Evidence:
+- `uploadSelectedFileAsReleaseAsset()` requires `loadedFile` and rejects non-single-file contexts.
+- Routing rules mark release route unavailable for non-single-file source kinds.
+- Release upload body is stream-backed and does not imply batch support.
+
+Action:
+- Accepted as current product boundary.
+- Future gate may add explicit batch orchestration if scope approves it.

@@ -359,6 +359,15 @@ Audit result against source-of-truth domain logic:
 - Release Asset route remains executable only for one selected file with an explicit selected release.
 - Multi-file/folder/ZIP LFS and batch release asset routes remain unavailable and are shown as disabled explanatory options.
 
+## Release asset streaming / batch truth (Gate 35)
+
+Audit result against source-of-truth app/data logic:
+
+- Release asset upload uses stream-backed body writing (`OutgoingContent.WriteChannelContent`).
+- Upload entrypoint requires exactly one selected file source.
+- Release upload requires explicit release selection before execution.
+- Multi-file/folder/ZIP release batch upload remains unavailable and intentionally non-executable.
+
 ## Codex conflict presets MVP (Gate 29)
 
 Painkiller now includes a minimal collision-cleanup preset flow for Git conflict markers:
