@@ -36,6 +36,7 @@ import com.painkiller.domain.conflict.ConflictCommitPlan
 import com.painkiller.domain.conflict.ConflictCommitPlanner
 import com.painkiller.domain.conflict.ConflictCommitResult
 import com.painkiller.domain.conflict.ResolvedCommitCandidate
+import com.painkiller.domain.conflict.ConflictBranchFreshnessGuard
 import com.painkiller.domain.conflict.ConflictReviewPreview
 import com.painkiller.domain.conflict.ConflictReviewPreviewPlanner
 import com.painkiller.domain.conflict.ConflictReviewSession
@@ -788,12 +789,14 @@ class UploadFlowViewModel(
                 blockedByWrite = writeResult.blockedFiles,
                 failedByWrite = writeResult.failedFiles.map { it.path },
             )
+            val baseSha = target?.let { resolveBranchSha(it.owner, it.repo, it.branch.name) }
             _state.update {
                 it.copy(
                     conflictCommitPlan = plan,
                     commitMessageInput = it.commitMessageInput.ifBlank { plan.commitMessageSuggestion },
                     conflictCommitResult = null,
                     conflictCommitMessage = plan.summary,
+                    conflictCommitBaseSha = baseSha,
                 )
             }
         }
@@ -813,13 +816,24 @@ class UploadFlowViewModel(
             _state.update { it.copy(conflictCommitMessage = "Commit is blocked for safety. Review blocked files first.") }
             return
         }
+        val target = plan.target
         _state.update { it.copy(isCommitting = true, humanError = null) }
         viewModelScope.launch {
+            val currentSha = resolveBranchSha(target.owner, target.repo, target.branch.name)
+            if (ConflictBranchFreshnessGuard.isStale(s.conflictCommitBaseSha, currentSha)) {
+                _state.update {
+                    it.copy(
+                        isCommitting = false,
+                        conflictCommitMessage = "The branch changed on GitHub after plan review. Refresh commit review before committing.",
+                    )
+                }
+                return@launch
+            }
             val message = s.commitMessageInput.ifBlank { plan.commitMessageSuggestion }
             val result = if (plan.candidates.size == 1) {
                 val file = plan.candidates.first()
                 when (val r = singleFileCommitRepository.commitSingleFile(
-                    SingleFileCommitInput(plan.target, file.repoPath, file.contentBase64, message),
+                    SingleFileCommitInput(target, file.repoPath, file.contentBase64, message),
                 )) {
                     is SingleFileCommitResult.Success -> ConflictCommitResult(
                         committedFiles = listOf(r.committedPath),
@@ -841,7 +855,7 @@ class UploadFlowViewModel(
             } else {
                 val entries = plan.candidates.map { MultiFileCommitEntry(it.repoPath, it.contentBase64) }
                 when (val r = multiFileCommitRepository.commitMultipleFiles(
-                    MultiFileCommitInput(plan.target, entries, message),
+                    MultiFileCommitInput(target, entries, message),
                 )) {
                     is MultiFileCommitResult.Success -> ConflictCommitResult(
                         committedFiles = r.committedPaths,
@@ -1188,6 +1202,13 @@ class UploadFlowViewModel(
         }
     }
 
+    private suspend fun resolveBranchSha(owner: String, repo: String, branch: String): String? {
+        return when (val result = repoBranchRepository.listBranches(owner, repo)) {
+            is GithubBranchListResult.Success -> result.branches.firstOrNull { it.name == branch }?.commit?.sha
+            is GithubBranchListResult.Failure -> null
+        }
+    }
+
     companion object {
         private const val MAX_NORMAL_COMMIT_BYTES = 100L * 1024L * 1024L
 
@@ -1258,6 +1279,7 @@ data class UploadFlowUiState(
     val conflictWriteResult: ConflictWriteResult? = null,
     val conflictWriteMessage: String? = null,
     val conflictCommitPlan: ConflictCommitPlan? = null,
+    val conflictCommitBaseSha: String? = null,
     val conflictCommitResult: ConflictCommitResult? = null,
     val conflictCommitMessage: String? = null,
     val newReleaseTagInput: String = "",

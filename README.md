@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 32 PASS: conflict resolution now supports explicit commit-bridge review and manual commit creation for resolved files; no automatic push.**
+**Gate 33 PASS: conflict commit bridge now includes branch freshness guard to block stale-branch commits after review; no automatic push.**
 
 Painkiller now includes:
 

@@ -534,3 +534,20 @@ Evidence:
 Action:
 - Accepted as Android SAF permission boundary.
 - User can reselect source files with valid URI access, rebuild preview/write plan, then rebuild commit plan.
+
+---
+
+## BUG-20260502-027
+
+Status: ACCEPTED
+Gate: 33
+Severity: LOW
+Summary: Branch freshness guard depends on branch-SHA lookup; if lookup fails, stale detection is deferred to existing Git Data API safety checks.
+
+Evidence:
+- Gate 33 guard snapshots branch SHA during commit-plan review and compares before commit.
+- On list-branch lookup failure, guard returns no stale signal and relies on downstream SHA-guarded commit path.
+
+Action:
+- Accepted as layered safety behavior.
+- Existing Git Data API commit flow still blocks branch-changed races via expected-SHA checks.
