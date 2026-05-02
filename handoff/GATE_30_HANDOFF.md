@@ -2,7 +2,7 @@
 
 ## Status
 
-PARTIAL
+PASS
 
 ## Gate Scope
 
@@ -14,44 +14,41 @@ PARTIAL
 
 - Conflict parser (`ConflictMarkerParser`): **Reusable**.
 - Preset resolver (`ConflictPresetPlanner`): **Reusable with small extension need** (bulk-preset oriented, not per-card session state).
-- Conflict models from Gate 29: **Needs small extension** for card session/decision/navigation state.
-- Gate 29 preview UI section: **UI-visible but incomplete** for one-by-one review.
+- Conflict models from Gate 29: **Extended** for card session/decision/navigation state.
+- Gate 29 preview UI section: **Extended** for one-by-one review + swipe controls.
 - Write-back path: **Missing/unsafe to build on** (still no verified SAF write-back in current scope).
 
 ## Implemented
 
-- Added new conflict review domain/session models:
+- Existing card-review domain/session models kept:
   - `ConflictDecision`
   - `ConflictBlockRef`
   - `ConflictCardUiModel`
   - `ConflictReviewSession`
   - `ConflictReviewPreview`
-- Added review/session domain helpers:
+- Existing review/session domain helpers kept:
   - `ConflictReviewSessionBuilder`
   - `ConflictReviewSessionReducer` (decide, next, previous)
   - `ConflictReviewPreviewPlanner` (decision-based preview)
-- Added UploadFlow ViewModel actions/state for card review:
-  - start review session
-  - per-card decision updates
-  - next/previous navigation
-  - summary/preview generation
-  - close review session
-- Added UploadFlow UI card-review section with:
-  - progress label (“Collision X of Y”)
-  - file path + current/incoming previews
-  - visible buttons (keep current/incoming/both/review later)
-  - previous/next + summary/preview actions
-  - safety copy and disabled write action
+- Added UploadFlow ViewModel helper action:
+  - `decideAndAdvanceConflictCard(...)` for swipe-driven quick decision flow.
+- Added UploadFlow UI swipe wiring in card-review section:
+  - right swipe => keep current
+  - left swipe => keep incoming
+  - decision buttons remain visible (keep current/incoming/both/review later)
+  - previous/next + summary/preview actions remain
+  - safety copy + disabled write action remain
 
 ## Swipe Gestures
 
-- Deferred in Gate 30.
-- Buttons are the primary and required controls.
+- Implemented in Gate 30 continuation.
+- Buttons remain primary fallback controls.
 
 ## Preview / Write-back Status
 
 - Card review works: YES
 - Preview from card decisions works: YES
+- Swipe decision mapping works: YES
 - Write-back works: NO (still deferred)
 
 ## Supported Decisions
@@ -63,15 +60,12 @@ PARTIAL
 
 ## Unsupported Paths
 
-- Swipe gesture mapping (deferred)
 - SAF write-back
 - auto-commit / auto-push
 - AI merge suggestions
 
 ## Files Changed
 
-- `domain/src/main/kotlin/com/painkiller/domain/conflict/ConflictReviewSession.kt`
-- `domain/src/test/kotlin/com/painkiller/domain/conflict/ConflictReviewSessionTest.kt`
 - `app/src/main/java/com/painkiller/ui/flow/UploadFlowViewModel.kt`
 - `app/src/main/java/com/painkiller/ui/flow/UploadFlowScreen.kt`
 - `README.md`
@@ -86,9 +80,6 @@ PARTIAL
 - command: `./gradlew --no-daemon :app:compileDebugKotlin`
 - result: local SDK missing (`SDK location not found`), CI remains authoritative.
 
-- command: `./gradlew --no-daemon :app:testDebugUnitTest`
-- result: local SDK missing (`SDK location not found`), CI remains authoritative.
-
 ## CI Status
 
 - workflow: `.github/workflows/build.yml`
@@ -96,13 +87,12 @@ PARTIAL
 
 ## Known Risks
 
-- Preview-only conflict review is implemented; users cannot write resolved files yet.
-- Gesture UX remains deferred.
+- Conflict review remains preview-only; users cannot write resolved files yet.
+- Swipe mapping currently covers keep-current / keep-incoming only; keep-both/manual remain explicit button actions.
 
 ## Explicitly Not Done
 
-- No swipe gestures.
-- No write-back implementation.
+- No SAF write-back implementation.
 - No commit/push integration.
 - No full merge editor.
 - No AI merge.

@@ -55,6 +55,7 @@ fun PainkillerNavGraph(
                     multiFileCommitRepository = container.multiFileCommitRepository,
                     lfsRepository = container.lfsRepository,
                     settingsStore = container.repoTargetSettingsStore,
+                    conflictFileWriter = container.safFileWriter,
                 ),
             )
             UploadFlowScreen(
