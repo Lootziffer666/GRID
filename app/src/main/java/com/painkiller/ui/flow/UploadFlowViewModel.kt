@@ -31,6 +31,11 @@ import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.conflict.ConflictPreset
 import com.painkiller.domain.conflict.ConflictPresetPlanner
 import com.painkiller.domain.conflict.ConflictDecision
+import com.painkiller.domain.conflict.ConflictCommitBlockedFile
+import com.painkiller.domain.conflict.ConflictCommitPlan
+import com.painkiller.domain.conflict.ConflictCommitPlanner
+import com.painkiller.domain.conflict.ConflictCommitResult
+import com.painkiller.domain.conflict.ResolvedCommitCandidate
 import com.painkiller.domain.conflict.ConflictReviewPreview
 import com.painkiller.domain.conflict.ConflictReviewPreviewPlanner
 import com.painkiller.domain.conflict.ConflictReviewSession
@@ -742,7 +747,130 @@ class UploadFlowViewModel(
             it.copy(
                 conflictWriteResult = result,
                 conflictWriteMessage = result.summary,
+                conflictCommitPlan = null,
+                conflictCommitResult = null,
             )
+        }
+    }
+
+    fun buildConflictCommitPlan() {
+        val s = _state.value
+        val writeResult = s.conflictWriteResult ?: run {
+            _state.update { it.copy(conflictCommitMessage = "No resolved files were written yet. Write the resolved preview first, then commit.") }
+            return
+        }
+        if (writeResult.writtenFiles.isEmpty()) {
+            _state.update { it.copy(conflictCommitMessage = "No resolved files were written yet. Write the resolved preview first, then commit.") }
+            return
+        }
+        viewModelScope.launch {
+            val sources = collectConflictSourceFiles(s).associateBy { it.path }
+            val candidates = mutableListOf<ResolvedCommitCandidate>()
+            for (path in writeResult.writtenFiles) {
+                val src = sources[path] ?: continue
+                val sourceId = src.sourceId ?: continue
+                val loaded = safFileReader.read(Uri.parse(sourceId)) ?: continue
+                val b64 = loaded.contentBase64 ?: continue
+                val text = decodeBase64Text(b64) ?: continue
+                candidates += ResolvedCommitCandidate(
+                    repoPath = path,
+                    sourcePath = path,
+                    sourceId = sourceId,
+                    contentBase64 = b64,
+                    textContent = text,
+                    sourceKind = src.sourceKind,
+                )
+            }
+            val target = buildRepoTargetOrError()
+            val plan = ConflictCommitPlanner.buildPlan(
+                target = target,
+                writtenFiles = candidates,
+                blockedByWrite = writeResult.blockedFiles,
+                failedByWrite = writeResult.failedFiles.map { it.path },
+            )
+            _state.update {
+                it.copy(
+                    conflictCommitPlan = plan,
+                    commitMessageInput = it.commitMessageInput.ifBlank { plan.commitMessageSuggestion },
+                    conflictCommitResult = null,
+                    conflictCommitMessage = plan.summary,
+                )
+            }
+        }
+    }
+
+    fun commitResolvedFiles(confirmed: Boolean) {
+        val s = _state.value
+        val plan = s.conflictCommitPlan ?: run {
+            _state.update { it.copy(conflictCommitMessage = "Review what will be committed first.") }
+            return
+        }
+        if (!confirmed) {
+            _state.update { it.copy(conflictCommitMessage = "Commit cancelled. Nothing changed on GitHub.") }
+            return
+        }
+        if (!plan.canCommit || plan.target == null) {
+            _state.update { it.copy(conflictCommitMessage = "Commit is blocked for safety. Review blocked files first.") }
+            return
+        }
+        _state.update { it.copy(isCommitting = true, humanError = null) }
+        viewModelScope.launch {
+            val message = s.commitMessageInput.ifBlank { plan.commitMessageSuggestion }
+            val result = if (plan.candidates.size == 1) {
+                val file = plan.candidates.first()
+                when (val r = singleFileCommitRepository.commitSingleFile(
+                    SingleFileCommitInput(plan.target, file.repoPath, file.contentBase64, message),
+                )) {
+                    is SingleFileCommitResult.Success -> ConflictCommitResult(
+                        committedFiles = listOf(r.committedPath),
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = null,
+                        commitSha = r.commitSha,
+                        commitUrl = r.commitUrl,
+                        didCreateCommit = true,
+                    )
+                    is SingleFileCommitResult.Failure -> ConflictCommitResult(
+                        committedFiles = emptyList(),
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = PainkillerErrorMapper.map(r).detail,
+                        commitSha = null,
+                        commitUrl = null,
+                        didCreateCommit = false,
+                    )
+                }
+            } else {
+                val entries = plan.candidates.map { MultiFileCommitEntry(it.repoPath, it.contentBase64) }
+                when (val r = multiFileCommitRepository.commitMultipleFiles(
+                    MultiFileCommitInput(plan.target, entries, message),
+                )) {
+                    is MultiFileCommitResult.Success -> ConflictCommitResult(
+                        committedFiles = r.committedPaths,
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = null,
+                        commitSha = r.commitSha,
+                        commitUrl = r.commitUrl,
+                        didCreateCommit = true,
+                    )
+                    is MultiFileCommitResult.Failure -> ConflictCommitResult(
+                        committedFiles = emptyList(),
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = PainkillerErrorMapper.map(r).detail,
+                        commitSha = null,
+                        commitUrl = null,
+                        didCreateCommit = false,
+                    )
+                }
+            }
+            _state.update {
+                it.copy(
+                    isCommitting = false,
+                    conflictCommitResult = result,
+                    conflictCommitMessage = if (result.didCreateCommit)
+                        "Commit created. No push will happen automatically."
+                    else
+                        (result.failedReason ?: "Commit failed. Nothing changed on GitHub."),
+                )
+            }
         }
     }
 
@@ -1129,6 +1257,9 @@ data class UploadFlowUiState(
     val conflictWritePlan: ConflictWritePlan? = null,
     val conflictWriteResult: ConflictWriteResult? = null,
     val conflictWriteMessage: String? = null,
+    val conflictCommitPlan: ConflictCommitPlan? = null,
+    val conflictCommitResult: ConflictCommitResult? = null,
+    val conflictCommitMessage: String? = null,
     val newReleaseTagInput: String = "",
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,

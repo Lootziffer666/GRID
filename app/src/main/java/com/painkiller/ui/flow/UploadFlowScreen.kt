@@ -110,6 +110,7 @@ fun UploadFlowScreen(
     var showReleaseDialog by remember { mutableStateOf(false) }
     var pendingMergeMethod by remember { mutableStateOf<PullRequestMergeMethod?>(null) }
     var showWriteResolvedConfirm by remember { mutableStateOf(false) }
+    var showCommitResolvedConfirm by remember { mutableStateOf(false) }
 
     if (state.hasSucceeded) {
         SuccessScreen(
@@ -385,6 +386,12 @@ fun UploadFlowScreen(
             state.conflictWriteMessage?.let { message ->
                 PainkillerInfoCard(
                     title = "Write resolved files",
+                    body = message,
+                )
+            }
+            state.conflictCommitMessage?.let { message ->
+                PainkillerInfoCard(
+                    title = "Commit resolved files",
                     body = message,
                 )
             }
@@ -713,6 +720,67 @@ fun UploadFlowScreen(
                 }
             }
 
+            SectionCard(title = "Commit bridge (Gate 32)") {
+                Column(verticalArrangement = Arrangement.spacedBy(PainkillerSpacing.xs)) {
+                    Text(
+                        text = "Save this resolved state to GitHub after reviewing commit-ready files.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        text = "No push will happen automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    PainkillerPrimaryActionButton(
+                        text = "Review what will be committed",
+                        onClick = viewModel::buildConflictCommitPlan,
+                        enabled = state.conflictWriteResult?.didChangeFiles == true,
+                    )
+                    state.conflictCommitPlan?.let { commitPlan ->
+                        Text(
+                            text = "${commitPlan.candidates.size} commit-ready · ${commitPlan.blockedFiles.size} blocked",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        commitPlan.blockedFiles.take(2).forEach { blocked ->
+                            Text(
+                                text = "${blocked.path}: ${blocked.reason}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                        }
+                        OutlinedTextField(
+                            value = state.commitMessageInput,
+                            onValueChange = viewModel::onCommitMessageChanged,
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Commit message") },
+                            singleLine = true,
+                        )
+                        PainkillerPrimaryActionButton(
+                            text = "Commit resolved files",
+                            onClick = { showCommitResolvedConfirm = true },
+                            enabled = commitPlan.canCommit && !state.isCommitting,
+                        )
+                        Text(
+                            text = "Painkiller will create one commit from these resolved files.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = "Files still containing conflict markers are blocked.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    state.conflictCommitResult?.let { result ->
+                        Text(
+                            text = if (result.didCreateCommit) "Commit SHA: ${result.commitSha}" else "Commit was not created.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        result.commitUrl?.let { Text(text = it, style = MaterialTheme.typography.bodySmall) }
+                    }
+                }
+            }
+
             if (state.plan == null) {
                 PainkillerPrimaryActionButton(
                     text = "Review upload",
@@ -907,6 +975,20 @@ fun UploadFlowScreen(
             dismissButton = {
                 TextButton(onClick = { showWriteResolvedConfirm = false }) { Text("Cancel") }
             },
+        )
+    }
+    if (showCommitResolvedConfirm) {
+        AlertDialog(
+            onDismissRequest = { showCommitResolvedConfirm = false },
+            title = { Text("Commit resolved files") },
+            text = { Text("Commit — save this resolved state as a repo snapshot. No push will happen automatically.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCommitResolvedConfirm = false
+                    viewModel.commitResolvedFiles(confirmed = true)
+                }) { Text("Commit resolved files") }
+            },
+            dismissButton = { TextButton(onClick = { showCommitResolvedConfirm = false }) { Text("Cancel") } },
         )
     }
 

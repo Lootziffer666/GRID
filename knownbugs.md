@@ -517,3 +517,20 @@ Evidence:
 Action:
 - Accepted as current safety boundary.
 - Future gate may add explicit export/write target flow for ZIP-derived conflict outputs if required.
+
+---
+
+## BUG-20260502-026
+
+Status: ACCEPTED
+Gate: 32
+Severity: LOW
+Summary: Conflict commit bridge requires SAF re-read of written files; revoked URI permissions block commit candidate creation.
+
+Evidence:
+- Gate 32 commit bridge builds candidates by re-reading written SAF URIs before commit planning.
+- If re-read fails, files are excluded/blocked and commit cannot proceed for those files.
+
+Action:
+- Accepted as Android SAF permission boundary.
+- User can reselect source files with valid URI access, rebuild preview/write plan, then rebuild commit plan.

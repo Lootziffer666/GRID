@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 31 PASS: conflict resolution now supports explicit-confirmation SAF write-back for eligible selected files; commit/push remains disabled.**
+**Gate 32 PASS: conflict resolution now supports explicit commit-bridge review and manual commit creation for resolved files; no automatic push.**
 
 Painkiller now includes:
 
@@ -45,6 +45,7 @@ Painkiller now includes:
 - conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
 - collision card review path now supports per-block decisions (keep current/incoming/both/manual) with summary preview before any write
 - safe conflict write-back plan + execution for eligible selected SAF files after explicit final confirmation
+- conflict resolution → commit bridge with marker safety scan and explicit commit confirmation
 
 ## Runtime feature status (Gate 28 routing baseline)
 
@@ -64,6 +65,7 @@ Painkiller now includes:
   - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
   - conflict write-back for ZIP-entry sources (blocked for safety)
+  - conflict commit bridge for ZIP-entry sources (blocked for safety)
 - **Hidden**
   - none currently
 
