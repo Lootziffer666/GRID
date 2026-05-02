@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 30 PARTIAL: collision card-by-card review and decision preview are implemented; swipe gestures and write-back remain deferred for safety.**
+**Gate 33 PASS: conflict commit bridge now includes branch freshness guard to block stale-branch commits after review; no automatic push.**
 
 Painkiller now includes:
 
@@ -44,6 +44,8 @@ Painkiller now includes:
 - large-file routing panel now explains Normal commit vs Git LFS vs Release Asset vs Blocked/Unsupported per source type
 - conflict preset MVP now supports parsing Git conflict markers and generating bulk preset previews (default: keep current version)
 - collision card review path now supports per-block decisions (keep current/incoming/both/manual) with summary preview before any write
+- safe conflict write-back plan + execution for eligible selected SAF files after explicit final confirmation
+- conflict resolution → commit bridge with marker safety scan and explicit commit confirmation
 
 ## Runtime feature status (Gate 28 routing baseline)
 
@@ -62,8 +64,8 @@ Painkiller now includes:
   - OAuth Device Flow / OAuth App sign-in path (candidate only; not yet implemented)
   - multi-file/folder/ZIP Git LFS routing
   - multi-file release asset batch upload
-  - conflict preset write-back through SAF (preview is implemented; write remains blocked in Gate 29)
-  - swipe gesture mapping for collision cards (button controls are available now)
+  - conflict write-back for ZIP-entry sources (blocked for safety)
+  - conflict commit bridge for ZIP-entry sources (blocked for safety)
 - **Hidden**
   - none currently
 
@@ -379,4 +381,16 @@ Painkiller now adds a second conflict-review path for phone UX:
 
 Current limitation:
 
-- Swipe gestures are deferred; Gate 30 ships button-first controls.
+- SAF write-back is still deferred; Gate 30 keeps this flow preview-only.
+
+## Safe conflict write-back (Gate 31)
+
+Painkiller now closes the preview loop for conflict cleanup:
+
+- Build a write plan from preset preview or card-review preview.
+- Require explicit final confirmation before writing.
+- Write only eligible selected local SAF files.
+- Block malformed/unresolved/manual files.
+- Block ZIP-entry sources for safety.
+- Report written/blocked/failed counts clearly.
+- No commit is created and nothing is pushed.
