@@ -485,15 +485,105 @@ Action:
 
 ## BUG-20260428-024
 
-Status: ACCEPTED
+Status: FIXED
 Gate: 30
 Severity: LOW
-Summary: Collision cards ship as button-first review; swipe gestures are deferred to avoid accidental mobile decisions in MVP scope.
+Summary: Collision cards now support swipe review with explicit directional mapping while preserving visible decision buttons.
 
 Evidence:
-- Gate 30 card review path includes visible buttons for keep current/incoming/both/manual decisions.
-- Gesture mapping is not wired in this gate.
+- Gate 30 card review card now supports horizontal swipe handling:
+  - right swipe => keep current
+  - left swipe => keep incoming
+- Existing visible decision buttons remain available for keep current/incoming/both/manual decisions.
 
 Action:
-- Accepted for Gate 30 to keep UX safe and deterministic.
-- Swipe gestures may be added in a later gate without removing visible button controls.
+- Fixed in continued Gate 30 work by adding swipe mapping for directional decisions.
+- Kept explicit visible buttons to avoid gesture-only control.
+
+---
+
+## BUG-20260428-025
+
+Status: ACCEPTED
+Gate: 31
+Severity: LOW
+Summary: Conflict write-back supports selected SAF files only; ZIP-entry write-back remains blocked for safety.
+
+Evidence:
+- Gate 31 write planner allows write eligibility only when a writable SAF source id exists.
+- ZIP conflict sources are marked blocked with reason: "Blocked for safety: ZIP entries cannot be written back in this gate."
+- Preview and explicit confirmation are required before any write execution.
+
+Action:
+- Accepted as current safety boundary.
+- Future gate may add explicit export/write target flow for ZIP-derived conflict outputs if required.
+
+---
+
+## BUG-20260502-026
+
+Status: ACCEPTED
+Gate: 32
+Severity: LOW
+Summary: Conflict commit bridge requires SAF re-read of written files; revoked URI permissions block commit candidate creation.
+
+Evidence:
+- Gate 32 commit bridge builds candidates by re-reading written SAF URIs before commit planning.
+- If re-read fails, files are excluded/blocked and commit cannot proceed for those files.
+
+Action:
+- Accepted as Android SAF permission boundary.
+- User can reselect source files with valid URI access, rebuild preview/write plan, then rebuild commit plan.
+
+---
+
+## BUG-20260502-027
+
+Status: ACCEPTED
+Gate: 33
+Severity: LOW
+Summary: Branch freshness guard depends on branch-SHA lookup; if lookup fails, stale detection is deferred to existing Git Data API safety checks.
+
+Evidence:
+- Gate 33 guard snapshots branch SHA during commit-plan review and compares before commit.
+- On list-branch lookup failure, guard returns no stale signal and relies on downstream SHA-guarded commit path.
+
+Action:
+- Accepted as layered safety behavior.
+- Existing Git Data API commit flow still blocks branch-changed races via expected-SHA checks.
+
+---
+
+## BUG-20260502-028
+
+Status: ACCEPTED
+Gate: 34
+Severity: LOW
+Summary: Large-file UX copy can drift from threshold constants unless re-audited against domain logic.
+
+Evidence:
+- `LargeFileDoctor` uses mixed decimal/binary thresholds (25,000,000 bytes, 50 MiB, 100 MiB).
+- Routing availability is source-kind dependent and can be misstated in docs without source audit.
+
+Action:
+- Accepted as documentation drift risk.
+- Gate 34 added explicit truth-audit section in README aligned to code constants.
+
+
+---
+
+## BUG-20260502-029
+
+Status: ACCEPTED
+Gate: 35
+Severity: LOW
+Summary: Release asset upload remains single-file only; batch release upload for multi-file/folder/ZIP sources is intentionally unavailable.
+
+Evidence:
+- `uploadSelectedFileAsReleaseAsset()` requires `loadedFile` and rejects non-single-file contexts.
+- Routing rules mark release route unavailable for non-single-file source kinds.
+- Release upload body is stream-backed and does not imply batch support.
+
+Action:
+- Accepted as current product boundary.
+- Future gate may add explicit batch orchestration if scope approves it.
