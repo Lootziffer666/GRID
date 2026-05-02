@@ -551,3 +551,21 @@ Evidence:
 Action:
 - Accepted as layered safety behavior.
 - Existing Git Data API commit flow still blocks branch-changed races via expected-SHA checks.
+
+---
+
+## BUG-20260502-028
+
+Status: ACCEPTED
+Gate: 34
+Severity: LOW
+Summary: Large-file UX copy can drift from threshold constants unless re-audited against domain logic.
+
+Evidence:
+- `LargeFileDoctor` uses mixed decimal/binary thresholds (25,000,000 bytes, 50 MiB, 100 MiB).
+- Routing availability is source-kind dependent and can be misstated in docs without source audit.
+
+Action:
+- Accepted as documentation drift risk.
+- Gate 34 added explicit truth-audit section in README aligned to code constants.
+

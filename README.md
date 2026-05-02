@@ -346,6 +346,19 @@ Current source-type mapping:
 - ZIP with large entries: normal commit blocked for affected entries; ZIP-to-LFS and ZIP-entry Release routing are unavailable.
 - Unsafe ZIP: blocked; no alternate route can bypass unsafe ZIP validation.
 
+## Large-file truth audit (Gate 34)
+
+Audit result against source-of-truth domain logic:
+
+- Thresholds are:
+  - warning above `25,000,000` bytes (decimal 25 MB)
+  - warning above `50 * 1024 * 1024` bytes (50 MiB)
+  - blocked above `100 * 1024 * 1024` bytes (100 MiB)
+- Normal commit remains executable only when no blocked entries are present.
+- Git LFS route remains executable only for one selected large single file.
+- Release Asset route remains executable only for one selected file with an explicit selected release.
+- Multi-file/folder/ZIP LFS and batch release asset routes remain unavailable and are shown as disabled explanatory options.
+
 ## Codex conflict presets MVP (Gate 29)
 
 Painkiller now includes a minimal collision-cleanup preset flow for Git conflict markers:

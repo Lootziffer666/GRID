@@ -816,7 +816,10 @@ class UploadFlowViewModel(
             _state.update { it.copy(conflictCommitMessage = "Commit is blocked for safety. Review blocked files first.") }
             return
         }
-        val target = plan.target
+        val target = plan.target ?: run {
+            _state.update { it.copy(conflictCommitMessage = "Commit target is missing. Review what will be committed again.") }
+            return
+        }
         _state.update { it.copy(isCommitting = true, humanError = null) }
         viewModelScope.launch {
             val currentSha = resolveBranchSha(target.owner, target.repo, target.branch.name)
