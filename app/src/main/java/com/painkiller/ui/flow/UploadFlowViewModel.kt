@@ -31,11 +31,21 @@ import com.painkiller.domain.error.RetrySafety
 import com.painkiller.domain.conflict.ConflictPreset
 import com.painkiller.domain.conflict.ConflictPresetPlanner
 import com.painkiller.domain.conflict.ConflictDecision
+import com.painkiller.domain.conflict.ConflictCommitBlockedFile
+import com.painkiller.domain.conflict.ConflictCommitPlan
+import com.painkiller.domain.conflict.ConflictCommitPlanner
+import com.painkiller.domain.conflict.ConflictCommitResult
+import com.painkiller.domain.conflict.ResolvedCommitCandidate
+import com.painkiller.domain.conflict.ConflictBranchFreshnessGuard
 import com.painkiller.domain.conflict.ConflictReviewPreview
 import com.painkiller.domain.conflict.ConflictReviewPreviewPlanner
 import com.painkiller.domain.conflict.ConflictReviewSession
 import com.painkiller.domain.conflict.ConflictReviewSessionBuilder
 import com.painkiller.domain.conflict.ConflictReviewSessionReducer
+import com.painkiller.domain.conflict.ConflictWriteExecutor
+import com.painkiller.domain.conflict.ConflictWritePlan
+import com.painkiller.domain.conflict.ConflictWritePlanner
+import com.painkiller.domain.conflict.ConflictWriteResult
 import com.painkiller.domain.conflict.ConflictResolutionPlan
 import com.painkiller.domain.conflict.ConflictSourceFile
 import com.painkiller.domain.files.DefaultIgnoreRules
@@ -93,6 +103,7 @@ class UploadFlowViewModel(
     private val multiFileCommitRepository: MultiFileCommitRepository,
     private val lfsRepository: GithubLfsRepository,
     private val settingsStore: RepoTargetSettingsStore,
+    private val conflictFileWriter: com.painkiller.domain.conflict.ConflictFileWriter,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(UploadFlowUiState())
@@ -596,7 +607,14 @@ class UploadFlowViewModel(
     }
 
     fun clearConflictPreview() {
-        _state.update { it.copy(conflictPlan = null, conflictMessage = null) }
+        _state.update {
+            it.copy(
+                conflictPlan = null,
+                conflictMessage = null,
+                conflictWritePlan = null,
+                conflictWriteResult = null,
+            )
+        }
     }
 
     fun startConflictCardReview() {
@@ -635,6 +653,17 @@ class UploadFlowViewModel(
         _state.update { it.copy(conflictReviewSession = updated, conflictReviewPreview = null) }
     }
 
+    fun decideAndAdvanceConflictCard(decision: ConflictDecision) {
+        val session = _state.value.conflictReviewSession ?: return
+        val decided = ConflictReviewSessionReducer.decide(session, decision)
+        val advanced = if (decided.currentIndex < decided.cards.lastIndex) {
+            ConflictReviewSessionReducer.next(decided)
+        } else {
+            decided
+        }
+        _state.update { it.copy(conflictReviewSession = advanced, conflictReviewPreview = null) }
+    }
+
     fun nextConflictCard() {
         val session = _state.value.conflictReviewSession ?: return
         _state.update { it.copy(conflictReviewSession = ConflictReviewSessionReducer.next(session)) }
@@ -667,7 +696,198 @@ class UploadFlowViewModel(
                 conflictReviewSession = null,
                 conflictReviewPreview = null,
                 conflictReviewMessage = null,
+                conflictWritePlan = null,
+                conflictWriteResult = null,
             )
+        }
+    }
+
+    fun buildConflictWritePlanFromPresetPreview() {
+        viewModelScope.launch {
+            val sources = collectConflictSourceFiles(_state.value)
+            val plan = ConflictWritePlanner.fromPresetPlan(
+                previewPlan = _state.value.conflictPlan,
+                sources = sources,
+            )
+            _state.update {
+                it.copy(
+                    conflictWritePlan = plan,
+                    conflictWriteResult = null,
+                    conflictWriteMessage = plan.summary,
+                )
+            }
+        }
+    }
+
+    fun buildConflictWritePlanFromCardPreview() {
+        viewModelScope.launch {
+            val state = _state.value
+            val sources = collectConflictSourceFiles(state)
+            val plan = ConflictWritePlanner.fromCardPreview(
+                preview = state.conflictReviewPreview,
+                session = state.conflictReviewSession,
+                sources = sources,
+            )
+            _state.update {
+                it.copy(
+                    conflictWritePlan = plan,
+                    conflictWriteResult = null,
+                    conflictWriteMessage = plan.summary,
+                )
+            }
+        }
+    }
+
+    fun writeResolvedFiles(confirmed: Boolean) {
+        val result = ConflictWriteExecutor.execute(
+            plan = _state.value.conflictWritePlan,
+            confirmed = confirmed,
+            writer = conflictFileWriter,
+        )
+        _state.update {
+            it.copy(
+                conflictWriteResult = result,
+                conflictWriteMessage = result.summary,
+                conflictCommitPlan = null,
+                conflictCommitResult = null,
+            )
+        }
+    }
+
+    fun buildConflictCommitPlan() {
+        val s = _state.value
+        val writeResult = s.conflictWriteResult ?: run {
+            _state.update { it.copy(conflictCommitMessage = "No resolved files were written yet. Write the resolved preview first, then commit.") }
+            return
+        }
+        if (writeResult.writtenFiles.isEmpty()) {
+            _state.update { it.copy(conflictCommitMessage = "No resolved files were written yet. Write the resolved preview first, then commit.") }
+            return
+        }
+        viewModelScope.launch {
+            val sources = collectConflictSourceFiles(s).associateBy { it.path }
+            val candidates = mutableListOf<ResolvedCommitCandidate>()
+            for (path in writeResult.writtenFiles) {
+                val src = sources[path] ?: continue
+                val sourceId = src.sourceId ?: continue
+                val loaded = safFileReader.read(Uri.parse(sourceId)) ?: continue
+                val b64 = loaded.contentBase64 ?: continue
+                val text = decodeBase64Text(b64) ?: continue
+                candidates += ResolvedCommitCandidate(
+                    repoPath = path,
+                    sourcePath = path,
+                    sourceId = sourceId,
+                    contentBase64 = b64,
+                    textContent = text,
+                    sourceKind = src.sourceKind,
+                )
+            }
+            val target = buildRepoTargetOrError()
+            val plan = ConflictCommitPlanner.buildPlan(
+                target = target,
+                writtenFiles = candidates,
+                blockedByWrite = writeResult.blockedFiles,
+                failedByWrite = writeResult.failedFiles.map { it.path },
+            )
+            val baseSha = target?.let { resolveBranchSha(it.owner, it.repo, it.branch.name) }
+            _state.update {
+                it.copy(
+                    conflictCommitPlan = plan,
+                    commitMessageInput = it.commitMessageInput.ifBlank { plan.commitMessageSuggestion },
+                    conflictCommitResult = null,
+                    conflictCommitMessage = plan.summary,
+                    conflictCommitBaseSha = baseSha,
+                )
+            }
+        }
+    }
+
+    fun commitResolvedFiles(confirmed: Boolean) {
+        val s = _state.value
+        val plan = s.conflictCommitPlan ?: run {
+            _state.update { it.copy(conflictCommitMessage = "Review what will be committed first.") }
+            return
+        }
+        if (!confirmed) {
+            _state.update { it.copy(conflictCommitMessage = "Commit cancelled. Nothing changed on GitHub.") }
+            return
+        }
+        if (!plan.canCommit || plan.target == null) {
+            _state.update { it.copy(conflictCommitMessage = "Commit is blocked for safety. Review blocked files first.") }
+            return
+        }
+        val target = plan.target ?: run {
+            _state.update { it.copy(conflictCommitMessage = "Commit target is missing. Review what will be committed again.") }
+            return
+        }
+        _state.update { it.copy(isCommitting = true, humanError = null) }
+        viewModelScope.launch {
+            val currentSha = resolveBranchSha(target.owner, target.repo, target.branch.name)
+            if (ConflictBranchFreshnessGuard.isStale(s.conflictCommitBaseSha, currentSha)) {
+                _state.update {
+                    it.copy(
+                        isCommitting = false,
+                        conflictCommitMessage = "The branch changed on GitHub after plan review. Refresh commit review before committing.",
+                    )
+                }
+                return@launch
+            }
+            val message = s.commitMessageInput.ifBlank { plan.commitMessageSuggestion }
+            val result = if (plan.candidates.size == 1) {
+                val file = plan.candidates.first()
+                when (val r = singleFileCommitRepository.commitSingleFile(
+                    SingleFileCommitInput(target, file.repoPath, file.contentBase64, message),
+                )) {
+                    is SingleFileCommitResult.Success -> ConflictCommitResult(
+                        committedFiles = listOf(r.committedPath),
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = null,
+                        commitSha = r.commitSha,
+                        commitUrl = r.commitUrl,
+                        didCreateCommit = true,
+                    )
+                    is SingleFileCommitResult.Failure -> ConflictCommitResult(
+                        committedFiles = emptyList(),
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = PainkillerErrorMapper.map(r).detail,
+                        commitSha = null,
+                        commitUrl = null,
+                        didCreateCommit = false,
+                    )
+                }
+            } else {
+                val entries = plan.candidates.map { MultiFileCommitEntry(it.repoPath, it.contentBase64) }
+                when (val r = multiFileCommitRepository.commitMultipleFiles(
+                    MultiFileCommitInput(target, entries, message),
+                )) {
+                    is MultiFileCommitResult.Success -> ConflictCommitResult(
+                        committedFiles = r.committedPaths,
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = null,
+                        commitSha = r.commitSha,
+                        commitUrl = r.commitUrl,
+                        didCreateCommit = true,
+                    )
+                    is MultiFileCommitResult.Failure -> ConflictCommitResult(
+                        committedFiles = emptyList(),
+                        blockedFiles = plan.blockedFiles,
+                        failedReason = PainkillerErrorMapper.map(r).detail,
+                        commitSha = null,
+                        commitUrl = null,
+                        didCreateCommit = false,
+                    )
+                }
+            }
+            _state.update {
+                it.copy(
+                    isCommitting = false,
+                    conflictCommitResult = result,
+                    conflictCommitMessage = if (result.didCreateCommit)
+                        "Commit created. No push will happen automatically."
+                    else
+                        (result.failedReason ?: "Commit failed. Nothing changed on GitHub."),
+                )
+            }
         }
     }
 
@@ -930,7 +1150,15 @@ class UploadFlowViewModel(
         val single = state.loadedFile
         if (single != null) {
             val content = decodeBase64Text(single.contentBase64) ?: return emptyList()
-            return listOf(ConflictSourceFile(path = single.displayName, content = content))
+            return listOf(
+                ConflictSourceFile(
+                    path = single.displayName,
+                    content = content,
+                    sourceId = single.sourceItem.sourceId,
+                    sourceKind = SourceKind.SINGLE_FILE,
+                    writableBySaf = true,
+                ),
+            )
         }
 
         val source = state.loadedFolder ?: return emptyList()
@@ -939,7 +1167,13 @@ class UploadFlowViewModel(
                 source.items.mapNotNull { item ->
                     val encoded = state.loadedMultiContent?.get(item.sourceId) ?: return@mapNotNull null
                     val decoded = decodeBase64Text(encoded) ?: return@mapNotNull null
-                    ConflictSourceFile(path = item.relativePath ?: item.displayName, content = decoded)
+                    ConflictSourceFile(
+                        path = item.relativePath ?: item.displayName,
+                        content = decoded,
+                        sourceId = if (state.isZipSource) null else item.sourceId,
+                        sourceKind = source.kind,
+                        writableBySaf = !state.isZipSource,
+                    )
                 }
             }
 
@@ -947,7 +1181,13 @@ class UploadFlowViewModel(
                 source.items.mapNotNull { item ->
                     val read = safFileReader.read(Uri.parse(item.sourceId)) ?: return@mapNotNull null
                     val decoded = decodeBase64Text(read.contentBase64) ?: return@mapNotNull null
-                    ConflictSourceFile(path = item.relativePath ?: item.displayName, content = decoded)
+                    ConflictSourceFile(
+                        path = item.relativePath ?: item.displayName,
+                        content = decoded,
+                        sourceId = item.sourceId,
+                        sourceKind = SourceKind.FOLDER,
+                        writableBySaf = true,
+                    )
                 }
             }
 
@@ -965,6 +1205,13 @@ class UploadFlowViewModel(
         }
     }
 
+    private suspend fun resolveBranchSha(owner: String, repo: String, branch: String): String? {
+        return when (val result = repoBranchRepository.listBranches(owner, repo)) {
+            is GithubBranchListResult.Success -> result.branches.firstOrNull { it.name == branch }?.commit?.sha
+            is GithubBranchListResult.Failure -> null
+        }
+    }
+
     companion object {
         private const val MAX_NORMAL_COMMIT_BYTES = 100L * 1024L * 1024L
 
@@ -977,6 +1224,7 @@ class UploadFlowViewModel(
             multiFileCommitRepository: MultiFileCommitRepository,
             lfsRepository: GithubLfsRepository,
             settingsStore: RepoTargetSettingsStore,
+            conflictFileWriter: com.painkiller.domain.conflict.ConflictFileWriter,
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -990,6 +1238,7 @@ class UploadFlowViewModel(
                         multiFileCommitRepository = multiFileCommitRepository,
                         lfsRepository = lfsRepository,
                         settingsStore = settingsStore,
+                        conflictFileWriter = conflictFileWriter,
                     ) as T
             }
     }
@@ -1029,6 +1278,13 @@ data class UploadFlowUiState(
     val conflictReviewSession: ConflictReviewSession? = null,
     val conflictReviewPreview: ConflictReviewPreview? = null,
     val conflictReviewMessage: String? = null,
+    val conflictWritePlan: ConflictWritePlan? = null,
+    val conflictWriteResult: ConflictWriteResult? = null,
+    val conflictWriteMessage: String? = null,
+    val conflictCommitPlan: ConflictCommitPlan? = null,
+    val conflictCommitBaseSha: String? = null,
+    val conflictCommitResult: ConflictCommitResult? = null,
+    val conflictCommitMessage: String? = null,
     val newReleaseTagInput: String = "",
     val newReleaseNameInput: String = "",
     val plan: UploadPlan? = null,
