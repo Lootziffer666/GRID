@@ -368,6 +368,14 @@ Audit result against source-of-truth app/data logic:
 - Release upload requires explicit release selection before execution.
 - Multi-file/folder/ZIP release batch upload remains unavailable and intentionally non-executable.
 
+## LFS expansion decision (Gate 36)
+
+Decision result:
+
+- Keep LFS execution single-file only in current scope.
+- Keep multi-file/folder/ZIP LFS routes visible but non-executable.
+- Defer LFS expansion to a dedicated implementation gate with explicit safety/orchestration scope.
+
 ## Codex conflict presets MVP (Gate 29)
 
 Painkiller now includes a minimal collision-cleanup preset flow for Git conflict markers:

@@ -587,3 +587,20 @@ Evidence:
 Action:
 - Accepted as current product boundary.
 - Future gate may add explicit batch orchestration if scope approves it.
+
+---
+
+## BUG-20260502-030
+
+Status: ACCEPTED
+Gate: 36
+Severity: LOW
+Summary: LFS execution remains single-file only; multi-file/folder/ZIP LFS route is intentionally deferred.
+
+Evidence:
+- Large-file routing marks LFS executable only for single-file large source.
+- Unsupported LFS options for multi-file/folder/ZIP are shown with unavailable reason text.
+
+Action:
+- Accepted as current product boundary.
+- Future dedicated gate may implement multi-source LFS orchestration with explicit safety criteria.
