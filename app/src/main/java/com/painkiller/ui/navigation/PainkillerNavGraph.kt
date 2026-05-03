@@ -13,7 +13,7 @@ import com.painkiller.ui.flow.UploadFlowScreen
 import com.painkiller.ui.flow.UploadFlowViewModel
 
 private const val ROUTE_AUTH = "auth"
-private const val ROUTE_UPLOAD = "upload"
+private const val ROUTE_WORKBENCH = "workbench"
 
 @Composable
 fun PainkillerNavGraph(
@@ -38,13 +38,13 @@ fun PainkillerNavGraph(
                 darkModeEnabled = darkModeEnabled,
                 onToggleDarkMode = onToggleDarkMode,
                 onAuthenticated = {
-                    navController.navigate(ROUTE_UPLOAD) {
+                    navController.navigate(ROUTE_WORKBENCH) {
                         popUpTo(ROUTE_AUTH) { inclusive = true }
                     }
                 },
             )
         }
-        composable(ROUTE_UPLOAD) {
+        composable(ROUTE_WORKBENCH) {
             val uploadViewModel: UploadFlowViewModel = viewModel(
                 factory = UploadFlowViewModel.factory(
                     safFileReader = container.safFileReader,
@@ -55,6 +55,7 @@ fun PainkillerNavGraph(
                     multiFileCommitRepository = container.multiFileCommitRepository,
                     lfsRepository = container.lfsRepository,
                     settingsStore = container.repoTargetSettingsStore,
+                    conflictFileWriter = container.safFileWriter,
                 ),
             )
             UploadFlowScreen(
@@ -66,7 +67,7 @@ fun PainkillerNavGraph(
                 onSignOut = {
                     authViewModel.signOut()
                     navController.navigate(ROUTE_AUTH) {
-                        popUpTo(ROUTE_UPLOAD) { inclusive = true }
+                        popUpTo(ROUTE_WORKBENCH) { inclusive = true }
                     }
                 },
             )
