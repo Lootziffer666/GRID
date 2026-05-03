@@ -114,6 +114,7 @@ verification of the gated layers.
 - Gate 34: `handoff/GATE_34_HANDOFF.md`
 - Gate 35: `handoff/GATE_35_HANDOFF.md`
 - Gate 36: `handoff/GATE_36_HANDOFF.md`
+- Gate 37: `handoff/GATE_37_HANDOFF.md`
 - Gate 38 (blocked): `handoff/GATE_38_HANDOFF.md`
 - Gate 38 recovery ledger: `handoff/GATE_38_RECOVERY_HANDOFF.md`
 - Next planning ledger: `handoff/NEXT_GATES_PLAN.md`

@@ -616,7 +616,7 @@ Summary: Gate 38 was blocked due to missing in-repo scope definition and plannin
 
 Evidence:
 - `handoff/NEXT_GATES_PLAN.md` defines gates only up to Gate 26.
-- Existing handoffs in `handoff/` currently end at `GATE_36_HANDOFF.md`; no `GATE_37_HANDOFF.md` or Gate 38 scope document is present.
+- At Gate 38 execution time, planning artifacts did not define concrete Gate 38 scope and ledger state was inconsistent around Gates 27–38.
 - README and NEXT_GATES_PLAN drift created ambiguity about current gate status and forward scope.
 - User requested: "Mach mit 38 weiter".
 
