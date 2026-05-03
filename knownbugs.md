@@ -607,18 +607,17 @@ Action:
 
 ---
 
-## BUG-20260503-001
+## BUG-20260502-031
 
-Status: BLOCKED
-Gate: 38
-Severity: MEDIUM
-Summary: Gate 38 cannot be implemented because no Gate 38 scope definition exists in repository planning artifacts.
+Status: ACCEPTED
+Gate: 37
+Severity: LOW
+Summary: Navigation/product wording can drift between "upload" and "workbench" terminology without explicit recentering.
 
 Evidence:
-- `handoff/NEXT_GATES_PLAN.md` defines gates only up to Gate 26.
-- Existing handoffs in `handoff/` currently end at `GATE_36_HANDOFF.md`; no `GATE_37_HANDOFF.md` or Gate 38 scope document is present.
-- User requested: "Mach mit 38 weiter".
+- Gate 37 updates nav-route naming and top app bar label to use workbench framing.
+- Existing implementation behavior remains unchanged; this gate focuses on terminology consistency.
 
 Action:
-- Create an explicit Gate 38 scope/spec (or add Gate 37/38 entries to `handoff/NEXT_GATES_PLAN.md`) and then continue implementation.
-- No runtime feature changes were made to avoid inventing unscheduled scope.
+- Accepted as wording-consistency maintenance risk.
+- Keep future gate UI copy aligned to workbench-first framing.

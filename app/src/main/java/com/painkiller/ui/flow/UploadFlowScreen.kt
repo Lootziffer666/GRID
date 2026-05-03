@@ -127,7 +127,7 @@ fun UploadFlowScreen(
         modifier = modifier,
         topBar = {
             TopAppBar(
-                title = { Text("Upload to GitHub") },
+                title = { Text("GitHub Workbench") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface,
