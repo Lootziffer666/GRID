@@ -607,17 +607,20 @@ Action:
 
 ---
 
-## BUG-20260502-031
+## BUG-20260503-001
 
-Status: ACCEPTED
-Gate: 37
-Severity: LOW
-Summary: Navigation/product wording can drift between "upload" and "workbench" terminology without explicit recentering.
+Status: BLOCKED
+Gate: 38
+Severity: MEDIUM
+Summary: Gate 38 was blocked due to missing in-repo scope definition and planning ledger drift (README/NEXT_GATES_PLAN mismatch).
 
 Evidence:
-- Gate 37 updates nav-route naming and top app bar label to use workbench framing.
-- Existing implementation behavior remains unchanged; this gate focuses on terminology consistency.
+- `handoff/NEXT_GATES_PLAN.md` defines gates only up to Gate 26.
+- Existing handoffs in `handoff/` currently end at `GATE_36_HANDOFF.md`; no `GATE_37_HANDOFF.md` or Gate 38 scope document is present.
+- README and NEXT_GATES_PLAN drift created ambiguity about current gate status and forward scope.
+- User requested: "Mach mit 38 weiter".
 
 Action:
-- Accepted as wording-consistency maintenance risk.
-- Keep future gate UI copy aligned to workbench-first framing.
+- Recover ledger consistency first: reconcile README status/handoff index, NEXT_GATES_PLAN continuity for Gates 27–38, and knownbugs blocker text.
+- Then add explicit, user-approved next-gate scope before resuming feature implementation.
+- No runtime feature changes were made to avoid inventing unscheduled scope.
