@@ -53,3 +53,15 @@
 - One gate-focused commit at a time unless user explicitly requests batching.
 - Preserve commit safety invariants (`force=false`, SHA-guarded updates).
 - Keep opt-in user confirmation for destructive operations (merge, publish, overwrite).
+
+
+## Gate Ledger Reconciliation (Gates 27–38)
+
+- Gates 27–37: treated as completed implementation sequence per current ledger truth and handoff chain through Gate 36 plus user-confirmed Gate 37 PASS state.
+- Gate 38: BLOCKED because no concrete implementation scope existed in repository planning artifacts at execution time.
+- Gate 38 recovery action: reconcile README status/index, NEXT_GATES_PLAN continuity notes, and knownbugs blocker entry before any new feature gate starts.
+
+## Gate 39 Placeholder (requires user-approved scope)
+
+- Gate 39 is intentionally undefined until the user approves concrete scope and acceptance criteria.
+- Do not implement runtime feature work for Gate 39 from this file alone.

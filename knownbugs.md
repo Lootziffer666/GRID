@@ -604,3 +604,23 @@ Evidence:
 Action:
 - Accepted as current product boundary.
 - Future dedicated gate may implement multi-source LFS orchestration with explicit safety criteria.
+
+---
+
+## BUG-20260503-001
+
+Status: BLOCKED
+Gate: 38
+Severity: MEDIUM
+Summary: Gate 38 was blocked due to missing in-repo scope definition and planning ledger drift (README/NEXT_GATES_PLAN mismatch).
+
+Evidence:
+- `handoff/NEXT_GATES_PLAN.md` defines gates only up to Gate 26.
+- Existing handoffs in `handoff/` currently end at `GATE_36_HANDOFF.md`; no `GATE_37_HANDOFF.md` or Gate 38 scope document is present.
+- README and NEXT_GATES_PLAN drift created ambiguity about current gate status and forward scope.
+- User requested: "Mach mit 38 weiter".
+
+Action:
+- Recover ledger consistency first: reconcile README status/handoff index, NEXT_GATES_PLAN continuity for Gates 27–38, and knownbugs blocker text.
+- Then add explicit, user-approved next-gate scope before resuming feature implementation.
+- No runtime feature changes were made to avoid inventing unscheduled scope.
