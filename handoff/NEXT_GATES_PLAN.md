@@ -1,5 +1,7 @@
 # Next 10 Gates Plan (User-Directed Scope Expansion)
 
+## Historical Plan Snapshot (Gates 17–26)
+
 ## Gate 17 — Upload Preview Quality
 - Add concise severity counters in the upload plan card.
 - Improve warning/blocked explanatory copy before confirm.
@@ -49,19 +51,68 @@
 - CI-first verification checklist across upload, OAuth, PR, LFS, and Releases.
 - Final cleanup of temporary compatibility shims.
 
-## Guardrails
-- One gate-focused commit at a time unless user explicitly requests batching.
-- Preserve commit safety invariants (`force=false`, SHA-guarded updates).
-- Keep opt-in user confirmation for destructive operations (merge, publish, overwrite).
-
-
 ## Gate Ledger Reconciliation (Gates 27–38)
 
 - Gates 27–37: treated as completed implementation sequence per current ledger truth and handoff chain through Gate 36 plus user-confirmed Gate 37 PASS state.
 - Gate 38: BLOCKED because no concrete implementation scope existed in repository planning artifacts at execution time.
-- Gate 38 recovery action: reconcile README status/index, NEXT_GATES_PLAN continuity notes, and knownbugs blocker entry before any new feature gate starts.
+- Gate 38 recovery: documented as PASS in `handoff/GATE_38_RECOVERY_HANDOFF.md` (ledger/docs recovery only; no runtime feature work).
 
-## Gate 39 Placeholder (requires user-approved scope)
+## Forward Concrete Gate Sequence (Gates 39–48)
 
-- Gate 39 is intentionally undefined until the user approves concrete scope and acceptance criteria.
-- Do not implement runtime feature work for Gate 39 from this file alone.
+## Gate 39 — Forward Plan Rebuild 39–48
+- Docs only.
+- Write the concrete next 10 gates.
+- No runtime implementation.
+
+## Gate 40 — CI / Build Truth Audit
+- Verify GitHub Actions, domain tests, Android compile/assemble status.
+- Document build truth and blockers.
+- No features.
+
+## Gate 41 — Write-Semantics Truth Audit
+- Clarify write semantics in existing runtime UX:
+  - which actions write local device files,
+  - which actions write remote GitHub content,
+  - which actions update branch refs.
+- Produce explicit button/action truth mapping.
+- No runtime feature implementation.
+
+## Gate 42 — Runtime Reality Audit
+- Audit what actually works in the Android app: startup, PAT login, repo/branch selection, source intake, preview, normal commit, error displays.
+- Produce a truth table.
+- No speculative feature work.
+
+## Gate 43 — Workbench Flow Spine
+- Recenter the main Workbench chain:
+  - Source → Target → Diagnose → Route → Confirm → Execute → Result/Recovery.
+- Clean flow wording/state transitions only as needed.
+- No new feature lanes.
+
+## Gate 44 — Source Intake Hardening
+- Harden SAF/source handling: permission loss, ZIP unsafe paths, ZIP collisions, folder summaries, source summary clarity.
+
+## Gate 45 — Normal Commit E2E Hardening
+- Stabilize the core promise: normal GitHub commit for single file, multi-file, folder, and safe ZIP entries.
+- Cover SHA mismatch, protected branch, permission errors.
+
+## Gate 46 — Large File Routing Hardening
+- Stabilize large-file route truth:
+  - normal commit blocked where needed,
+  - LFS single-file only,
+  - Release Asset single-file only,
+  - disabled-but-explained routes for multi/folder/ZIP.
+
+## Gate 47 — Conflict Cleanup Lane Hardening
+- Harden conflict preset/card/write-back/commit bridge flow.
+- Keep ZIP-entry write-back/commit blocked unless explicitly scoped later.
+
+## Gate 48 — Internal Test Candidate Freeze
+- Freeze an internal test candidate with README, knownbugs, handoffs, manual test checklist, and status summary.
+- Not a public RC.
+
+## Guardrails
+- Implement exactly one gate per task unless the user explicitly requests otherwise.
+- Future implementation after this document must proceed one gate at a time.
+- Preserve commit safety invariants (`force=false`, SHA-guarded updates).
+- Keep opt-in user confirmation for destructive operations (merge, publish, overwrite).
+- Do not rewrite Gate 38 historical truth (`BLOCKED`) or Gate 38 recovery truth (`PASS`, docs-only).
