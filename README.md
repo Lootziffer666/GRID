@@ -22,7 +22,7 @@ For the full product brief, see `instructions.md`.
 
 ## Current status
 
-**Gate 33 PASS: conflict commit bridge now includes branch freshness guard to block stale-branch commits after review; no automatic push.**
+**Gate 37 PASS is the last safe implementation gate. Gate 38 is BLOCKED pending concrete, user-approved next-gate scope.**
 
 Painkiller now includes:
 
@@ -73,8 +73,29 @@ This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
 verification of the gated layers.
 
-## Handoff index (Gate 9 → current)
+## Workbench flow spine (Gate 43 alignment)
 
+Canonical operator flow is:
+
+1. **Source** — pick single file, multiple files, folder, or ZIP.
+2. **Target** — set owner/repo/branch/target path.
+3. **Diagnose** — build plan and classify risks/blocks.
+4. **Route** — choose valid execution lane (normal commit, LFS single-file, release asset single-file, or blocked/unsupported).
+5. **Confirm** — explicit human confirmation before any local write, commit, merge, or upload action.
+6. **Execute** — perform selected action with safety guards (SHA freshness, non-force ref updates, explicit constraints).
+7. **Result/Recovery** — show success details or human-readable failure + safe next step.
+
+## Handoff index (Gate 0 → current)
+
+- Gate 0: `handoff/GATE_0_HANDOFF.md`
+- Gate 1: `handoff/GATE_1_HANDOFF.md`
+- Gate 2: `handoff/GATE_2_HANDOFF.md`
+- Gate 3: `handoff/GATE_3_HANDOFF.md`
+- Gate 4: `handoff/GATE_4_HANDOFF.md`
+- Gate 5: `handoff/GATE_5_HANDOFF.md`
+- Gate 6: `handoff/GATE_6_HANDOFF.md`
+- Gate 7: `handoff/GATE_7_HANDOFF.md`
+- Gate 8: `handoff/GATE_8_HANDOFF.md`
 - Gate 9: `handoff/GATE_9_HANDOFF.md`
 - Gate 10: `handoff/GATE_10_HANDOFF.md`
 - Gate 11: `handoff/GATE_11_HANDOFF.md`
@@ -95,8 +116,24 @@ verification of the gated layers.
 - Gate 24.6: `handoff/GATE_24_6_HANDOFF.md`
 - Gate 25: `handoff/GATE_25_HANDOFF.md`
 - Gate 26: `handoff/GATE_26_HANDOFF.md`
-- Gate 27 (aktueller Stand): `handoff/GATE_27_HANDOFF.md`
-- Nächste Planung: `handoff/NEXT_GATES_PLAN.md`
+- Gate 27: `handoff/GATE_27_HANDOFF.md`
+- Gate 28: `handoff/GATE_28_HANDOFF.md`
+- Gate 29: `handoff/GATE_29_HANDOFF.md`
+- Gate 30: `handoff/GATE_30_HANDOFF.md`
+- Gate 31: `handoff/GATE_31_HANDOFF.md`
+- Gate 32: `handoff/GATE_32_HANDOFF.md`
+- Gate 33: `handoff/GATE_33_HANDOFF.md`
+- Gate 34: `handoff/GATE_34_HANDOFF.md`
+- Gate 35: `handoff/GATE_35_HANDOFF.md`
+- Gate 36: `handoff/GATE_36_HANDOFF.md`
+- Gate 37: `handoff/GATE_37_HANDOFF.md`
+- Gate 38 (blocked): `handoff/GATE_38_HANDOFF.md`
+- Gate 38 recovery ledger: `handoff/GATE_38_RECOVERY_HANDOFF.md`
+- Gate 40: `handoff/GATE_40_HANDOFF.md`
+- Gate 41: `handoff/GATE_41_HANDOFF.md`
+- Gate 42: `handoff/GATE_42_HANDOFF.md`
+- Gate 43: `handoff/GATE_43_HANDOFF.md`
+- Next planning ledger: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
 |------------------|---------|-------------------------------------|
