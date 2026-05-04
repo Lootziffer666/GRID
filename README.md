@@ -119,6 +119,7 @@ verification of the gated layers.
 - Gate 38 recovery ledger: `handoff/GATE_38_RECOVERY_HANDOFF.md`
 - Gate 40: `handoff/GATE_40_HANDOFF.md`
 - Gate 41: `handoff/GATE_41_HANDOFF.md`
+- Gate 42: `handoff/GATE_42_HANDOFF.md`
 - Next planning ledger: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
