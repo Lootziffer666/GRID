@@ -69,41 +69,42 @@
 - Document build truth and blockers.
 - No features.
 
-## Gate 41 — Runtime Reality Audit
+## Gate 41 — Write-Semantics Truth Audit
+- Clarify write semantics in existing runtime UX:
+  - which actions write local device files,
+  - which actions write remote GitHub content,
+  - which actions update branch refs.
+- Produce explicit button/action truth mapping.
+- No runtime feature implementation.
+
+## Gate 42 — Runtime Reality Audit
 - Audit what actually works in the Android app: startup, PAT login, repo/branch selection, source intake, preview, normal commit, error displays.
 - Produce a truth table.
 - No speculative feature work.
 
-## Gate 42 — Workbench Flow Spine
+## Gate 43 — Workbench Flow Spine
 - Recenter the main Workbench chain:
   - Source → Target → Diagnose → Route → Confirm → Execute → Result/Recovery.
 - Clean flow wording/state transitions only as needed.
 - No new feature lanes.
 
-## Gate 43 — Source Intake Hardening
+## Gate 44 — Source Intake Hardening
 - Harden SAF/source handling: permission loss, ZIP unsafe paths, ZIP collisions, folder summaries, source summary clarity.
 
-## Gate 44 — Normal Commit E2E Hardening
+## Gate 45 — Normal Commit E2E Hardening
 - Stabilize the core promise: normal GitHub commit for single file, multi-file, folder, and safe ZIP entries.
 - Cover SHA mismatch, protected branch, permission errors.
 
-## Gate 45 — Large File Routing Hardening
+## Gate 46 — Large File Routing Hardening
 - Stabilize large-file route truth:
   - normal commit blocked where needed,
   - LFS single-file only,
   - Release Asset single-file only,
   - disabled-but-explained routes for multi/folder/ZIP.
 
-## Gate 46 — Conflict Cleanup Lane Hardening
+## Gate 47 — Conflict Cleanup Lane Hardening
 - Harden conflict preset/card/write-back/commit bridge flow.
 - Keep ZIP-entry write-back/commit blocked unless explicitly scoped later.
-
-## Gate 47 — User-Facing Error / Recovery Polish
-- Ensure failure states explain:
-  - what happened,
-  - whether anything was written,
-  - whether user data was lost,
-  - next safe step.
 
 ## Gate 48 — Internal Test Candidate Freeze
 - Freeze an internal test candidate with README, knownbugs, handoffs, manual test checklist, and status summary.
