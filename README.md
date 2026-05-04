@@ -400,6 +400,12 @@ Decision result:
 - Keep multi-file/folder/ZIP LFS routes visible but non-executable.
 - Defer LFS expansion to a dedicated implementation gate with explicit safety/orchestration scope.
 
+## Workbench navigation recenter (Gate 37)
+
+- Authenticated navigation route naming now centers on `workbench`.
+- Primary top bar framing now uses “GitHub Workbench” terminology.
+- Flow order and feature behavior remain unchanged in this gate.
+
 ## Codex conflict presets MVP (Gate 29)
 
 Painkiller now includes a minimal collision-cleanup preset flow for Git conflict markers:
