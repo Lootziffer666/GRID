@@ -73,6 +73,27 @@ This is **not** a public Release Candidate. It is an **Internal Test
 Candidate** suitable for end-to-end domain testing, code review, and CI
 verification of the gated layers.
 
+## Workbench flow spine (Gate 43 alignment)
+
+Canonical operator flow is:
+
+1. **Source** — pick single file, multiple files, folder, or ZIP.
+2. **Target** — set owner/repo/branch/target path.
+3. **Diagnose** — build plan and classify risks/blocks.
+4. **Route** — choose valid execution lane (normal commit, LFS single-file, release asset single-file, or blocked/unsupported).
+5. **Confirm** — explicit human confirmation before any local write, commit, merge, or upload action.
+6. **Execute** — perform selected action with safety guards (SHA freshness, non-force ref updates, explicit constraints).
+7. **Result/Recovery** — show success details or human-readable failure + safe next step.
+
+## Source intake hardening focus (Gate 44)
+
+Current intake safety posture:
+
+- explicit SAF-driven source selection (single/multi/folder/ZIP)
+- unsafe ZIP path blocking before commit execution
+- collision visibility before final write/commit actions
+- no implicit write on intake/preview alone
+
 ## Handoff index (Gate 0 → current)
 
 - Gate 0: `handoff/GATE_0_HANDOFF.md`
@@ -120,6 +141,8 @@ verification of the gated layers.
 - Gate 40: `handoff/GATE_40_HANDOFF.md`
 - Gate 41: `handoff/GATE_41_HANDOFF.md`
 - Gate 42: `handoff/GATE_42_HANDOFF.md`
+- Gate 43: `handoff/GATE_43_HANDOFF.md`
+- Gate 44: `handoff/GATE_44_HANDOFF.md`
 - Next planning ledger: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
