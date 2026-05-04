@@ -85,6 +85,15 @@ Canonical operator flow is:
 6. **Execute** — perform selected action with safety guards (SHA freshness, non-force ref updates, explicit constraints).
 7. **Result/Recovery** — show success details or human-readable failure + safe next step.
 
+## Source intake hardening focus (Gate 44)
+
+Current intake safety posture:
+
+- explicit SAF-driven source selection (single/multi/folder/ZIP)
+- unsafe ZIP path blocking before commit execution
+- collision visibility before final write/commit actions
+- no implicit write on intake/preview alone
+
 ## Handoff index (Gate 0 → current)
 
 - Gate 0: `handoff/GATE_0_HANDOFF.md`
@@ -133,6 +142,7 @@ Canonical operator flow is:
 - Gate 41: `handoff/GATE_41_HANDOFF.md`
 - Gate 42: `handoff/GATE_42_HANDOFF.md`
 - Gate 43: `handoff/GATE_43_HANDOFF.md`
+- Gate 44: `handoff/GATE_44_HANDOFF.md`
 - Next planning ledger: `handoff/NEXT_GATES_PLAN.md`
 
 | Layer            | Gates   | Status                              |
