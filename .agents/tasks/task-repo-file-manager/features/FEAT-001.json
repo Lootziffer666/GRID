@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Domain layer: Add getTree API method, PendingChange model, TreeChangeCompiler, and RepoTreeOrchestrator with tests",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "1. Add getTree method to GithubGitDataApi interface in domain/src/main/kotlin/com/painkiller/domain/github/GithubGitDataApi.kt: suspend fun getTree(owner: String, repo: String, treeSha: String, recursive: Boolean = false): CreateTreeResponse. The return type CreateTreeResponse already has the right shape (sha, url, tree: List<TreeEntry>, truncated: Boolean).",
     "2. Create domain/src/main/kotlin/com/painkiller/domain/github/PendingChange.kt with: enum class PendingChangeType { MOVE, RENAME, DELETE, CREATE_FOLDER, UPLOAD }; data class PendingChange(val type: PendingChangeType, val sourcePath: String?, val targetPath: String?, val blobSha: String? = null, val newContentBase64: String? = null). sourcePath is the original tree path, targetPath is the new path (for moves/renames/uploads).",
@@ -26,5 +26,5 @@
     "cd /projects/sandbox/GRID && JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:build"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All domain tests pass. App module cannot compile locally (no Android SDK) but KtorGithubGitDataApi.getTree implementation added with recursive query param. The MultiFakeApi, SingleFakeApi, and GithubLfsRepositoryTest fakes all updated with getTree stubs. German commit message generation uses singular/plural forms."
 }

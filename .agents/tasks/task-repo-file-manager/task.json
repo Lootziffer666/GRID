@@ -1,0 +1,14 @@
+{
+  "task_id": "task-repo-file-manager",
+  "task_description": "Implement Repo File Manager screen for GRID/PAINKILLER: getTree API endpoint, PendingChange model + TreeChangeCompiler, RepoTreeOrchestrator, RepoTreeScreen UI with navigation, German labels, atomic commit flow",
+  "status": "completed",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Domain build and all 27+ tests pass (TreeChangeCompilerTest: 14 tests, RepoTreeOrchestratorTest: 13 tests, plus all existing tests). App module cannot be verified locally (no Android SDK) but CI handles it. Tests exercise actual code paths and would fail if implementation were reverted."
+  }
+}
