@@ -15,6 +15,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -78,6 +79,18 @@ class KtorGithubGitDataApi(
                 withBearer(requireToken())
             }
         }
+
+    override suspend fun getTree(
+        owner: String,
+        repo: String,
+        treeSha: String,
+        recursive: Boolean,
+    ): CreateTreeResponse = execute {
+        client.get("$baseUrl/repos/$owner/$repo/git/trees/$treeSha") {
+            withBearer(requireToken())
+            if (recursive) parameter("recursive", "1")
+        }
+    }
 
     override suspend fun createBlob(
         owner: String,

@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "App layer: Implement getTree HTTP endpoint in KtorGithubGitDataApi, create RepoTreeRepository, wire into DI container, build RepoTreeViewModel and RepoTreeScreen UI, update navigation",
+  "status": "completed",
+  "steps": [
+    "1. Add getTree implementation in app/src/main/java/com/painkiller/data/github/KtorGithubGitDataApi.kt following the existing pattern: override suspend fun getTree(owner: String, repo: String, treeSha: String, recursive: Boolean): CreateTreeResponse = execute { client.get(\"$baseUrl/repos/$owner/$repo/git/trees/$treeSha\") { withBearer(requireToken()); if (recursive) parameter(\"recursive\", \"1\") } }. Add the ktor parameter import.",
+    "2. Create app/src/main/java/com/painkiller/data/github/RepoTreeRepository.kt following MultiFileCommitRepository pattern: class RepoTreeRepository(private val gitDataApi: GithubGitDataApi, private val secureTokenStore: SecureTokenStore). Method loadTree(owner, repo, branch): wraps getRef+getCommit+getTree. Method commitChanges(owner, repo, branch, changes: List<PendingChange>): delegates to RepoTreeOrchestrator. Both check token first.",
+    "3. Wire RepoTreeRepository into app/src/main/java/com/painkiller/di/PainkillerContainer.kt as a lazy val repoTreeRepository using gitDataApi and secureTokenStore.",
+    "4. Create app/src/main/java/com/painkiller/ui/repotree/RepoTreeViewModel.kt: ViewModel with StateFlow<RepoTreeUiState>. State holds: selectedOwner, selectedRepo, selectedBranch, treeEntries (flat list from recursive tree), currentPath (for breadcrumb navigation), pendingChanges list, isLoading, error, commitResult. Actions: loadTree(), navigateToFolder(path), navigateUp(), addPendingChange(change), removePendingChange(index), commitChanges(). Use ViewModelProvider.Factory companion pattern from AuthViewModel. The ViewModel needs: repoTreeRepository, repoBranchRepository (for repo/branch lists), safFileReader (for uploads).",
+    "5. Create app/src/main/java/com/painkiller/ui/repotree/RepoTreeScreen.kt: Composable with Scaffold, TopAppBar with breadcrumb. Content sections: (a) Repo+Branch selector at top (owner/repo text fields or dropdown from repo list, branch picker), (b) Tree list showing files/folders at current path level (click folder = navigate in, long press = context menu with Umbenennen/Verschieben/Loeschen), (c) Action buttons: '+ Neuer Ordner', 'Datei hochladen' (SAF picker), 'ZIP entpacken' (SAF picker for zip), (d) 'Geplante Aenderungen' section showing human-readable pending changes list, (e) 'Auf GitHub speichern' button that triggers commit, (f) Success state showing commit SHA and link. German labels where specified.",
+    "6. Update app/src/main/java/com/painkiller/ui/navigation/PainkillerNavGraph.kt: Add ROUTE_REPO_TREE = 'repo_tree' constant. After auth, navigate to ROUTE_REPO_TREE instead of ROUTE_WORKBENCH. Add composable(ROUTE_REPO_TREE) with RepoTreeViewModel wired from container. Keep ROUTE_WORKBENCH composable intact as alternative route (not deleted).",
+    "7. Ensure all imports are correct and the app module compiles syntactically (we cannot run assembleDebug locally but code must be valid Kotlin with correct import paths)."
+  ],
+  "acceptance_criteria": [
+    "KtorGithubGitDataApi.getTree sends GET /repos/{owner}/{repo}/git/trees/{tree_sha}?recursive=1 with bearer auth",
+    "RepoTreeRepository exists and delegates to RepoTreeOrchestrator for commits",
+    "PainkillerContainer exposes repoTreeRepository as lazy val",
+    "RepoTreeViewModel manages tree loading, pending changes, and commit flow via StateFlow",
+    "RepoTreeScreen shows repo/branch selector, file tree, action buttons, pending changes, and commit button with German labels",
+    "PainkillerNavGraph routes to RepoTreeScreen after auth (ROUTE_WORKBENCH kept as alternative)",
+    "Domain module still passes all tests after changes: JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:test"
+  ],
+  "verification": [
+    "cd /projects/sandbox/GRID && JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:test",
+    "cd /projects/sandbox/GRID && JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:build"
+  ],
+  "blocked_reason": null,
+  "findings": "getTree was already implemented in KtorGithubGitDataApi from FEAT-001. All domain tests pass. App module code is syntactically valid Kotlin (cannot run assembleDebug locally due to no Android SDK). RepoTreeScreen uses German labels as specified. Navigation routes to repo_tree after auth while keeping workbench as alternative route. Review fixes applied: stale tree reload after commit, early path validation in addNewFolder/renameFile/moveFile, treeTruncated UI warning, removed unused Base64 import, switched to Ktor parameter() API for getTree."
+}

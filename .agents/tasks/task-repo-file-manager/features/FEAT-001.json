@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Domain layer: Add getTree API method, PendingChange model, TreeChangeCompiler, and RepoTreeOrchestrator with tests",
+  "status": "completed",
+  "steps": [
+    "1. Add getTree method to GithubGitDataApi interface in domain/src/main/kotlin/com/painkiller/domain/github/GithubGitDataApi.kt: suspend fun getTree(owner: String, repo: String, treeSha: String, recursive: Boolean = false): CreateTreeResponse. The return type CreateTreeResponse already has the right shape (sha, url, tree: List<TreeEntry>, truncated: Boolean).",
+    "2. Create domain/src/main/kotlin/com/painkiller/domain/github/PendingChange.kt with: enum class PendingChangeType { MOVE, RENAME, DELETE, CREATE_FOLDER, UPLOAD }; data class PendingChange(val type: PendingChangeType, val sourcePath: String?, val targetPath: String?, val blobSha: String? = null, val newContentBase64: String? = null). sourcePath is the original tree path, targetPath is the new path (for moves/renames/uploads).",
+    "3. Create domain/src/main/kotlin/com/painkiller/domain/github/TreeChangeCompiler.kt: object TreeChangeCompiler with fun compile(changes: List<PendingChange>, existingTree: List<TreeEntry>): List<TreeEntry>. Logic: MOVE/RENAME = old path entry with sha=null (delete) + new path entry with original blobSha; DELETE = entry with sha=null; CREATE_FOLDER = targetPath/.gitkeep with empty content; UPLOAD = entry at targetPath with blobSha or newContentBase64. Use PathValidation.isSafeRepoPath for all paths. Return the list of TreeEntry modifications to pass to CreateTreeRequest.",
+    "4. Create domain/src/main/kotlin/com/painkiller/domain/github/RepoTreeResult.kt: sealed interface RepoTreeResult with Success(commitSha, commitUrl, summary), and Failure variants mirroring MultiFileCommitResult pattern (InvalidInput, AuthError, PermissionError, BranchNotFound, ProtectedBranch, ShaMismatch, NetworkError, UnknownError).",
+    "5. Create domain/src/main/kotlin/com/painkiller/domain/github/RepoTreeOrchestrator.kt: class RepoTreeOrchestrator(private val gitDataApi: GithubGitDataApi). Method: suspend fun execute(owner, repo, branch, changes: List<PendingChange>): RepoTreeResult. Flow: (a) getRef(owner, repo, 'heads/$branch') to get baseSha, (b) getCommit to get baseTreeSha, (c) getTree(owner, repo, baseTreeSha, recursive=true) to get full tree, (d) compile changes via TreeChangeCompiler, (e) for entries needing new blobs (UPLOAD with newContentBase64): createBlob, (f) createTree with baseTree=baseTreeSha and compiled entries, (g) createCommit with auto-generated message, (h) updateRef with force=false and expectedSha=baseSha. Auto-generate commit message like '3 Dateien verschoben, 1 Ordner erstellt' based on change types.",
+    "6. Create domain/src/test/kotlin/com/painkiller/domain/github/TreeChangeCompilerTest.kt: Test MOVE produces delete+add entries, RENAME produces delete+add entries, DELETE produces sha=null entry, CREATE_FOLDER produces .gitkeep entry, UPLOAD produces entry with blobSha. Test that unsafe paths are rejected.",
+    "7. Create domain/src/test/kotlin/com/painkiller/domain/github/RepoTreeOrchestratorTest.kt using the same FakeApi pattern from MultiFileCommitOrchestratorTest: test success flow (all API calls in order), test empty changes rejected, test auth error mapping, test SHA mismatch mapping, test that force=false is enforced, test auto-generated commit message."
+  ],
+  "acceptance_criteria": [
+    "GithubGitDataApi interface has getTree method with owner, repo, treeSha, recursive parameters returning CreateTreeResponse",
+    "PendingChange data class exists with type enum covering MOVE, RENAME, DELETE, CREATE_FOLDER, UPLOAD",
+    "TreeChangeCompiler correctly compiles each change type into TreeEntry list",
+    "RepoTreeOrchestrator follows the getRef -> getCommit -> getTree -> compile -> createBlobs -> createTree -> createCommit -> updateRef flow",
+    "updateRef always uses force=false",
+    "All new domain tests pass: JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:test",
+    "Domain module builds: JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:build"
+  ],
+  "verification": [
+    "cd /projects/sandbox/GRID && JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:test",
+    "cd /projects/sandbox/GRID && JAVA_HOME=/opt/toolchains/.local/share/mise/installs/java/17.0.2 ./gradlew :domain:build"
+  ],
+  "blocked_reason": null,
+  "findings": "All domain tests pass. App module cannot compile locally (no Android SDK) but KtorGithubGitDataApi.getTree implementation added with recursive query param. The MultiFakeApi, SingleFakeApi, and GithubLfsRepositoryTest fakes all updated with getTree stubs. German commit message generation uses singular/plural forms."
+}

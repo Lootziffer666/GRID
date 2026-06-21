@@ -11,8 +11,11 @@ import com.painkiller.ui.auth.AuthScreen
 import com.painkiller.ui.auth.AuthViewModel
 import com.painkiller.ui.flow.UploadFlowScreen
 import com.painkiller.ui.flow.UploadFlowViewModel
+import com.painkiller.ui.repotree.RepoTreeScreen
+import com.painkiller.ui.repotree.RepoTreeViewModel
 
 private const val ROUTE_AUTH = "auth"
+private const val ROUTE_REPO_TREE = "repo_tree"
 private const val ROUTE_WORKBENCH = "workbench"
 
 @Composable
@@ -38,8 +41,27 @@ fun PainkillerNavGraph(
                 darkModeEnabled = darkModeEnabled,
                 onToggleDarkMode = onToggleDarkMode,
                 onAuthenticated = {
-                    navController.navigate(ROUTE_WORKBENCH) {
+                    navController.navigate(ROUTE_REPO_TREE) {
                         popUpTo(ROUTE_AUTH) { inclusive = true }
+                    }
+                },
+            )
+        }
+        composable(ROUTE_REPO_TREE) {
+            val repoTreeViewModel: RepoTreeViewModel = viewModel(
+                factory = RepoTreeViewModel.factory(
+                    repoTreeRepository = container.repoTreeRepository,
+                    repoBranchRepository = container.repoBranchRepository,
+                    safFileReader = container.safFileReader,
+                    safZipReader = container.safZipReader,
+                ),
+            )
+            RepoTreeScreen(
+                viewModel = repoTreeViewModel,
+                onSignOut = {
+                    authViewModel.signOut()
+                    navController.navigate(ROUTE_AUTH) {
+                        popUpTo(ROUTE_REPO_TREE) { inclusive = true }
                     }
                 },
             )
