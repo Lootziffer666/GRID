@@ -31,7 +31,7 @@ sealed class GithubGitDataException(message: String) : RuntimeException(message)
         GithubGitDataException(message)
 
     /** 422 from update-ref because the branch advanced to a different SHA. */
-    class ShaMismatch(message: String = "The branch changed on GitHub while Painkiller was preparing this commit.") :
+    class ShaMismatch(message: String = "The branch changed on GitHub while GRID was preparing this commit.") :
         GithubGitDataException(message)
 
     /** Transport-level failure (no network, DNS, TLS, timeout, GitHub unreachable). */

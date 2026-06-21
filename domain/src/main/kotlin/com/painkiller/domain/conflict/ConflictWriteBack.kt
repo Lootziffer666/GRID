@@ -115,7 +115,7 @@ object ConflictWritePlanner {
         val totalBytes = writeable.sumOf { it.bytes }
         val summary = when {
             entries.isEmpty() -> "No conflict files were available for write-back."
-            writeable.isEmpty() -> "No files are eligible for write-back. Painkiller did not write any files."
+            writeable.isEmpty() -> "No files are eligible for write-back. GRID did not write any files."
             blocked.isEmpty() -> "${writeable.size} file(s) ready to write. Nothing will be committed or pushed."
             else -> "${writeable.size} file(s) ready, ${blocked.size} blocked for safety. Nothing will be committed or pushed."
         }
@@ -167,7 +167,7 @@ object ConflictWriteExecutor {
                 blockedFiles = plan.blockedFiles.map { it.path },
                 failedFiles = emptyList(),
                 didChangeFiles = false,
-                summary = "No files are eligible for write-back. Painkiller did not write any files.",
+                summary = "No files are eligible for write-back. GRID did not write any files.",
             )
         }
 
@@ -188,9 +188,9 @@ object ConflictWriteExecutor {
         }
 
         val summary = when {
-            failed.isEmpty() -> "Painkiller wrote ${written.size} file(s). No commit was created and nothing was pushed."
-            written.isEmpty() -> "Painkiller could not write resolved files. No commit was created and nothing was pushed."
-            else -> "Painkiller wrote ${written.size} file(s), but ${failed.size} file(s) failed. No commit was created and nothing was pushed."
+            failed.isEmpty() -> "GRID wrote ${written.size} file(s). No commit was created and nothing was pushed."
+            written.isEmpty() -> "GRID could not write resolved files. No commit was created and nothing was pushed."
+            else -> "GRID wrote ${written.size} file(s), but ${failed.size} file(s) failed. No commit was created and nothing was pushed."
         }
 
         return ConflictWriteResult(

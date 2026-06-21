@@ -26,7 +26,7 @@ class ConflictPresetPlannerTest {
         )
 
         assertEquals(0, plan.totalCollisionBlocks)
-        assertEquals("No conflict markers were found. Painkiller did not change any files.", plan.summary)
+        assertEquals("No conflict markers were found. GRID did not change any files.", plan.summary)
         assertEquals("hello\nworld\n", plan.previews.first().resolvedContent)
     }
 

@@ -1,4 +1,4 @@
-# AGENTS.md — PAINKILLER Agent Instructions
+# AGENTS.md — GRID Agent Instructions
 
 This repository uses gated implementation. Agents must work conservatively, document their work, run available checks, and stop at the selected gate boundary.
 
@@ -8,11 +8,11 @@ The repository files are the source of truth. Do not rely on chat memory.
 
 ## Project Summary
 
-PAINKILLER is a focused Android tool for one mobile pain:
+GRID is a focused Android tool for one mobile pain:
 
 > I have files, folders, or ZIP archives on my Android phone. I want them safely committed and pushed into a GitHub repository.
 
-PAINKILLER is intentionally narrow. It is not a full Git client, not an IDE, not GitHub Desktop, and not a general-purpose file manager.
+GRID is intentionally narrow. It is not a full Git client, not an IDE, not GitHub Desktop, and not a general-purpose file manager.
 
 ---
 
@@ -40,7 +40,7 @@ If the previous gate is documented as `PARTIAL` or `BLOCKED`, continue only when
 
 ## CI-First Gate Policy
 
-GitHub Actions is the authoritative build verifier for PAINKILLER.
+GitHub Actions is the authoritative build verifier for GRID.
 
 Local agents may not have the Android SDK, caches, or full build environment. A missing local Android SDK is **not** a product defect and must not be repeatedly escalated as a gate blocker when CI is expected to verify the build.
 

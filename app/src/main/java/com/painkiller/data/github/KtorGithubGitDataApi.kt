@@ -142,7 +142,7 @@ class KtorGithubGitDataApi(
         expectedSha: String,
     ): GitRef = execute {
         require(!request.force) {
-            "force=true is forbidden by Painkiller's safety contract"
+            "force=true is forbidden by GRID's safety contract"
         }
         client.patch("$baseUrl/repos/$owner/$repo/git/$ref") {
             withBearer(requireToken())

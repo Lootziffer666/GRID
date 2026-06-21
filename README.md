@@ -1,4 +1,4 @@
-<h1 align="center">💊 PAINKILLER</h1>
+<h1 align="center">GRID</h1>
 
 <p align="center">
   <strong>Android Utility Suite — Kotlin & Jetpack Compose</strong>
@@ -13,7 +13,7 @@
 
 ---
 
-## 🧭 Was ist PAINKILLER?
+## 🧭 Was ist GRID?
 
 Android-Utility-Suite die wiederkehrende Smartphone-Schmerzpunkte löst. Keine Bloatware, kein Tracking, keine Werbung.
 
@@ -22,7 +22,7 @@ Android-Utility-Suite die wiederkehrende Smartphone-Schmerzpunkte löst. Keine B
 ## 🏗 Architektur
 
 ```
-PAINKILLER/
+GRID/
 ├── app/       # Compose UI
 ├── domain/    # Business Logic (pure Kotlin)
 ├── handoff/   # Agent-Doku
@@ -48,4 +48,4 @@ Siehe [`GATES.md`](GATES.md).
 
 ---
 
-<p align="center"><em>Weniger Reibung. Mehr Kontrolle. Dein Telefon.</em></p>
+<p align="center"><em>Weniger Reibung. Mehr Kontrolle. Dein Telefon. GRID.</em></p>

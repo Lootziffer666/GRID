@@ -120,7 +120,7 @@ class MultiFileCommitOrchestrator(
         } catch (e: GithubGitDataException.ShaMismatch) {
             MultiFileCommitResult.ShaMismatch(
                 e.message
-                    ?: "The branch changed on GitHub while Painkiller was preparing this commit."
+                    ?: "The branch changed on GitHub while GRID was preparing this commit."
             )
         } catch (e: GithubGitDataException.NetworkUnavailable) {
             MultiFileCommitResult.NetworkError(e.message ?: "GitHub could not be reached.")
@@ -146,7 +146,7 @@ class MultiFileCommitOrchestrator(
                 return MultiFileCommitResult.InvalidInput(
                     "File path is not safe to commit: \"${entry.repoPath}\". " +
                         "This ZIP contains a path that tries to escape the target folder. " +
-                        "Painkiller blocked it before upload. Nothing was changed on GitHub."
+                        "GRID blocked it before upload. Nothing was changed on GitHub."
                 )
             }
         }

@@ -107,7 +107,7 @@ object LargeFileRoutingDecider {
             if (!normalExecutable) {
                 add(
                     blockedOption(
-                        reason = "Painkiller blocked this route because GitHub would reject it.",
+                        reason = "GRID blocked this route because GitHub would reject it.",
                         safetyNote = "No commit is sent while blocked entries remain.",
                     ),
                 )
@@ -132,7 +132,7 @@ object LargeFileRoutingDecider {
         executable = executable,
         recommended = recommended,
         reason = reason,
-        safetyNote = "Painkiller never forces branch updates; normal commits stay SHA-guarded.",
+        safetyNote = "GRID never forces branch updates; normal commits stay SHA-guarded.",
     )
 
     private fun lfsAvailableOption(recommended: Boolean) = LargeFileRouteOption(
@@ -160,7 +160,7 @@ object LargeFileRoutingDecider {
         executable = false,
         recommended = false,
         reason = "This file size is normal; keep the simpler normal repo commit.",
-        safetyNote = "Painkiller keeps large-file routes visible but does not force them.",
+        safetyNote = "GRID keeps large-file routes visible but does not force them.",
     )
 
     private fun unsupportedLfsOption(sourceKind: SourceKind) = LargeFileRouteOption(
@@ -203,7 +203,7 @@ object LargeFileRoutingDecider {
         recommended = false,
         reason = if (forLargeFile) "Pick or create a release to enable this path."
         else "Optional route; select a release if you want download-only publishing.",
-        safetyNote = "Painkiller requires explicit release selection before upload.",
+        safetyNote = "GRID requires explicit release selection before upload.",
     )
 
     private fun unsupportedReleaseOption(sourceKind: SourceKind) = LargeFileRouteOption(
@@ -223,7 +223,7 @@ object LargeFileRoutingDecider {
     private fun blockedOption(reason: String, safetyNote: String) = LargeFileRouteOption(
         route = LargeFileRoute.BLOCKED,
         title = "Blocked for safety",
-        explanation = "Painkiller blocked this path to avoid a rejected or unsafe upload.",
+        explanation = "GRID blocked this path to avoid a rejected or unsafe upload.",
         githubEffect = "No upload is sent while this block is active.",
         repoChange = "No — repo stays unchanged.",
         actionLabel = "Blocked",

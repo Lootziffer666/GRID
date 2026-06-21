@@ -1,13 +1,13 @@
-# claude.md — Painkiller working instructions
+# claude.md — GRID working instructions
 
 This file is project-specific guidance for Claude Code (and any future agent
-or human contributor) working on Painkiller. The source of truth for product
+or human contributor) working on GRID. The source of truth for product
 scope is `instructions.md`. The source of truth for current state is the
 repository itself plus the latest handoff in `handoff/`.
 
-## What Painkiller is
+## What GRID is
 
-Painkiller is a focused Android tool that solves one mobile pain:
+GRID is a focused Android tool that solves one mobile pain:
 
 > "I have files / folders / ZIPs on my Android phone. I want them safely
 > committed and pushed into a GitHub repository."
@@ -34,7 +34,7 @@ new gate plan.
 
 ## Gate discipline
 
-Painkiller is built one gate at a time. The gates are defined in
+GRID is built one gate at a time. The gates are defined in
 `instructions.md`:
 
 - Gate 0 — project skeleton + UI/API spike
@@ -67,7 +67,7 @@ Rules every contributor (and Claude Code) must follow:
 
 ## CI-first gate policy
 
-GitHub Actions is the authoritative build verifier for Painkiller.
+GitHub Actions is the authoritative build verifier for GRID.
 
 Claude Code sessions and other cloud agents may not have the Android SDK,
 caches, emulator tooling, or full CI environment. A missing local Android SDK

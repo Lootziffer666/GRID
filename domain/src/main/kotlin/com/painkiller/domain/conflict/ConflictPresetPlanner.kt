@@ -38,13 +38,13 @@ object ConflictPresetPlanner {
 
         val summary = when {
             filesWithCollisions == 0 ->
-                "No conflict markers were found. Painkiller did not change any files."
+                "No conflict markers were found. GRID did not change any files."
 
             preset == ConflictPreset.REVIEW_MANUALLY ->
                 "$totalBlocks collisions found. Manual review selected; nothing is resolved automatically."
 
             else ->
-                "$totalBlocks collisions found. Painkiller built a preview only. Nothing is written yet."
+                "$totalBlocks collisions found. GRID built a preview only. Nothing is written yet."
         }
 
         return ConflictResolutionPlan(

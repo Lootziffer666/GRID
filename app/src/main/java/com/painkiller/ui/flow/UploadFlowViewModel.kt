@@ -252,7 +252,7 @@ class UploadFlowViewModel(
                     it.copy(
                         loadedFile = loadedMetadata,
                         errorMessage = "This file is too large for a normal Git commit (>100 MiB). " +
-                            "Painkiller blocked the upload.",
+                            "GRID blocked the upload.",
                     )
                 }
                 return@launch
@@ -579,7 +579,7 @@ class UploadFlowViewModel(
     fun buildConflictPreview() {
         val s = _state.value
         if (!s.hasSource) {
-            _state.update { it.copy(conflictMessage = "Pick source files first. Painkiller did not change any files.") }
+            _state.update { it.copy(conflictMessage = "Pick source files first. GRID did not change any files.") }
             return
         }
         viewModelScope.launch {
@@ -677,7 +677,7 @@ class UploadFlowViewModel(
     fun buildConflictCardPreview() {
         val session = _state.value.conflictReviewSession ?: run {
             _state.update {
-                it.copy(conflictReviewMessage = "No conflict session available. Painkiller did not change any files.")
+                it.copy(conflictReviewMessage = "No conflict session available. GRID did not change any files.")
             }
             return
         }

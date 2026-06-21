@@ -62,7 +62,7 @@ object PainkillerErrorMapper {
     fun mapAuthExchange(@Suppress("UNUSED_PARAMETER") reason: String): HumanReadableError =
         HumanReadableError(
             title = "Sign in failed",
-            detail = "Painkiller could not complete the GitHub sign-in. Try signing in again.",
+            detail = "GRID could not complete the GitHub sign-in. Try signing in again.",
             retrySafety = RetrySafety.NOT_RETRYABLE,
             recoveryHint = RecoveryHint.SIGN_IN,
         )
@@ -75,7 +75,7 @@ object PainkillerErrorMapper {
         return if (isAuthFailure(reason)) authRequired()
         else HumanReadableError(
             title = "Could not load repositories",
-            detail = "Painkiller could not load your GitHub repositories. " +
+            detail = "GRID could not load your GitHub repositories. " +
                 "Check your connection and try again.",
             retrySafety = RetrySafety.SAFE_TO_RETRY,
             recoveryHint = RecoveryHint.CHECK_NETWORK,
@@ -90,7 +90,7 @@ object PainkillerErrorMapper {
         return if (isAuthFailure(reason)) authRequired()
         else HumanReadableError(
             title = "Could not load branches",
-            detail = "Painkiller could not load branches for this repository. " +
+            detail = "GRID could not load branches for this repository. " +
                 "Check your connection and try again.",
             retrySafety = RetrySafety.SAFE_TO_RETRY,
             recoveryHint = RecoveryHint.CHECK_NETWORK,
@@ -136,7 +136,7 @@ object PainkillerErrorMapper {
 
     private fun authRequired() = HumanReadableError(
         title = "Sign in required",
-        detail = "Painkiller is not signed in to GitHub. Sign in and try again.",
+        detail = "GRID is not signed in to GitHub. Sign in and try again.",
         retrySafety = RetrySafety.NOT_RETRYABLE,
         recoveryHint = RecoveryHint.SIGN_IN,
     )
@@ -167,7 +167,7 @@ object PainkillerErrorMapper {
 
     private fun shaMismatch() = HumanReadableError(
         title = "Branch changed",
-        detail = "The branch changed on GitHub while Painkiller was preparing the commit. " +
+        detail = "The branch changed on GitHub while GRID was preparing the commit. " +
             "Refresh the plan and try again.",
         retrySafety = RetrySafety.REQUIRES_PLAN_REFRESH,
         recoveryHint = RecoveryHint.REFRESH_PLAN,
@@ -175,7 +175,7 @@ object PainkillerErrorMapper {
 
     private fun networkUnavailable() = HumanReadableError(
         title = "Cannot reach GitHub",
-        detail = "Painkiller could not reach GitHub. " +
+        detail = "GRID could not reach GitHub. " +
             "Check your connection and retry when you are online.",
         retrySafety = RetrySafety.SAFE_TO_RETRY,
         recoveryHint = RecoveryHint.CHECK_NETWORK,
@@ -184,7 +184,7 @@ object PainkillerErrorMapper {
     private fun invalidInput() = HumanReadableError(
         title = "Invalid file path",
         detail = "One or more file paths are not safe to commit. " +
-            "Painkiller blocked the upload. Nothing was changed on GitHub.",
+            "GRID blocked the upload. Nothing was changed on GitHub.",
         retrySafety = RetrySafety.NOT_RETRYABLE,
         recoveryHint = RecoveryHint.FIX_FILE_PATHS,
     )

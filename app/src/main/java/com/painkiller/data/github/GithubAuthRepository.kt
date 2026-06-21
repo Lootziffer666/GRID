@@ -83,7 +83,7 @@ class GithubAuthRepository(
             GithubAuthResult.Failure("GitHub rejected this token.")
         } catch (e: GithubGitDataException.PermissionDenied) {
             GithubAuthResult.Failure(
-                "Token is missing required scopes. Painkiller needs at least repo write access."
+                "Token is missing required scopes. GRID needs at least repo write access."
             )
         } catch (e: GithubGitDataException.NetworkUnavailable) {
             GithubAuthResult.Failure(
