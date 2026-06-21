@@ -22,6 +22,7 @@ import com.painkiller.data.github.KtorGithubRepositoryApi
 import com.painkiller.data.github.KtorGithubTokenProbeApi
 import com.painkiller.data.github.MultiFileCommitRepository
 import com.painkiller.data.github.PainkillerHttpClient
+import com.painkiller.data.github.RepoTreeRepository
 import com.painkiller.data.github.SingleFileCommitRepository
 import com.painkiller.data.security.EncryptedSecureTokenStore
 import com.painkiller.data.security.SecureTokenStore
@@ -117,6 +118,10 @@ class PainkillerContainer(appContext: Context) {
 
     val multiFileCommitRepository: MultiFileCommitRepository by lazy {
         MultiFileCommitRepository(gitDataApi, secureTokenStore)
+    }
+
+    val repoTreeRepository: RepoTreeRepository by lazy {
+        RepoTreeRepository(gitDataApi, secureTokenStore)
     }
 
     val lfsRepository: GithubLfsRepository by lazy {
