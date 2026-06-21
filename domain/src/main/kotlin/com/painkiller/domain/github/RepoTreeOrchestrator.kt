@@ -127,7 +127,7 @@ class RepoTreeOrchestrator(
         } catch (e: GithubGitDataException.ShaMismatch) {
             RepoTreeResult.ShaMismatch(
                 e.message
-                    ?: "The branch changed on GitHub while Painkiller was preparing this commit."
+                    ?: "The branch changed on GitHub while GRID was preparing this commit."
             )
         } catch (e: GithubGitDataException.NetworkUnavailable) {
             RepoTreeResult.NetworkError(e.message ?: "GitHub could not be reached.")

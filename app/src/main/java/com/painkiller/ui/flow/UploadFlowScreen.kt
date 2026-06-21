@@ -456,7 +456,7 @@ fun UploadFlowScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = "Painkiller streams this file as a Release Asset upload. This does not create a normal repo commit.",
+                            text = "GRID streams this file as a Release Asset upload. This does not create a normal repo commit.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary,
                         )
@@ -761,7 +761,7 @@ fun UploadFlowScreen(
                             enabled = commitPlan.canCommit && !state.isCommitting,
                         )
                         Text(
-                            text = "Painkiller will create one commit from these resolved files.",
+                            text = "GRID will create one commit from these resolved files.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -959,7 +959,7 @@ fun UploadFlowScreen(
             title = { Text("Write resolved files") },
             text = {
                 Text(
-                    "Painkiller writes only the files shown in this preview. " +
+                    "GRID writes only the files shown in this preview. " +
                         "This changes local selected files only. No commit will be created and nothing will be pushed. " +
                         "Files with unresolved/manual collisions will not be written.",
                 )

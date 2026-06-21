@@ -61,7 +61,7 @@ object ConflictCommitPlanner {
 
         val suggestion = if (candidates.size <= 1) "Resolve Codex conflicts" else "Resolve conflicts in ${candidates.size} files"
         val summary = when {
-            target == null -> "Target repo/branch is missing. Painkiller did not create a commit."
+            target == null -> "Target repo/branch is missing. GRID did not create a commit."
             candidates.isEmpty() -> "No resolved files are eligible for commit."
             blocked.isNotEmpty() -> "Blocked for safety: ${blocked.size} file(s) need review before commit."
             else -> "Review what will be committed. No push will happen automatically."

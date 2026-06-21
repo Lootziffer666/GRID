@@ -1,4 +1,4 @@
-# 🚪 GATES — PAINKILLER
+# 🚪 GATES — GRID
 
 ---
 

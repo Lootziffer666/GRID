@@ -41,7 +41,7 @@ object LargeFileDoctor {
             sizeBytes > MIB_100_BINARY -> SizeDiagnosis(
                 riskLevel = SizeRiskLevel.NORMAL_COMMIT_BLOCKED,
                 severity = DiagnosticSeverity.BLOCKED,
-                message = "This does not belong in a normal Git commit. Use Painkiller Git LFS (single-file) or Release Assets.",
+                message = "This does not belong in a normal Git commit. Use GRID Git LFS (single-file) or Release Assets.",
                 deferredRecommendations = listOf(
                     DeferredRecommendation.GIT_LFS,
                     DeferredRecommendation.RELEASE_ASSETS
@@ -52,7 +52,7 @@ object LargeFileDoctor {
             sizeBytes > MIB_50_BINARY -> SizeDiagnosis(
                 riskLevel = SizeRiskLevel.LARGE_REPO_RISK,
                 severity = DiagnosticSeverity.WARNING,
-                message = "GitHub recommends against normal repo files this large because they can make the repo heavy. Consider Painkiller Git LFS for single-file uploads.",
+                message = "GitHub recommends against normal repo files this large because they can make the repo heavy. Consider GRID Git LFS for single-file uploads.",
                 deferredRecommendations = listOf(
                     DeferredRecommendation.GIT_LFS,
                     DeferredRecommendation.RELEASE_ASSETS
@@ -62,7 +62,7 @@ object LargeFileDoctor {
             sizeBytes > MB_25_DECIMAL -> SizeDiagnosis(
                 riskLevel = SizeRiskLevel.WEB_UPLOAD_UNSUITABLE,
                 severity = DiagnosticSeverity.WARNING,
-                message = "GitHub web upload would be unsuitable or limited; Painkiller will continue checking hard limits."
+                message = "GitHub web upload would be unsuitable or limited; GRID will continue checking hard limits."
             )
 
             else -> SizeDiagnosis(

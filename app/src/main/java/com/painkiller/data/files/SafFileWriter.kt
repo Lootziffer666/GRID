@@ -23,7 +23,7 @@ class SafFileWriter(appContext: Context) : ConflictFileWriter {
             ConflictFileWriteOutcome.Success
         } catch (_: SecurityException) {
             ConflictFileWriteOutcome.Failure(
-                "Android did not allow Painkiller to write this file. Select it again with write permission.",
+                "Android did not allow GRID to write this file. Select it again with write permission.",
             )
         } catch (_: IOException) {
             ConflictFileWriteOutcome.Failure("Write failed while saving resolved content.")

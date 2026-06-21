@@ -34,7 +34,7 @@ import kotlinx.serialization.json.Json
  */
 internal object PainkillerHttpClient {
 
-    const val USER_AGENT = "Painkiller/0.1 (+https://github.com/lootziffer666/painkiller)"
+    const val USER_AGENT = "GRID/0.1 (+https://github.com/lootziffer666/painkiller)"
     const val API_VERSION = "2022-11-28"
     const val GITHUB_BASE_URL = "https://api.github.com"
 

@@ -5,7 +5,7 @@ Act as Claude Code in the role of a strict senior Android engineer and implement
 You are no longer doing open-ended architecture discovery.
 The architecture decision has already been made.
 
-Your job is to implement Painkiller in small, safe, gated steps with minimal, reviewable diffs.
+Your job is to implement GRID in small, safe, gated steps with minimal, reviewable diffs.
 
 Do not brainstorm.
 Do not redesign the product.
@@ -20,9 +20,9 @@ Do not implement GitHub Release Asset upload in v0.
 
 ### Project
 
-Project name: PAINKILLER
+Project name: GRID
 
-Painkiller is a focused Android tool that solves one mobile GitHub/Git pain:
+GRID is a focused Android tool that solves one mobile GitHub/Git pain:
 
 > “I have files/folders/ZIPs on my Android phone. I want them safely committed and pushed into a GitHub repository.”
 
@@ -60,8 +60,8 @@ Create and maintain these root files:
 
 - `README.md`
   - Fully detailed project README.
-  - Explain what Painkiller is.
-  - Explain what Painkiller is not.
+  - Explain what GRID is.
+  - Explain what GRID is not.
   - Explain current gate status.
   - Explain build/test instructions.
   - Explain known limitations.
@@ -182,7 +182,7 @@ Implement diagnosis logic:
 
 - File > 25 MB:
   - severity: WARNING
-  - message: GitHub web upload would be unsuitable or limited; Painkiller will continue checking hard limits.
+  - message: GitHub web upload would be unsuitable or limited; GRID will continue checking hard limits.
 
 - File > 50 MiB:
   - severity: WARNING
@@ -205,7 +205,7 @@ v0 does not implement real LFS upload or Release Asset publishing.
 
 ### UI Reference — CATALON-GUARD
 
-Painkiller should use a UI language similar to the Android app UI in:
+GRID should use a UI language similar to the Android app UI in:
 
 GitHub repository:
 
@@ -226,7 +226,7 @@ Relevant UI paths:
 - `presentation/ui/quota/`
 - `presentation/ui/settings/`
 
-Use these values directly as the initial Painkiller UI grammar.
+Use these values directly as the initial GRID UI grammar.
 
 #### CATALON-GUARD Color Tokens
 
@@ -242,7 +242,7 @@ Use or adapt these color tokens:
 - LightSurface: `#FFFFFF`
 - LightSurfaceVariant: `#F0F0F0`
 
-Painkiller mapping recommendation:
+GRID mapping recommendation:
 
 - Primary: RauschRed `#FF5A5F`
 - Secondary: BabuTeal `#00A699`
@@ -262,7 +262,7 @@ Use this shape grammar:
 - Medium corners: `12.dp`
 - Large corners: `24.dp`
 
-Painkiller mapping recommendation:
+GRID mapping recommendation:
 
 - Small: chips, badges, compact technical labels
 - Medium: cards, list items, warning/error containers
@@ -291,7 +291,7 @@ Useful patterns to reuse:
 - small Surface badges for status/provider-like information
 - FloatingActionButton only where it has one obvious primary action
 
-Painkiller-specific component candidates:
+GRID-specific component candidates:
 
 - PainkillerStatusBadge
 - PainkillerSeverityBadge
@@ -307,7 +307,7 @@ Painkiller-specific component candidates:
 
 Do not reuse:
 
-- Bottom navigation as default Painkiller structure
+- Bottom navigation as default GRID structure
 - Chat UI semantics
 - Provider dashboard semantics
 - Quota dashboard semantics
@@ -316,15 +316,15 @@ Do not reuse:
 - multi-tab app structure
 - dashboard surfaces unrelated to upload flow
 
-Painkiller is not a dashboard.
-Painkiller is not a tool suite.
-Painkiller is a focused upload-pain workflow.
+GRID is not a dashboard.
+GRID is not a tool suite.
+GRID is a focused upload-pain workflow.
 
-#### Painkiller UI Direction
+#### GRID UI Direction
 
-Painkiller should feel like a sibling tool to CATALON-GUARD, not a clone.
+GRID should feel like a sibling tool to CATALON-GUARD, not a clone.
 
-Painkiller must remain:
+GRID must remain:
 
 - mobile-first
 - touch-first
@@ -333,9 +333,9 @@ Painkiller must remain:
 - explicit-confirmation-first
 - safe-by-default
 
-Painkiller workflow always wins over visual similarity.
+GRID workflow always wins over visual similarity.
 
-Use CATALON-GUARD’s visual grammar to make Painkiller feel familiar:
+Use CATALON-GUARD’s visual grammar to make GRID feel familiar:
 
 - same color family
 - same rounded shape system
@@ -843,7 +843,7 @@ Implement diagnosis logic:
 
 - File > 25 MB:
   - severity: WARNING
-  - message: GitHub web upload would be unsuitable or limited; Painkiller will continue checking hard limits.
+  - message: GitHub web upload would be unsuitable or limited; GRID will continue checking hard limits.
 
 - File > 50 MiB:
   - severity: WARNING
@@ -866,7 +866,7 @@ v0 does not implement real LFS upload or Release Asset publishing.
 
 ### UI Reference — CATALON-GUARD
 
-Painkiller should use a UI language similar to the Android app UI in:
+GRID should use a UI language similar to the Android app UI in:
 
 GitHub repository:
 Lootziffer666/CATALON-GUARD
@@ -886,7 +886,7 @@ Relevant UI paths:
 - presentation/ui/quota/
 - presentation/ui/settings/
 
-Use these values directly as the initial Painkiller UI grammar.
+Use these values directly as the initial GRID UI grammar.
 
 #### CATALON-GUARD Color Tokens
 
@@ -902,7 +902,7 @@ Use or adapt these color tokens:
 - LightSurface: `#FFFFFF`
 - LightSurfaceVariant: `#F0F0F0`
 
-Painkiller mapping recommendation:
+GRID mapping recommendation:
 
 - Primary: RauschRed `#FF5A5F`
 - Secondary: BabuTeal `#00A699`
@@ -922,7 +922,7 @@ Use this shape grammar:
 - Medium corners: `12.dp`
 - Large corners: `24.dp`
 
-Painkiller mapping recommendation:
+GRID mapping recommendation:
 
 - Small: chips, badges, compact technical labels
 - Medium: cards, list items, warning/error containers
@@ -951,7 +951,7 @@ Useful patterns to reuse:
 - small Surface badges for status/provider-like information
 - FloatingActionButton only where it has one obvious primary action
 
-Painkiller-specific component candidates:
+GRID-specific component candidates:
 
 - PainkillerStatusBadge
 - PainkillerSeverityBadge
@@ -967,7 +967,7 @@ Painkiller-specific component candidates:
 
 Do not reuse:
 
-- Bottom navigation as default Painkiller structure
+- Bottom navigation as default GRID structure
 - Chat UI semantics
 - Provider dashboard semantics
 - Quota dashboard semantics
@@ -976,15 +976,15 @@ Do not reuse:
 - multi-tab app structure
 - dashboard surfaces unrelated to upload flow
 
-Painkiller is not a dashboard.
-Painkiller is not a tool suite.
-Painkiller is a focused upload-pain workflow.
+GRID is not a dashboard.
+GRID is not a tool suite.
+GRID is a focused upload-pain workflow.
 
-#### Painkiller UI Direction
+#### GRID UI Direction
 
-Painkiller should feel like a sibling tool to CATALON-GUARD, not a clone.
+GRID should feel like a sibling tool to CATALON-GUARD, not a clone.
 
-Painkiller must remain:
+GRID must remain:
 
 - mobile-first
 - touch-first
@@ -993,9 +993,9 @@ Painkiller must remain:
 - explicit-confirmation-first
 - safe-by-default
 
-Painkiller workflow always wins over visual similarity.
+GRID workflow always wins over visual similarity.
 
-Use CATALON-GUARD’s visual grammar to make Painkiller feel familiar:
+Use CATALON-GUARD’s visual grammar to make GRID feel familiar:
 - same color family
 - same rounded shape system
 - same technical card/status surface feel

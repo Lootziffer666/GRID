@@ -201,8 +201,8 @@ object ConflictReviewPreviewPlanner {
 
         val summary = when {
             session.totalCollisions == 0 -> "No collisions available for card review."
-            malformedCount > 0 -> "Malformed collisions detected. Painkiller did not write any files."
-            manualCount > 0 -> "$manualCount collisions still need a decision. Painkiller did not write any files."
+            malformedCount > 0 -> "Malformed collisions detected. GRID did not write any files."
+            manualCount > 0 -> "$manualCount collisions still need a decision. GRID did not write any files."
             else -> "Collision preview generated from card decisions. Nothing is written yet."
         }
 
