@@ -1,0 +1,7 @@
+{
+  "task_id": "task-gate0-core-shell",
+  "task_description": "Implement Gate 0 for GRID: restructure from monolithic Painkiller app to modular Split-APK architecture. Rename to GRID, introduce Module Registry + Crash Boundary + Config Loader in :shared, create :feature:import dynamic feature module, move all feature code from :app to :feature:import, leave :app as pure shell.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}

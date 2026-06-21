@@ -20,7 +20,9 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Painkiller"
+rootProject.name = "GRID"
 
 include(":app")
 include(":domain")
+include(":shared")
+include(":feature:import")
