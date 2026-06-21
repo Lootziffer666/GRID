@@ -16,6 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
@@ -32,6 +34,9 @@ private const val ROUTE_HOME = "home"
  *
  * Shows a home screen listing registered feature modules. Feature-specific
  * routes are loaded dynamically from registered modules in later gates.
+ *
+ * Reactively observes [ModuleRegistry.activeModules] so the UI recomposes
+ * whenever modules are registered or disabled at runtime.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +47,8 @@ fun GridNavGraph(
     modifier: Modifier = Modifier,
 ) {
     val navController = rememberNavController()
+    val activeModules by container.moduleRegistry.activeModules.collectAsState()
+    val disabledModules by container.moduleRegistry.disabledModules.collectAsState()
 
     NavHost(
         navController = navController,
@@ -73,7 +80,6 @@ fun GridNavGraph(
                         text = "Registered Modules",
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    val activeModules = container.moduleRegistry.listActive()
                     if (activeModules.isEmpty()) {
                         Text(
                             text = "No feature modules registered yet.",
@@ -107,7 +113,6 @@ fun GridNavGraph(
                         }
                     }
 
-                    val disabledModules = container.moduleRegistry.listDisabled()
                     if (disabledModules.isNotEmpty()) {
                         Text(
                             text = "Disabled Modules",

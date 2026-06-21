@@ -65,5 +65,5 @@
     "Verify shared/src/test/kotlin/com/grid/shared/registry/ModuleRegistryTest.kt and CrashBoundaryTest.kt exist with meaningful test logic"
   ],
   "blocked_reason": null,
-  "findings": "No Android SDK available so build/test verification could not be run. All changes are structural and syntax-verified. The domain module stays at com.painkiller.domain package as planned. The version catalog uses android-dynamic-feature plugin entry (AGP 8.7.3). CI will be the authoritative build verifier."
+  "findings": "No Android SDK available so build/test verification could not be run. All changes are structural and syntax-verified. The domain module stays at com.painkiller.domain package as planned. The version catalog uses android-dynamic-feature plugin entry (AGP 8.7.3). CI will be the authoritative build verifier. Review fixes applied: TemplateRegistry atomic swap, ModuleRegistry StateFlow, reactive NavGraph, ServiceLoader-based discovery in GridApplication, ConfigLoader Result return type. XML resource rename (issue #5) deferred as cosmetic only."
 }

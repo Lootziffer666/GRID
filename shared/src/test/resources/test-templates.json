@@ -1,0 +1,12 @@
+[
+  {
+    "id": "template-1",
+    "displayName": "Test Template 1",
+    "description": "First test template"
+  },
+  {
+    "id": "template-2",
+    "displayName": "Test Template 2",
+    "description": "Second test template"
+  }
+]
