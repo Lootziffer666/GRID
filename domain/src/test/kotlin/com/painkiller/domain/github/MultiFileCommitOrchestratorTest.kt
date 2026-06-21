@@ -402,6 +402,16 @@ private class MultiFakeApi(
         )
     }
 
+    override suspend fun getTree(
+        owner: String,
+        repo: String,
+        treeSha: String,
+        recursive: Boolean,
+    ): CreateTreeResponse {
+        calls += "getTree"
+        return CreateTreeResponse(sha = treeSha, tree = emptyList(), truncated = false)
+    }
+
     override suspend fun createBlob(
         owner: String,
         repo: String,

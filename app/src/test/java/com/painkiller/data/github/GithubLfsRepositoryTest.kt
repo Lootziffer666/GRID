@@ -119,6 +119,9 @@ class GithubLfsRepositoryTest {
         override suspend fun getCommit(owner: String, repo: String, commitSha: String): GitCommit =
             GitCommit(sha = "base", message = "m", tree = GitTreeRef("tree"))
 
+        override suspend fun getTree(owner: String, repo: String, treeSha: String, recursive: Boolean): CreateTreeResponse =
+            CreateTreeResponse(sha = treeSha, tree = emptyList(), truncated = false)
+
         override suspend fun createBlob(owner: String, repo: String, request: CreateBlobRequest): CreateBlobResponse =
             CreateBlobResponse("blob")
 

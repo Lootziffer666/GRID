@@ -17,6 +17,13 @@ interface GithubGitDataApi {
 
     suspend fun getCommit(owner: String, repo: String, commitSha: String): GitCommit
 
+    suspend fun getTree(
+        owner: String,
+        repo: String,
+        treeSha: String,
+        recursive: Boolean = false,
+    ): CreateTreeResponse
+
     suspend fun createBlob(
         owner: String,
         repo: String,

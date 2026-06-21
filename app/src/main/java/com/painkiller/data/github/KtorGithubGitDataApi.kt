@@ -79,6 +79,18 @@ class KtorGithubGitDataApi(
             }
         }
 
+    override suspend fun getTree(
+        owner: String,
+        repo: String,
+        treeSha: String,
+        recursive: Boolean,
+    ): CreateTreeResponse = execute {
+        val recursiveParam = if (recursive) "?recursive=1" else ""
+        client.get("$baseUrl/repos/$owner/$repo/git/trees/$treeSha$recursiveParam") {
+            withBearer(requireToken())
+        }
+    }
+
     override suspend fun createBlob(
         owner: String,
         repo: String,
