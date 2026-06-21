@@ -15,6 +15,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -85,9 +86,9 @@ class KtorGithubGitDataApi(
         treeSha: String,
         recursive: Boolean,
     ): CreateTreeResponse = execute {
-        val recursiveParam = if (recursive) "?recursive=1" else ""
-        client.get("$baseUrl/repos/$owner/$repo/git/trees/$treeSha$recursiveParam") {
+        client.get("$baseUrl/repos/$owner/$repo/git/trees/$treeSha") {
             withBearer(requireToken())
+            if (recursive) parameter("recursive", "1")
         }
     }
 

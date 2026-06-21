@@ -1,7 +1,6 @@
 package com.painkiller.ui.repotree
 
 import android.net.Uri
-import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -19,6 +18,7 @@ import com.painkiller.domain.github.PendingChange
 import com.painkiller.domain.github.PendingChangeType
 import com.painkiller.domain.github.RepoTreeResult
 import com.painkiller.domain.github.TreeEntry
+import com.painkiller.domain.path.PathValidation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -136,6 +136,7 @@ class RepoTreeViewModel(
                 is RepoTreeLoadResult.Success -> _state.update {
                     it.copy(
                         treeEntries = result.entries,
+                        treeTruncated = result.truncated,
                         isLoadingTree = false,
                         currentPath = "",
                     )
@@ -186,6 +187,10 @@ class RepoTreeViewModel(
     }
 
     fun addNewFolder(folderName: String) {
+        if (!PathValidation.isSafeRepoPath(folderName) || folderName.isBlank()) {
+            _state.update { it.copy(errorMessage = "Invalid folder name: '$folderName'.") }
+            return
+        }
         val current = _state.value.currentPath
         val fullPath = if (current.isEmpty()) folderName else "$current/$folderName"
         addPendingChange(
@@ -208,6 +213,10 @@ class RepoTreeViewModel(
     }
 
     fun renameFile(oldPath: String, newName: String) {
+        if (!PathValidation.isSafeRepoPath(newName) || newName.isBlank()) {
+            _state.update { it.copy(errorMessage = "Invalid name: '$newName'.") }
+            return
+        }
         val parentDir = oldPath.substringBeforeLast('/', "")
         val newPath = if (parentDir.isEmpty()) newName else "$parentDir/$newName"
         addPendingChange(
@@ -220,6 +229,10 @@ class RepoTreeViewModel(
     }
 
     fun moveFile(oldPath: String, newFolder: String) {
+        if (!PathValidation.isSafeRepoPath(newFolder)) {
+            _state.update { it.copy(errorMessage = "Invalid target folder: '$newFolder'.") }
+            return
+        }
         val fileName = oldPath.substringAfterLast('/')
         val newPath = if (newFolder.isEmpty()) fileName else "$newFolder/$fileName"
         addPendingChange(
@@ -300,16 +313,19 @@ class RepoTreeViewModel(
                 changes = s.pendingChanges,
             )
             when (result) {
-                is RepoTreeResult.Success -> _state.update {
-                    it.copy(
-                        isCommitting = false,
-                        commitResult = CommitResultInfo(
-                            sha = result.commitSha,
-                            url = result.commitUrl,
-                            summary = result.summary,
-                        ),
-                        pendingChanges = emptyList(),
-                    )
+                is RepoTreeResult.Success -> {
+                    _state.update {
+                        it.copy(
+                            isCommitting = false,
+                            commitResult = CommitResultInfo(
+                                sha = result.commitSha,
+                                url = result.commitUrl,
+                                summary = result.summary,
+                            ),
+                            pendingChanges = emptyList(),
+                        )
+                    }
+                    loadTree()
                 }
 
                 is RepoTreeResult.Failure -> _state.update {
@@ -356,6 +372,7 @@ data class RepoTreeUiState(
     val repositories: List<GithubRepositorySummary> = emptyList(),
     val branches: List<GithubBranchSummary> = emptyList(),
     val treeEntries: List<TreeEntry> = emptyList(),
+    val treeTruncated: Boolean = false,
     val currentPath: String = "",
     val pendingChanges: List<PendingChange> = emptyList(),
     val isLoadingRepos: Boolean = false,

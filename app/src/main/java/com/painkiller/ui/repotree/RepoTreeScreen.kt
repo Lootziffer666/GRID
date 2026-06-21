@@ -232,6 +232,17 @@ fun RepoTreeScreen(
             }
 
             if (state.hasTree) {
+                if (state.treeTruncated) {
+                    item {
+                        Text(
+                            text = "Hinweis: Der Verzeichnisbaum ist zu gross und wurde abgeschnitten. Einige Dateien oder Ordner werden moeglicherweise nicht angezeigt.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = PainkillerSpacing.xs),
+                        )
+                    }
+                }
+
                 // Show virtual folders (from tree entries that are subdirectories)
                 val folders = state.currentLevelEntries
                     .filter { it.type == TreeEntry.TYPE_TREE }
